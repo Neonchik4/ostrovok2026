@@ -1,0 +1,18 @@
+{
+  "name": "ostrovok2026",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-агент для умного поиска и бронирования отелей (О!Хакатон 2026 — Трек №2)",
+  "scripts": {
+    "dev": "concurrently -n \"front,back\" -c \"cyan,magenta\" \"npm --prefix frontend run dev\" \"npm --prefix backend run dev\"",
+    "dev:static-back": "concurrently -n \"front,back\" -c \"cyan,magenta\" \"npm --prefix frontend run dev\" \"npm --prefix backend run start\"",
+    "dev:front": "npm --prefix frontend run dev",
+    "dev:back": "npm --prefix backend run dev",
+    "lint": "npm --prefix frontend run lint && npm --prefix backend run lint",
+    "test": "npm --prefix frontend run test && npm --prefix backend run test",
+    "build": "npm --prefix frontend run build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  }
+}

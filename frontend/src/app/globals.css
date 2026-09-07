@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Swiss Dark Minimalist Palette (Figma Approved) */
+    --background: 228 13% 6%;          /* #0D0E11 */
+    --foreground: 231 11% 96%;         /* #F4F4F6 */
+    
+    --card: 223 12% 10%;               /* #16181D */
+    --card-foreground: 231 11% 96%;
+    
+    --popover: 223 12% 10%;
+    --popover-foreground: 231 11% 96%;
+    
+    --primary: 171 77% 51%;            /* #2DD4BF - Teal Accent */
+    --primary-foreground: 228 13% 6%;
+    
+    --secondary: 224 15% 15%;
+    --secondary-foreground: 231 11% 96%;
+    
+    --muted: 224 15% 14%;
+    --muted-foreground: 227 7% 59%;    /* #8E92A0 */
+    
+    --accent: 171 77% 51%;
+    --accent-foreground: 228 13% 6%;
+    
+    --destructive: 0 62% 40%;
+    --destructive-foreground: 231 11% 96%;
+    
+    --border: 224 15% 17%;             /* 1px #242731 */
+    --input: 224 15% 17%;
+    --ring: 171 77% 51%;
+    
+    --radius: 0.5rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}

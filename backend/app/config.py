@@ -1,0 +1,40 @@
+import os
+from pathlib import Path
+from pydantic import BaseModel, Field
+
+class Settings(BaseModel):
+    PROJECT_NAME: str = "Ostrovok Travel AI Agent"
+    VERSION: str = "1.0.0"
+    API_PREFIX: str = "/api"
+    HOST: str = Field(default_factory=lambda: os.getenv("HOST", "127.0.0.1"))
+    PORT: int = Field(default_factory=lambda: int(os.getenv("PORT", "8000")))
+    
+    # AI Studio / Gemini Key
+    GEMINI_API_KEY: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
+    PRIMARY_MODEL: str = "gemini-2.0-flash"
+    FALLBACK_MODEL: str = "gemini-1.5-flash-8b"
+    
+    # Dataset & Vector DB Paths
+    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
+    DATASET_PATH: str = Field(default_factory=lambda: os.getenv("DATASET_PATH", str(Path(__file__).resolve().parent.parent.parent / "outputs" / "hotels_dataset.json")))
+    CHROMA_DB_PATH: str = Field(default_factory=lambda: os.getenv("CHROMA_DB_PATH", str(Path(__file__).resolve().parent.parent.parent / "outputs" / "chroma_db_v2")))
+
+settings = Settings()
+
+# Автоматический fallback: если ключ не задан в .env, проверяем gemini_api.txt
+if not settings.GEMINI_API_KEY:
+    txt_candidates = [
+        settings.BASE_DIR / "gemini_api.txt",
+        Path("gemini_api.txt"),
+        Path("../gemini_api.txt")
+    ]
+    for p in txt_candidates:
+        if p.exists():
+            try:
+                with open(p, "r", encoding="utf-8") as f:
+                    key = f.read().strip()
+                    if key:
+                        settings.GEMINI_API_KEY = key
+                        break
+            except Exception:
+                pass
