@@ -19,7 +19,7 @@ export function BookRoomModal({ hotel, onClose }: BookRoomModalProps) {
   const receipt = hotel.receipt;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-fade-in">
       <Card className="w-full max-w-lg bg-card border-border shadow-2xl overflow-hidden p-6 relative">
         <button
           onClick={onClose}

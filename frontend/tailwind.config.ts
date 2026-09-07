@@ -50,6 +50,25 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
       },
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0", transform: "translateX(-6px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "wave-bar": {
+          "0%, 100%": { transform: "scaleY(0.3)" },
+          "50%": { transform: "scaleY(1.0)" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 0.3s ease-out forwards",
+        "wave-1": "wave-bar 0.7s ease-in-out infinite 0.1s",
+        "wave-2": "wave-bar 0.7s ease-in-out infinite 0.3s",
+        "wave-3": "wave-bar 0.7s ease-in-out infinite 0.15s",
+        "wave-4": "wave-bar 0.7s ease-in-out infinite 0.45s",
+        "wave-5": "wave-bar 0.7s ease-in-out infinite 0.25s",
+      },
+
     },
   },
   plugins: [],

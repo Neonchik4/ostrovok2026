@@ -94,7 +94,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
         id: `user-${Date.now()}`,
         role: "user",
         content: queryOptions?.disambiguation
-          ? `${trimmed || "Уточнение"}: ${queryOptions.disambiguation}`
+          ? queryOptions.disambiguation
           : trimmed,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
@@ -115,8 +115,10 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
 
       setMessages((prev) => [...prev, userMsg, placeholderAssistantMsg]);
       setThoughts([]);
+      setChips([]); // ← сброс старых чипсов при новом запросе
       setError(null);
       setIsStreaming(true);
+
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -129,7 +131,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
             Accept: "text/event-stream",
           },
           body: JSON.stringify({
-            message: trimmed || queryOptions?.disambiguation || "",
+            message: trimmed,
             disambiguation_selection: queryOptions?.disambiguation,
             nights: queryOptions?.nights ?? 2,
             guests: queryOptions?.guests ?? 2,
@@ -179,10 +181,18 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
               const data = JSON.parse(dataStr);
 
               if (eventType === "thought") {
-                setThoughts((prev) => [
-                  ...prev,
-                  { step: data.step || "thought", text: data.text || "" },
-                ]);
+                const step = data.step || "thought";
+                const text = data.text || "";
+                setThoughts((prev) => {
+                  const last = prev[prev.length - 1];
+                  if (step === "reasoning" && last?.step === "reasoning") {
+                    return [
+                      ...prev.slice(0, -1),
+                      { ...last, text: last.text + text },
+                    ];
+                  }
+                  return [...prev, { step, text }];
+                });
               } else if (eventType === "token") {
                 setMessages((prev) =>
                   prev.map((m) =>

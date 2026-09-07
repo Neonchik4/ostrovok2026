@@ -46,45 +46,70 @@ interface IWindowWithSpeech extends Window {
 }
 
 export function useVoiceInput(onTranscript?: (text: string) => void) {
-  const [isListening, setIsListening] = useState(false);
+  // Начинаем с false — одинаково и на сервере, и при hydration.
+  // После монтирования useEffect поставит реальное значение.
+  // Это единственный корректный паттерн для browser-only API в Next.js SSR.
   const [isSupported, setIsSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
+
+  // onTranscript в ref — не попадает в зависимости useEffect
+  const onTranscriptRef = useRef(onTranscript);
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
+
   const recognitionRef = useRef<ISpeechRecognitionInstance | null>(null);
 
+  // Создаём Recognition ровно один раз после монтирования — deps: []
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const windowWithSpeech = window as unknown as IWindowWithSpeech;
-      const SpeechRecognitionConstructor =
-        windowWithSpeech.SpeechRecognition ||
-        windowWithSpeech.webkitSpeechRecognition;
+    if (typeof window === "undefined") return;
 
-      if (SpeechRecognitionConstructor) {
-        setIsSupported(true);
-        const recognition = new SpeechRecognitionConstructor();
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        recognition.lang = "ru-RU";
+    const w = window as unknown as IWindowWithSpeech;
+    const Constructor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
+    if (!Constructor) return;
 
-        recognition.onresult = (event: SpeechRecognitionEvent) => {
-          const current = event.resultIndex;
-          const transcript = event.results[current][0].transcript;
-          if (event.results[current].isFinal) {
-            onTranscript?.(transcript);
-          }
-        };
+    setIsSupported(true);
 
-        recognition.onend = () => {
-          setIsListening(false);
-        };
+    const recognition = new Constructor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "ru-RU";
 
-        recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-          console.warn("Speech recognition error:", event.error);
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recognition;
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const item = event.results[i];
+        if (item.isFinal) {
+          onTranscriptRef.current?.(item[0].transcript);
+          setInterimTranscript("");
+        } else {
+          interim += item[0].transcript;
+        }
       }
-    }
-  }, [onTranscript]);
+      if (interim) {
+        setInterimTranscript(interim);
+      }
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      setInterimTranscript("");
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.warn("Speech recognition error:", event.error);
+      setIsListening(false);
+      setInterimTranscript("");
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.abort();
+      recognitionRef.current = null;
+    };
+  }, []); // ← пустые зависимости: один раз при монтировании
 
   const toggleListening = useCallback(() => {
     if (!recognitionRef.current) return;
@@ -92,8 +117,10 @@ export function useVoiceInput(onTranscript?: (text: string) => void) {
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);
+      setInterimTranscript("");
     } else {
       try {
+        setInterimTranscript("");
         recognitionRef.current.start();
         setIsListening(true);
       } catch (err) {
@@ -105,6 +132,8 @@ export function useVoiceInput(onTranscript?: (text: string) => void) {
   return {
     isListening,
     isSupported,
+    interimTranscript,
     toggleListening,
   };
 }
+
