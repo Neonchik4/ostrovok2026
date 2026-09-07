@@ -47,12 +47,12 @@ interface IWindowWithSpeech extends Window {
   webkitSpeechRecognition?: new () => ISpeechRecognitionInstance;
 }
 
-// Задержка тишины после последнего НОВОГО слова до автоотключения (мс)
-const SILENCE_AFTER_SPEECH_MS = 800;
-// Быстрая фиксация при сигнале окончания речи от браузера (мс)
-const SPEECH_END_GRACE_MS = 200;
+// Задержка тишины после последнего НОВОГО слова до автоотключения (мс) — даем 2 секунды спокойно договорить
+const SILENCE_AFTER_SPEECH_MS = 2000;
+// Задержка фиксации при сигнале окончания речи/звука от браузера (мс)
+const SPEECH_END_GRACE_MS = 1500;
 // Таймаут на случай, если пользователь включил микрофон и ничего не сказал (мс)
-const NO_SPEECH_TIMEOUT_MS = 6000;
+const NO_SPEECH_TIMEOUT_MS = 10000;
 
 export function useVoiceInput(onTranscript?: (text: string) => void) {
   const [isSupported, setIsSupported] = useState(false);
@@ -145,7 +145,7 @@ export function useVoiceInput(onTranscript?: (text: string) => void) {
     stopListening();
 
     const recognition = new Constructor();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = "ru-RU";
 
@@ -167,15 +167,11 @@ export function useVoiceInput(onTranscript?: (text: string) => void) {
       }
 
       let accumulated = "";
-      let hasFinal = false;
 
       for (let i = 0; i < event.results.length; i++) {
         const item = event.results[i];
         if (item && item[0]) {
           accumulated += item[0].transcript;
-          if (item.isFinal) {
-            hasFinal = true;
-          }
         }
       }
 
@@ -185,15 +181,9 @@ export function useVoiceInput(onTranscript?: (text: string) => void) {
         setInterimTranscript(trimmed);
       }
 
-      // 1. Если движок браузера пометил результат как финальный — сразу завершаем ввод и отключаем микрофон
-      if (hasFinal && trimmed) {
-        commitAndStop(trimmed);
-        return;
-      }
-
-      // 2. Детекция паузы в речи:
-      // Перезапускаем таймер тишины ТОЛЬКО если текст изменился (появились новые слова).
-      // Если браузер спамит дублирующимися interim-событиями с тем же текстом — не сбрасываем таймер!
+      // Детекция паузы в речи:
+      // Перезапускаем таймер тишины (2 секунды) ТОЛЬКО если текст изменился (появились новые слова).
+      // Если браузер шлет повторные interim-события с тем же текстом — таймер продолжает отсчет.
       if (trimmed && trimmed !== lastRecordedTextRef.current) {
         lastRecordedTextRef.current = trimmed;
         if (silenceTimerRef.current) {
