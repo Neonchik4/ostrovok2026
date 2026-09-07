@@ -44,20 +44,20 @@ export function BookRoomModal({ hotel, onClose }: BookRoomModalProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             <div>
-              <div className="inline-flex items-center gap-1.5 text-xs text-primary font-medium mb-1">
-                <Sparkles className="h-3.5 w-3.5" />
+              <div className="inline-flex items-center gap-1.5 text-xs text-primary font-bold uppercase tracking-wider mb-1">
+                <Sparkles className="h-4 w-4" />
                 <span>Гарантия лучшей цены Островок</span>
               </div>
-              <h3 className="text-lg font-bold text-foreground">{hotel.name}</h3>
-              <p className="text-xs text-muted-foreground">{hotel.city}, {hotel.address || hotel.area}</p>
+              <h3 className="text-2xl font-black text-foreground">{hotel.name}</h3>
+              <p className="text-sm text-muted-foreground font-medium">{hotel.city}, {hotel.address || hotel.area}</p>
             </div>
 
             {hotel.suitable_room && (
-              <div className="rounded-lg border border-border bg-background/50 p-3 text-sm space-y-1">
-                <div className="font-semibold text-foreground">{hotel.suitable_room.name}</div>
-                <div className="text-xs text-muted-foreground">
+              <div className="rounded-xl border border-border bg-background/60 p-4 text-base space-y-1">
+                <div className="font-bold text-foreground text-base">{hotel.suitable_room.name}</div>
+                <div className="text-sm text-muted-foreground">
                   {hotel.suitable_room.bed_setup}
                   {hotel.suitable_room.area_sqm ? ` • ${hotel.suitable_room.area_sqm} м²` : ""}
                 </div>
@@ -65,45 +65,45 @@ export function BookRoomModal({ hotel, onClose }: BookRoomModalProps) {
             )}
 
             {receipt && (
-              <div className="rounded-lg border border-border bg-background/70 p-3.5 text-xs space-y-2">
-                <div className="font-medium text-foreground border-b border-border pb-1.5">
+              <div className="rounded-xl border border-border bg-background/80 p-4 text-sm space-y-2.5">
+                <div className="font-semibold text-foreground border-b border-border pb-2 text-sm">
                   Прозрачный расчет чека без скрытых комиссий:
                 </div>
-                <div className="space-y-1 text-muted-foreground">
+                <div className="space-y-1.5 text-muted-foreground">
                   <div className="flex justify-between">
                     <span>{receipt.nights} ночи × {formatPrice(receipt.price_per_night_rub)}:</span>
-                    <span className="text-foreground">{formatPrice(receipt.base_accommodation_cost_rub)}</span>
+                    <span className="text-foreground font-semibold">{formatPrice(receipt.base_accommodation_cost_rub)}</span>
                   </div>
                   {receipt.pet_deposit_rub > 0 && (
                     <div className="flex justify-between">
                       <span>Сбор и залог за питомца:</span>
-                      <span className="text-foreground">{formatPrice(receipt.pet_deposit_rub)}</span>
+                      <span className="text-foreground font-semibold">{formatPrice(receipt.pet_deposit_rub)}</span>
                     </div>
                   )}
                   <div className="flex justify-between">
                     <span>Курортный сбор:</span>
-                    <span className="text-foreground">{formatPrice(receipt.resort_tax_rub)}</span>
+                    <span className="text-foreground font-semibold">{formatPrice(receipt.resort_tax_rub)}</span>
                   </div>
                 </div>
-                <div className="flex justify-between items-center pt-2 border-t border-border text-sm font-bold text-foreground">
+                <div className="flex justify-between items-center pt-2.5 border-t border-border text-base font-bold text-foreground">
                   <span>Итого к оплате:</span>
-                  <span className="text-primary text-base">{formatPrice(receipt.total_rub)}</span>
+                  <span className="text-primary text-xl font-black">{formatPrice(receipt.total_rub)}</span>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-xs text-emerald-400">
-              <ShieldCheck className="h-4 w-4 shrink-0" />
+            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+              <ShieldCheck className="h-5 w-5 shrink-0" />
               <span>{receipt?.cancellation_deadline || "Бесплатная отмена бронирования"}</span>
             </div>
 
-            <div className="pt-2 flex gap-3">
-              <Button variant="outline" onClick={onClose} className="flex-1">
+            <div className="pt-3 flex gap-3">
+              <Button variant="outline" onClick={onClose} className="flex-1 h-12 text-base font-semibold rounded-xl">
                 Отмена
               </Button>
               <Button
                 onClick={() => setIsBooked(true)}
-                className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                className="flex-1 h-12 text-base bg-primary text-primary-foreground hover:bg-primary/90 font-bold rounded-xl shadow-lg"
               >
                 Подтвердить
               </Button>

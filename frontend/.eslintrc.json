@@ -1,7 +1,17 @@
 {
   "extends": ["next/core-web-vitals"],
+  "ignorePatterns": [
+    ".next/",
+    "node_modules/",
+    "next.config.mjs",
+    "postcss.config.mjs",
+    "tailwind.config.ts"
+  ],
   "plugins": ["boundaries"],
   "settings": {
+    "next": {
+      "rootDir": ["./", "frontend/"]
+    },
     "boundaries/include": ["src/**/*"],
     "boundaries/elements": [
       { "type": "app", "pattern": "src/app/**", "partialMatch": false },

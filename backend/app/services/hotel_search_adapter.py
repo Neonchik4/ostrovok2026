@@ -1,15 +1,20 @@
 import json
 import os
 import asyncio
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Optional, TYPE_CHECKING
 from ..config import settings
-from ..schemas.chat import ExtractedSlots, HotelCardWidget, ReceiptBreakdown
+from ..schemas.chat import ExtractedSlots, HotelCardWidget
+from ..schemas.hotel_models import HotelFullSchema, RoomType
 from .receipt_calc import calculate_receipt
 
-_hotels_dataset: List[Dict[str, Any]] = []
-_hotels_by_id: Dict[str, Dict[str, Any]] = {}
-_chroma_collection = None
-_embedding_model = None
+if TYPE_CHECKING:
+    from chromadb.api.models.Collection import Collection
+    from sentence_transformers import SentenceTransformer
+
+_hotels_dataset: List[HotelFullSchema] = []
+_hotels_by_id: Dict[str, HotelFullSchema] = {}
+_chroma_collection: Optional["Collection"] = None
+_embedding_model: Optional["SentenceTransformer"] = None
 
 def init_dataset() -> None:
     global _hotels_dataset, _hotels_by_id
@@ -23,8 +28,9 @@ def init_dataset() -> None:
         for p in candidates:
             if os.path.exists(p):
                 with open(p, "r", encoding="utf-8") as f:
-                    _hotels_dataset = json.load(f)
-                    _hotels_by_id = {h["id"]: h for h in _hotels_dataset}
+                    raw_data = json.load(f)
+                    _hotels_dataset = [HotelFullSchema.model_validate(h) for h in raw_data]
+                    _hotels_by_id = {h.id: h for h in _hotels_dataset}
                 print(f"[Dataset] Загружено {len(_hotels_dataset)} отелей из {p}")
                 break
 
@@ -86,7 +92,10 @@ async def search_hotels_unified(slots: ExtractedSlots) -> List[HotelCardWidget]:
     return _search_in_memory(slots)
 
 async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
-    clauses = []
+    if _chroma_collection is None or _embedding_model is None:
+        return []
+
+    clauses: List[Dict[str, Dict[str, str | int | float]]] = []
     if slots.city:
         clauses.append({"city": {"$eq": slots.city}})
     if slots.area_type:
@@ -112,19 +121,29 @@ async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
     query_text = slots.semantic_query or slots.city or "отель отдых"
     query_emb = await asyncio.to_thread(_embedding_model.encode, [query_text])
     
-    kwargs = {
-        "query_embeddings": query_emb.tolist(),
+    kwargs: Dict[str, object] = {
+        "query_embeddings": query_emb.tolist(), # type: ignore
         "n_results": min(10, _chroma_collection.count()),
         "include": ["metadatas", "documents", "distances"]
     }
     if where:
         kwargs["where"] = where
         
-    res = _chroma_collection.query(**kwargs)
+    res = _chroma_collection.query(**kwargs) # type: ignore
     
-    results = []
-    for i, (meta, doc, dist) in enumerate(zip(res["metadatas"][0], res["documents"][0], res["distances"][0])):
-        hotel_id = res["ids"][0][i]
+    results: List[HotelCardWidget] = []
+    raw_metadatas = res.get("metadatas")
+    raw_distances = res.get("distances")
+    raw_ids = res.get("ids")
+    if not raw_metadatas or not raw_distances or not raw_ids:
+        return results
+
+    metadatas = raw_metadatas[0]
+    distances = raw_distances[0]
+    ids = raw_ids[0]
+
+    for i, (meta, dist) in enumerate(zip(metadatas, distances)):
+        hotel_id = ids[i]
         hotel = _hotels_by_id.get(hotel_id)
         if not hotel:
             continue
@@ -134,89 +153,88 @@ async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
     return results[:6]
 
 def _search_in_memory(slots: ExtractedSlots) -> List[HotelCardWidget]:
-    scored_hotels = []
+    scored_hotels: List[tuple[float, HotelFullSchema]] = []
     
     for h in _hotels_dataset:
         score = 0.5
         
         # Строгая фильтрация по городу при наличии
         if slots.city:
-            if slots.city.lower() not in h["city"].lower():
+            if slots.city.lower() not in h.city.lower():
                 continue
             score += 0.2
             
         # Фильтры
-        if slots.stars and h["stars"] >= slots.stars:
+        if slots.stars and h.stars >= slots.stars:
             score += 0.1
-        if slots.min_rating and h["rating"] >= slots.min_rating:
+        if slots.min_rating and h.rating >= slots.min_rating:
             score += 0.1
-        if slots.max_price_per_night_rub and h["min_price_per_night_rub"] <= slots.max_price_per_night_rub:
+        if slots.max_price_per_night_rub and h.min_price_per_night_rub <= slots.max_price_per_night_rub:
             score += 0.1
             
-        amenities = h.get("amenities", {})
         if slots.pet_friendly:
-            if not amenities.get("pet_friendly", False):
+            if not h.amenities.pet_friendly:
                 continue
             score += 0.15
             
         if slots.heated_pool:
-            if not amenities.get("heated_pool", False):
+            if not h.amenities.heated_pool:
                 continue
             score += 0.1
             
-        if slots.spa and amenities.get("spa", False):
+        if slots.spa and h.amenities.spa:
             score += 0.05
             
-        if slots.breakfast_included and amenities.get("breakfast_included_available", False):
+        if slots.breakfast_included and h.amenities.breakfast_included_available:
             score += 0.05
 
         # Семантическое совпадение по описанию и тегам
         q_words = (slots.semantic_query or "").lower().split()
-        tag_match = sum(1 for w in q_words if any(w in t.lower() for t in h.get("tags", [])))
+        tag_match = sum(1 for w in q_words if any(w in t.lower() for t in h.tags))
         score += min(0.15, tag_match * 0.05)
         
         scored_hotels.append((min(0.99, round(score, 2)), h))
         
     scored_hotels.sort(key=lambda x: x[0], reverse=True)
     
-    cards = []
+    cards: List[HotelCardWidget] = []
     for score, h in scored_hotels[:6]:
         cards.append(_build_hotel_card(h, score, slots))
     return cards
 
-def _build_hotel_card(hotel: Dict[str, Any], score: float, slots: ExtractedSlots) -> HotelCardWidget:
-    rooms = hotel.get("room_types", [])
+def _build_hotel_card(hotel: HotelFullSchema, score: float, slots: ExtractedSlots) -> HotelCardWidget:
+    rooms = hotel.room_types
     guests = slots.guests_count or 2
     nights = slots.nights or 2
     pets = 1 if slots.pet_friendly else 0
     
     suitable_rooms = [
         r for r in rooms 
-        if r.get("capacity", {}).get("max_total_guests", 2) >= guests
+        if (r.capacity.max_total_guests if r.capacity else 2) >= guests
     ]
-    chosen_room = suitable_rooms[0] if suitable_rooms else (rooms[0] if rooms else {})
-    receipt = calculate_receipt(chosen_room, hotel.get("policies", {}), nights, guests, pets)
+    chosen_room = suitable_rooms[0] if suitable_rooms else (rooms[0] if rooms else None)
     
-    loc = hotel.get("location_details", {})
+    receipt_target_room = chosen_room or RoomType(name="Стандартный номер", price_per_night_rub=hotel.min_price_per_night_rub)
+    receipt = calculate_receipt(receipt_target_room, hotel.policies, nights, guests, pets)
     
     return HotelCardWidget(
-        id=hotel["id"],
-        name=hotel["name"],
-        city=hotel["city"],
-        stars=hotel["stars"],
-        area=hotel.get("area", ""),
-        area_type=hotel.get("area_type", "city"),
-        address=hotel.get("address", ""),
-        rating=float(hotel.get("rating", 4.5)),
-        reviews_count=hotel.get("reviews_count", 100),
-        image_urls=hotel.get("image_urls", [
+        id=hotel.id,
+        name=hotel.name,
+        city=hotel.city,
+        stars=hotel.stars,
+        area=hotel.area,
+        area_type=hotel.area_type,
+        address=hotel.address,
+        rating=float(hotel.rating),
+        reviews_count=hotel.reviews_count,
+        image_urls=hotel.image_urls or [
             "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"
-        ]),
+        ],
         match_score_pct=max(50, min(99, int(score * 100))),
-        tags=hotel.get("tags", [])[:4],
-        min_price_per_night_rub=hotel.get("min_price_per_night_rub", 5000),
+        tags=hotel.tags[:4],
+        min_price_per_night_rub=hotel.min_price_per_night_rub,
         suitable_room=chosen_room,
         receipt=receipt,
-        distance_to_beach_m=loc.get("distance_to_beach_m"),
-        distance_to_ski_lift_m=loc.get("distance_to_ski_lift_m")
+        distance_to_beach_m=hotel.location_details.distance_to_beach_m,
+        distance_to_ski_lift_m=hotel.location_details.distance_to_ski_lift_m
     )

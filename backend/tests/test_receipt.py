@@ -30,7 +30,7 @@ def test_calculate_receipt_deterministic():
     # Итого 15000 + 3000 + 300 = 18300
     assert receipt.total_rub == 18300
     assert receipt.is_free_cancellation is True
-    assert "48" in receipt.cancellation_deadline
+    assert receipt.cancellation_deadline is not None and "48" in receipt.cancellation_deadline
 
 def test_calculate_receipt_no_pets():
     room = {"price_per_night_rub": 10000}

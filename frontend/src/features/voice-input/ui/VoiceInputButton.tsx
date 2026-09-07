@@ -25,12 +25,12 @@ export function VoiceInputButton({ onTranscript, disabled }: VoiceInputButtonPro
       onClick={toggleListening}
       disabled={disabled}
       title={isListening ? "Остановить запись" : "Голосовой ввод запроса (Web Speech API)"}
-      className={isListening ? "animate-pulse" : ""}
+      className={`h-12 w-12 rounded-xl shrink-0 ${isListening ? "animate-pulse" : "bg-card border-border hover:bg-primary/20 hover:border-primary/40"}`}
     >
       {isListening ? (
-        <MicOff className="h-4 w-4 text-white" />
+        <MicOff className="h-5 w-5 text-white" />
       ) : (
-        <Mic className="h-4 w-4 text-primary" />
+        <Mic className="h-5 w-5 text-primary" />
       )}
     </Button>
   );

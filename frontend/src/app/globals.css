@@ -4,36 +4,36 @@
 
 @layer base {
   :root {
-    /* Swiss Dark Minimalist Palette (Figma Approved) */
-    --background: 228 13% 6%;          /* #0D0E11 */
-    --foreground: 231 11% 96%;         /* #F4F4F6 */
+    /* Rich Oceanic Midnight Palette (High Contrast & Modern Tech) */
+    --background: 224 45% 6%;           /* #080D1A - Deep Midnight Navy */
+    --foreground: 210 40% 98%;          /* #F8FAFC - Crisp Pure White */
     
-    --card: 223 12% 10%;               /* #16181D */
-    --card-foreground: 231 11% 96%;
+    --card: 222 47% 11%;                /* #0F172A - Premium Slate Blue */
+    --card-foreground: 210 40% 98%;
     
-    --popover: 223 12% 10%;
-    --popover-foreground: 231 11% 96%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
     
-    --primary: 171 77% 51%;            /* #2DD4BF - Teal Accent */
-    --primary-foreground: 228 13% 6%;
+    --primary: 201 96% 46%;             /* #0284C7 - Ostrovok Electric Cyan/Azure */
+    --primary-foreground: 0 0% 100%;
     
-    --secondary: 224 15% 15%;
-    --secondary-foreground: 231 11% 96%;
+    --secondary: 220 33% 18%;           /* #1E293B */
+    --secondary-foreground: 210 40% 98%;
     
-    --muted: 224 15% 14%;
-    --muted-foreground: 227 7% 59%;    /* #8E92A0 */
+    --muted: 220 33% 16%;
+    --muted-foreground: 217 24% 75%;     /* #94A3B8 - High contrast readable slate */
     
-    --accent: 171 77% 51%;
-    --accent-foreground: 228 13% 6%;
+    --accent: 199 89% 48%;              /* #0EA5E9 */
+    --accent-foreground: 0 0% 100%;
     
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 231 11% 96%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
     
-    --border: 224 15% 17%;             /* 1px #242731 */
-    --input: 224 15% 17%;
-    --ring: 171 77% 51%;
+    --border: 217 33% 22%;              /* #25334D - Clean crisp frame borders */
+    --input: 217 33% 20%;
+    --ring: 201 96% 46%;
     
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 }
 
@@ -41,9 +41,11 @@
   * {
     @apply border-border;
   }
+  html, body {
+    font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
-    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary;
   }
 }
 

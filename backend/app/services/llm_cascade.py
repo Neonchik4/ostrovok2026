@@ -1,6 +1,5 @@
 import re
 import json
-from typing import Dict, Any, Optional
 from ..config import settings
 from ..schemas.chat import ExtractedSlots
 

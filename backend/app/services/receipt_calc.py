@@ -1,10 +1,10 @@
-from typing import Union, Dict
+from typing import Union, Mapping, Any
 from ..schemas.chat import ReceiptBreakdown
 from ..schemas.hotel_models import RoomType, Policies
 
 def calculate_receipt(
-    room: Union[RoomType, Dict[str, object]],
-    policies: Union[Policies, Dict[str, object]],
+    room: Union[RoomType, Mapping[str, Any]],
+    policies: Union[Policies, Mapping[str, Any]],
     nights: int = 2,
     guests: int = 2,
     pets: int = 0

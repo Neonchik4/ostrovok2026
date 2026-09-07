@@ -50,41 +50,41 @@ export function ChatConcierge({
   };
 
   return (
-    <aside className="w-[420px] shrink-0 border-r border-border bg-card flex flex-col h-full overflow-hidden">
+    <aside className="w-[480px] shrink-0 border-r border-border bg-card flex flex-col h-full overflow-hidden shadow-2xl">
       {/* Шапка чата */}
-      <div className="p-4 border-b border-border flex items-center justify-between bg-card/80 backdrop-blur-sm">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary border border-primary/20 shadow-sm">
-            <Compass className="h-5 w-5" />
+      <div className="p-4 px-5 border-b border-border flex items-center justify-between bg-card/90 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/20 text-primary border border-primary/30 shadow-md">
+            <Compass className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
               О!дин запрос
-              <Badge variant="accent" className="text-[10px] py-0 px-1.5 h-4">
+              <Badge variant="accent" className="text-xs font-semibold py-0.5 px-2">
                 AI Concierge
               </Badge>
             </h2>
-            <p className="text-[11px] text-muted-foreground">Персональный подбор отелей</p>
+            <p className="text-sm text-muted-foreground font-medium">Персональный подбор отелей</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-          <span className={`h-2 w-2 rounded-full ${isStreaming ? "bg-primary animate-ping" : "bg-emerald-400"}`} />
-          <span className="text-[11px]">{isStreaming ? "Рассуждаю..." : "Онлайн"}</span>
+        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+          <span className={`h-2.5 w-2.5 rounded-full ${isStreaming ? "bg-primary animate-ping" : "bg-emerald-400"}`} />
+          <span className="text-xs">{isStreaming ? "Рассуждаю..." : "Онлайн"}</span>
         </div>
       </div>
 
       {/* Область сообщений */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
         {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground space-y-3 my-auto">
-            <div className="p-3 rounded-full bg-primary/10 text-primary border border-primary/20">
-              <Sparkles className="h-6 w-6" />
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground space-y-4 my-auto">
+            <div className="p-4 rounded-2xl bg-primary/15 text-primary border border-primary/25 shadow-lg">
+              <Sparkles className="h-8 w-8" />
             </div>
-            <div className="space-y-1">
-              <h3 className="text-sm font-semibold text-foreground">Задайте любой запрос</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Например: «Красная Поляна на двоих с собакой и подогреваемым бассейном до 15 000 ₽» или используйте микрофон
+            <div className="space-y-2 max-w-sm">
+              <h3 className="text-lg font-bold text-foreground">Задайте любой запрос</h3>
+              <p className="text-base text-muted-foreground leading-relaxed">
+                Например: «Красная Поляна на двоих с собакой и подогреваемым бассейном до 15 000 ₽» или воспользуйтесь голосовым вводом
               </p>
             </div>
           </div>
@@ -100,7 +100,7 @@ export function ChatConcierge({
 
       {/* Быстрые чипсы уточнений */}
       {chips.length > 0 && (
-        <div className="px-4 border-t border-border bg-background/30">
+        <div className="px-5 border-t border-border bg-background/50 backdrop-blur-sm">
           <QuickChips
             chips={chips}
             disabled={isStreaming}
@@ -110,8 +110,8 @@ export function ChatConcierge({
       )}
 
       {/* Форма ввода */}
-      <div className="p-4 border-t border-border bg-card">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
+      <div className="p-4 px-5 border-t border-border bg-card">
+        <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <VoiceInputButton
             onTranscript={handleVoiceTranscript}
             disabled={isStreaming}
@@ -122,7 +122,7 @@ export function ChatConcierge({
             onChange={(e) => setInputVal(e.target.value)}
             placeholder="Куда и как хотите поехать?..."
             disabled={isStreaming}
-            className="flex-1 text-xs bg-background/60 border-border focus-visible:ring-primary"
+            className="flex-1 text-base h-12 px-4 bg-background/80 border-border focus-visible:ring-primary text-foreground placeholder:text-muted-foreground"
           />
 
           {isStreaming ? (
@@ -132,18 +132,19 @@ export function ChatConcierge({
               size="icon"
               onClick={onStopStream}
               title="Остановить генерацию"
+              className="h-12 w-12 rounded-xl"
             >
-              <Square className="h-4 w-4 fill-current" />
+              <Square className="h-5 w-5 fill-current" />
             </Button>
           ) : (
             <Button
               type="submit"
               size="icon"
               disabled={!inputVal.trim()}
-              className="bg-primary text-primary-foreground hover:bg-primary/90"
+              className="h-12 w-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all"
               title="Отправить"
             >
-              <Send className="h-4 w-4" />
+              <Send className="h-5 w-5" />
             </Button>
           )}
         </form>

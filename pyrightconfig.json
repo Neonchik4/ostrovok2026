@@ -1,0 +1,20 @@
+{
+  "venvPath": ".",
+  "venv": ".venv",
+  "extraPaths": [
+    "backend"
+  ],
+  "include": [
+    "backend"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/.*",
+    "**/dataset_generator",
+    "**/node_modules",
+    "**/.venv"
+  ],
+  "ignore": [
+    "**/dataset_generator"
+  ]
+}

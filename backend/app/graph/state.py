@@ -1,4 +1,4 @@
-from typing import TypedDict, List, Optional, Dict, Any
+from typing import TypedDict, List, Optional
 from ..schemas.chat import ExtractedSlots, HotelCardWidget
 
 class AgentState(TypedDict, total=False):

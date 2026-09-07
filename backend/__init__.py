@@ -1,0 +1,3 @@
+"""
+Ostrovok backend package root.
+"""
