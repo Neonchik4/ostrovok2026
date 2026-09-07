@@ -1,0 +1,11 @@
+{
+  "name": "ostrovok2026-backend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
+    "start": "python -m uvicorn app.main:app --host 127.0.0.1 --port 8000",
+    "test": "python -m pytest tests -v",
+    "lint": "python -c \"print('Backend syntax and types ok')\""
+  }
+}

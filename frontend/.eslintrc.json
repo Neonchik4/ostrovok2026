@@ -1,0 +1,65 @@
+{
+  "extends": ["next/core-web-vitals"],
+  "plugins": ["boundaries"],
+  "settings": {
+    "boundaries/include": ["src/**/*"],
+    "boundaries/elements": [
+      { "type": "app", "pattern": "src/app/**", "partialMatch": false },
+      { "type": "widgets", "pattern": "src/widgets/*" },
+      { "type": "features", "pattern": "src/features/*" },
+      { "type": "entities", "pattern": "src/entities/*" },
+      { "type": "shared", "pattern": "src/shared/**", "partialMatch": false }
+    ],
+    "boundaries/ignore": ["**/*.test.*", "tests/**"]
+  },
+  "rules": {
+    "boundaries/dependencies": [
+      "error",
+      {
+        "default": "disallow",
+        "policies": [
+          {
+            "from": { "element": { "type": "app" } },
+            "allow": [{ "to": { "element": { "type": ["app", "widgets", "features", "entities", "shared"] } } }]
+          },
+          {
+            "from": { "element": { "type": "widgets" } },
+            "allow": [{ "to": { "element": { "type": ["features", "entities", "shared"] } } }]
+          },
+          {
+            "from": { "element": { "type": "features" } },
+            "allow": [{ "to": { "element": { "type": ["entities", "shared"] } } }]
+          },
+          {
+            "from": { "element": { "type": "entities" } },
+            "allow": [{ "to": { "element": { "type": ["shared"] } } }]
+          },
+          {
+            "from": { "element": { "type": "shared" } },
+            "allow": [{ "to": { "element": { "type": ["shared"] } } }]
+          }
+        ]
+      }
+    ],
+    "boundaries/entry-point": [
+      "error",
+      {
+        "default": "disallow",
+        "policies": [
+          {
+            "target": { "element": { "type": ["widgets", "features", "entities"] } },
+            "allow": "index.ts"
+          },
+          {
+            "target": { "element": { "type": "shared" } },
+            "allow": "**"
+          },
+          {
+            "target": { "element": { "type": "app" } },
+            "allow": "**"
+          }
+        ]
+      }
+    ]
+  }
+}
