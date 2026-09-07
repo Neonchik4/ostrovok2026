@@ -4,11 +4,11 @@ from .hotel_models import RoomType
 
 class ChatStreamRequest(BaseModel):
     message: str = Field(..., description="Текстовый или расшифрованный голосовой запрос пользователя")
-    conversation_id: Optional[str] = Field(None, description="Идентификатор диалога")
-    disambiguation_selection: Optional[str] = Field(None, description="Выбранный чипс быстрого уточнения")
-    nights: Optional[int] = Field(2, description="Количество ночей")
-    guests: Optional[int] = Field(2, description="Количество гостей")
-    pets: Optional[int] = Field(0, description="Количество питомцев")
+    conversation_id: Optional[str] = Field(default=None, description="Идентификатор диалога")
+    disambiguation_selection: Optional[str] = Field(default=None, description="Выбранный чипс быстрого уточнения")
+    nights: Optional[int] = Field(default=2, description="Количество ночей")
+    guests: Optional[int] = Field(default=2, description="Количество гостей")
+    pets: Optional[int] = Field(default=0, description="Количество питомцев")
 
 class ThoughtEvent(BaseModel):
     step: str

@@ -8,8 +8,8 @@ interface HotelScoreBadgeProps {
 
 export function HotelScoreBadge({ scorePct }: HotelScoreBadgeProps) {
   return (
-    <Badge variant="accent" className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold shadow-sm">
-      <Sparkles className="w-3.5 h-3.5" />
+    <Badge variant="accent" className="flex items-center gap-1.5 px-3 py-1 text-xs md:text-sm font-bold shadow-md rounded-lg">
+      <Sparkles className="w-4 h-4" />
       <span>{scorePct}% совпадение</span>
     </Badge>
   );

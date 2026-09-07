@@ -14,8 +14,8 @@ export function QuickChips({ chips, onSelectChip, disabled }: QuickChipsProps) {
   if (!chips || chips.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-1.5 py-2">
-      <span className="text-[11px] text-muted-foreground mr-1">Быстрые фильтры:</span>
+    <div className="flex flex-wrap items-center gap-2 py-3">
+      <span className="text-xs font-bold text-muted-foreground mr-1">Уточнения:</span>
       {chips.map((chip, index) => (
         <Button
           key={index}
@@ -23,9 +23,9 @@ export function QuickChips({ chips, onSelectChip, disabled }: QuickChipsProps) {
           size="sm"
           disabled={disabled}
           onClick={() => onSelectChip(chip)}
-          className="h-7 text-xs rounded-full bg-card hover:bg-primary/15 hover:text-primary hover:border-primary/40 transition-colors border-border px-3 gap-1"
+          className="h-9 text-sm font-medium rounded-full bg-card hover:bg-primary/20 hover:text-primary hover:border-primary/40 transition-all border-border px-4 gap-1.5 shadow-sm"
         >
-          <Plus className="h-3 w-3 text-primary" />
+          <Plus className="h-3.5 w-3.5 text-primary" />
           <span>{chip}</span>
         </Button>
       ))}

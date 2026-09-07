@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import AsyncGenerator, Dict, Any
+from typing import AsyncGenerator, Dict
 from ..schemas.chat import (
     ChatStreamRequest,
     ThoughtEvent,
@@ -80,5 +80,5 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         yield _format_sse("token", {"content": "Произошла ошибка при поиске отелей. Пожалуйста, попробуйте изменить запрос."})
         yield _format_sse("done", {"status": "error", "error": str(e)})
 
-def _format_sse(event_type: str, data: Dict[str, Any]) -> str:
+def _format_sse(event_type: str, data: Dict[str, object]) -> str:
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"

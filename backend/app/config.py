@@ -1,6 +1,13 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# Явная загрузка .env из корня проекта
+load_dotenv(BASE_DIR / ".env")
+load_dotenv()
 
 class Settings(BaseModel):
     PROJECT_NAME: str = "Ostrovok Travel AI Agent"
@@ -11,13 +18,13 @@ class Settings(BaseModel):
     
     # AI Studio / Gemini Key
     GEMINI_API_KEY: str = Field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    PRIMARY_MODEL: str = "gemini-2.0-flash"
-    FALLBACK_MODEL: str = "gemini-1.5-flash-8b"
+    PRIMARY_MODEL: str = "gemini-2.5-flash"
+    FALLBACK_MODEL: str = "gemini-2.5-flash-lite"
     
     # Dataset & Vector DB Paths
-    BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
-    DATASET_PATH: str = Field(default_factory=lambda: os.getenv("DATASET_PATH", str(Path(__file__).resolve().parent.parent.parent / "outputs" / "hotels_dataset.json")))
-    CHROMA_DB_PATH: str = Field(default_factory=lambda: os.getenv("CHROMA_DB_PATH", str(Path(__file__).resolve().parent.parent.parent / "outputs" / "chroma_db_v2")))
+    BASE_DIR: Path = BASE_DIR
+    DATASET_PATH: str = Field(default_factory=lambda: os.getenv("DATASET_PATH", str(BASE_DIR / "outputs" / "hotels_dataset.json")))
+    CHROMA_DB_PATH: str = Field(default_factory=lambda: os.getenv("CHROMA_DB_PATH", str(BASE_DIR / "outputs" / "chroma_db_v2")))
 
 settings = Settings()
 
