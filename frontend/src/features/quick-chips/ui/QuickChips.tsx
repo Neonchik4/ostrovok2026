@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { Button } from "@/shared/ui";
 import { Filter } from "lucide-react";
 
@@ -13,15 +13,15 @@ interface QuickChipsProps {
 export function QuickChips({ chips, onSelectChip, disabled }: QuickChipsProps) {
   const [pressedChip, setPressedChip] = useState<string | null>(null);
 
+  useEffect(() => {
+    setPressedChip(null);
+  }, [chips]);
+
   const handleClick = useCallback(
     (chip: string) => {
       if (disabled || pressedChip) return;
-      // Кратная анимация "выбрано" перед отправкой
       setPressedChip(chip);
-      setTimeout(() => {
-        setPressedChip(null);
-        onSelectChip(chip);
-      }, 180);
+      onSelectChip(chip);
     },
     [disabled, pressedChip, onSelectChip]
   );

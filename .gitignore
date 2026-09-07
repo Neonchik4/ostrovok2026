@@ -4,13 +4,18 @@
 out/
 build/
 dist/
+*.tsbuildinfo
+next-env.d.ts.bak
+.turbo/
+.vercel/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
 # Python & Virtual Environments
 __pycache__/
-**/__pycache__/
+/**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -23,29 +28,22 @@ ENV/
 .installed.cfg
 *.egg
 
-# Testing & Cache
+# Testing, Linters & Cache
 .pytest_cache/
 **/.pytest_cache/
 .coverage
+coverage/
 htmlcov/
 .ipynb_checkpoints/
 **/.ipynb_checkpoints/
+.ruff_cache/
+.mypy_cache/
 
-# Environment variables & Secret API Keys (CRITICAL)
+# Environment variables & Secret API Keys
 .env
 .env.*
 !.env.example
-gemini_api.txt
-
-# Temporary / Scratch Files
-request.json
-test_direct.py
-test_gemini.py
-outputs/--.csv
-
-# Legacy Artifacts / Dumps
-VM_Creation_Inquiry-2026_09_05-17_13_59/
-outputs/chroma_db/
+*.local
 
 # IDEs
 .idea/

@@ -28,3 +28,64 @@ def test_chat_stream_contract():
             assert "hotel_grid" in body
 
     asyncio.run(_run())
+
+def test_chat_stream_disambiguation():
+    async def _run():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            response = await ac.post(
+                "/api/chat/stream",
+                json={
+                    "message": "",
+                    "disambiguation_selection": "Рядом с подъемником",
+                    "nights": 2,
+                    "guests": 2,
+                    "pets": 0
+                }
+            )
+            assert response.status_code == 200
+            body = response.text
+            assert "event: thought" in body
+            assert "event: widget" in body
+            assert "event: done" in body
+            # Убеждаемся, что нет дублирования фразы в ответе
+            assert "Рядом с подъемником. Уточнение: Рядом с подъемником" not in body
+
+    asyncio.run(_run())
+
+def test_chat_stream_multiturn_dialog():
+    async def _run():
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            conv_id = "conv_test_multiturn"
+
+            # Turn 1: Запрос в Москву
+            r1 = await ac.post(
+                "/api/chat/stream",
+                json={"message": "в Москву 1 млн руб.", "conversation_id": conv_id}
+            )
+            assert r1.status_code == 200
+            assert "Москва" in r1.text
+
+            # Turn 2: Уточнение звездности без упоминания города
+            r2 = await ac.post(
+                "/api/chat/stream",
+                json={"message": "5 звезд", "conversation_id": conv_id}
+            )
+            assert r2.status_code == 200
+            assert "Москва" in r2.text
+            # Не должно сбрасываться на "выбранном регионе"
+            assert "выбранном регионе" not in r2.text
+
+            # Turn 3: Уточнение свободной отмены
+            r3 = await ac.post(
+                "/api/chat/stream",
+                json={"message": "Свободная отмена", "conversation_id": conv_id}
+            )
+            assert r3.status_code == 200
+            assert "Москва" in r3.text
+            assert "Классик Спа 119" in r3.text
+
+    asyncio.run(_run())
+
+

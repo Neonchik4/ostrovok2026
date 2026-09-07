@@ -38,17 +38,17 @@ export function ChatConcierge({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputVal.trim() || isStreaming) return;
+    if (!inputVal.trim() || isStreaming || isListeningVoice) return;
     onSendMessage(inputVal);
     setInputVal("");
   };
 
   const handleVoiceTranscript = (text: string) => {
     if (text.trim()) {
-      setInputVal(text);
-      onSendMessage(text);
-      setInputVal("");
+      setIsListeningVoice(false);
       setInterimSpeech("");
+      setInputVal("");
+      onSendMessage(text);
     }
   };
 
@@ -121,14 +121,16 @@ export function ChatConcierge({
               onChange={(e) => setInputVal(e.target.value)}
               placeholder={
                 isListeningVoice
-                  ? "Слушаю вас, говорите..."
+                  ? "Слушаю вас, говорите... (ввод текста заблокирован)"
                   : "Куда и как хотите поехать?..."
               }
-              disabled={isStreaming}
-              className={`text-base h-12 px-4 bg-background/80 border-border focus-visible:ring-primary text-foreground placeholder:text-muted-foreground w-full transition-all ${
-                isListeningVoice ? "border-primary/60 ring-1 ring-primary/40" : ""
+              disabled={isStreaming || isListeningVoice}
+              readOnly={isListeningVoice}
+              className={`text-base h-12 px-4 bg-background/80 border-border focus:border-primary text-foreground placeholder:text-muted-foreground w-full transition-colors ${
+                isListeningVoice ? "border-primary/60 cursor-not-allowed opacity-80" : ""
               }`}
             />
+
             {isListeningVoice && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
@@ -152,8 +154,8 @@ export function ChatConcierge({
             <Button
               type="submit"
               size="icon"
-              disabled={!inputVal.trim()}
-              className="h-12 w-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all"
+              disabled={!inputVal.trim() || isListeningVoice || isStreaming}
+              className="h-12 w-12 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               title="Отправить"
             >
               <Send className="h-5 w-5" />
