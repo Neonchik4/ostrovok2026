@@ -167,13 +167,18 @@ describe("ChatConcierge input behavior with voice listening", () => {
 
     expect(instance).not.toBeNull();
 
-    // Имитируем получение финального результата распознавания
+    // Имитируем получение результата распознавания
     act(() => {
       instance.onresult({
         results: [
           Object.assign([{ transcript: "Отель в Сочи" }], { isFinal: true, length: 1 }),
         ],
       });
+    });
+
+    // Перематываем время на 2100 мс (задержка тишины)
+    act(() => {
+      vi.advanceTimersByTime(2100);
     });
 
     // Микрофон должен быть немедленно освобожден
@@ -191,7 +196,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
     const abortMock = vi.fn();
 
     class MockSpeechRecognition {
-      continuous = false;
+      continuous = true;
       interimResults = true;
       lang = "ru-RU";
       start = vi.fn(() => {
@@ -239,9 +244,9 @@ describe("ChatConcierge input behavior with voice listening", () => {
     // До истечения таймера микрофон еще не остановлен
     expect(abortMock).not.toHaveBeenCalled();
 
-    // Перематываем время на 850 мс (задержка тишины)
+    // Перематываем время на 2100 мс (задержка тишины)
     act(() => {
-      vi.advanceTimersByTime(850);
+      vi.advanceTimersByTime(2100);
     });
 
     // Микрофон должен быть автоматически остановлен и текст отправлен
