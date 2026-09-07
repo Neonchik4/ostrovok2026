@@ -8,7 +8,12 @@ from ..schemas.chat import (
     WidgetEvent,
     ExtractedSlots
 )
-from ..services.llm_cascade import extract_slots_cascade, think_stream
+from ..services.llm_cascade import (
+    extract_slots_cascade,
+    think_stream,
+    generate_concierge_response_stream,
+)
+from ..services.session_memory import session_memory, merge_slots
 from ..services.hotel_search_adapter import search_hotels_unified
 
 async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None]:
@@ -20,6 +25,9 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
     - event: widget
     - event: done
     """
+    conv_id = req.conversation_id or "default_session"
+    prev_slots = session_memory.get_slots(conv_id)
+
     message = req.message.strip()
     if req.disambiguation_selection:
         sel = req.disambiguation_selection.strip()
@@ -29,18 +37,27 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             message = f"{message}. Уточнение: {sel}"
         
     try:
-        # Извлекаем слоты для детерминированного контроля параметров
-        slots: ExtractedSlots = await extract_slots_cascade(message)
-        if req.nights:
-            slots.nights = req.nights
-        if req.guests:
-            slots.guests_count = req.guests
-        if req.pets:
-            slots.pet_friendly = req.pets > 0
+        # Мгновенно отдаем первый шаг мыслей агента
+        yield _format_sse("thought", {"step": "reasoning", "text": "Оцениваю параметры запроса и формирую критерии поиска... "})
 
-        # 1. Потоковый ход рассуждений агента (Thinking Process)
-        async for chunk in think_stream(message, slots):
+        # Запускаем извлечение слотов параллельно в фоновой задаче
+        slots_task = asyncio.create_task(extract_slots_cascade(message))
+
+        # Потоковый ход рассуждений агента (Thinking Process)
+        async for chunk in think_stream(message):
             yield _format_sse("thought", {"step": "reasoning", "text": chunk})
+
+        # Дожидаемся результатов извлечения слотов и объединяем с контекстом диалога (Multi-turn Slot Merging)
+        new_slots: ExtractedSlots = await slots_task
+        if req.nights and req.nights != 2:
+            new_slots.nights = req.nights
+        if req.guests and req.guests != 2:
+            new_slots.guests_count = req.guests
+        if req.pets and req.pets > 0:
+            new_slots.pet_friendly = True
+
+        slots: ExtractedSlots = merge_slots(prev_slots, new_slots)
+        session_memory.save_slots(conv_id, slots)
 
         city_label = slots.city or "выбранном регионе"
 
@@ -67,27 +84,33 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             "Дополнительные фильтры не заданы — ранжирую по рейтингу и популярности"
         )
         yield _format_sse("thought", {"step": "filtering", "text": filters_text})
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.75)
 
         # 3. Шаг: Векторный поиск
         yield _format_sse("thought", {"step": "hybrid_search", "text": f"Векторный поиск релевантных вариантов в {city_label}..."})
         hotels = await search_hotels_unified(slots)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.75)
         
         # 4. Итог поиска с прозрачной статистикой
         if hotels:
             top_score = hotels[0].match_score_pct
             min_cost = min(h.min_price_per_night_rub for h in hotels)
-            yield _format_sse("thought", {
-                "step": "results",
-                "text": f"Найдено {len(hotels)} {_pluralize_hotels(len(hotels))}, лучший Match Score: {top_score}%, цены от {min_cost:,} ₽/ночь".replace(",", " ")
-            })
+            if slots.max_price_per_night_rub and min_cost > slots.max_price_per_night_rub:
+                yield _format_sse("thought", {
+                    "step": "results",
+                    "text": f"В рамках бюджета до {slots.max_price_per_night_rub:,} ₽ отелей в {city_label} нет (минимальный тариф от {min_cost:,} ₽). Отобрал {len(hotels)} {_pluralize_hotels(len(hotels))} с наилучшим соотношением цены и качества".replace(",", " ")
+                })
+            else:
+                yield _format_sse("thought", {
+                    "step": "results",
+                    "text": f"Найдено {len(hotels)} {_pluralize_hotels(len(hotels))}, лучший Match Score: {top_score}%, цены от {min_cost:,} ₽/ночь".replace(",", " ")
+                })
         else:
             yield _format_sse("thought", {
                 "step": "results",
                 "text": f"Отели по строгому запросу не найдены в {city_label}, предлагаю скорректировать фильтры"
             })
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.75)
 
         # 5. Шаг рассуждения: Детерминированный расчет чека
         if hotels and hotels[0].receipt:
@@ -100,24 +123,15 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         else:
             yield _format_sse("thought", {
                 "step": "receipt_calculation",
-                "text": f"Рассчитываю прозрачные чеки и проверяю правила отмены для {len(hotels)} {_pluralize_hotels(len(hotels))}..."
+                "text": f"Рассчитываю прозрачные чеки и проверяю правила отмены..."
             })
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(0.75)
 
-
-        # 5. Стриминг текста ответа (event: token)
-        intro_text = (
-            f"Я нашел {len(hotels)} {_pluralize_hotels(len(hotels))} в {city_label}, максимально подходящих под ваши критерии. "
-            f"Каждая карточка содержит прозрачный расчет стоимости на {slots.nights or 2} {_pluralize_nights(slots.nights or 2)} без скрытых комиссий."
-        )
-        
-        words = intro_text.split(" ")
-        for i, word in enumerate(words):
-            chunk = word + (" " if i < len(words) - 1 else "")
+        # 6. Стриминг текста ответа консьержа (Real LLM, без шаблонных повторов)
+        async for chunk in generate_concierge_response_stream(message, slots, hotels):
             yield _format_sse("token", {"content": chunk})
-            await asyncio.sleep(0.02)
             
-        # 6. Стриминг виджета (event: widget)
+        # 7. Стриминг виджета (event: widget)
         widget_payload = {
             "type": "hotel_grid",
             "hotels": [h.model_dump() for h in hotels],
@@ -130,7 +144,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         }
         yield _format_sse("widget", widget_payload)
         
-        # 7. Финализация
+        # 8. Финализация
         yield _format_sse("done", {"status": "ok"})
         
     except Exception as e:

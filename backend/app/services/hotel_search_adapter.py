@@ -164,11 +164,19 @@ def _search_in_memory(slots: ExtractedSlots) -> List[HotelCardWidget]:
                 continue
             score += 0.2
             
-        # Фильтры
+        # Строгие детерминированные фильтры (AGENTS.md п. 1.1 и 2.1)
+        if slots.stars and h.stars < slots.stars:
+            continue
         if slots.stars and h.stars >= slots.stars:
             score += 0.1
+
+        if slots.min_rating and h.rating < slots.min_rating:
+            continue
         if slots.min_rating and h.rating >= slots.min_rating:
             score += 0.1
+
+        if slots.max_price_per_night_rub and h.min_price_per_night_rub > slots.max_price_per_night_rub:
+            continue
         if slots.max_price_per_night_rub and h.min_price_per_night_rub <= slots.max_price_per_night_rub:
             score += 0.1
             
@@ -182,11 +190,28 @@ def _search_in_memory(slots: ExtractedSlots) -> List[HotelCardWidget]:
                 continue
             score += 0.1
             
-        if slots.spa and h.amenities.spa:
+        if slots.spa:
+            if not h.amenities.spa:
+                continue
             score += 0.05
             
-        if slots.breakfast_included and h.amenities.breakfast_included_available:
+        if slots.breakfast_included:
+            if not h.amenities.breakfast_included_available:
+                continue
             score += 0.05
+
+        if slots.free_cancellation:
+            if not (h.policies and h.policies.cancellation and h.policies.cancellation.is_free_cancellation):
+                continue
+            score += 0.1
+
+        if slots.max_distance_to_beach_m:
+            if h.location_details.distance_to_beach_m is None or h.location_details.distance_to_beach_m > slots.max_distance_to_beach_m:
+                continue
+
+        if slots.max_distance_to_ski_lift_m:
+            if h.location_details.distance_to_ski_lift_m is None or h.location_details.distance_to_ski_lift_m > slots.max_distance_to_ski_lift_m:
+                continue
 
         # Семантическое совпадение по описанию и тегам
         q_words = (slots.semantic_query or "").lower().split()
@@ -199,6 +224,61 @@ def _search_in_memory(slots: ExtractedSlots) -> List[HotelCardWidget]:
     
     cards: List[HotelCardWidget] = []
     for score, h in scored_hotels[:6]:
+        cards.append(_build_hotel_card(h, score, slots))
+
+    # Если строгий поиск дал 0 отелей (например, бюджет ниже минимальной цены в городе)
+    # применяем умное ослабление ограничений, чтобы гость никогда не оставался с пустым экраном
+    if not cards and _hotels_dataset:
+        cards = _search_relaxed(slots)
+
+    return cards
+
+def _search_relaxed(slots: ExtractedSlots) -> List[HotelCardWidget]:
+    """
+    Умное ослабление ограничений (Smart Relaxation):
+    Если строгие фильтры не дали результатов, подбирает наилучшие альтернативы
+    в том же городе/регионе, максимально удовлетворяющие остальным критериям.
+    """
+    candidates = []
+    for h in _hotels_dataset:
+        if slots.city and slots.city.lower() not in h.city.lower():
+            continue
+
+        match_score = 0.50
+        if slots.pet_friendly and h.amenities.pet_friendly:
+            match_score += 0.15
+        if slots.heated_pool and h.amenities.heated_pool:
+            match_score += 0.15
+        if slots.spa and h.amenities.spa:
+            match_score += 0.10
+        if slots.breakfast_included and h.amenities.breakfast_included_available:
+            match_score += 0.10
+        if slots.stars and h.stars >= slots.stars:
+            match_score += 0.10
+
+        # Корректировка за превышение бюджета
+        if slots.max_price_per_night_rub and h.min_price_per_night_rub > slots.max_price_per_night_rub:
+            diff = h.min_price_per_night_rub - slots.max_price_per_night_rub
+            penalty = min(0.20, (diff / max(slots.max_price_per_night_rub, 1000)) * 0.1)
+            match_score -= penalty
+
+        score_val = max(0.40, min(0.85, round(match_score, 2)))
+        candidates.append((score_val, h.min_price_per_night_rub, -float(h.rating), h))
+
+    # Если в указанном городе вообще ничего нет, берем популярные отели по всей базе
+    if not candidates:
+        for h in _hotels_dataset:
+            score_val = 0.50
+            if slots.pet_friendly and h.amenities.pet_friendly:
+                score_val += 0.15
+            if slots.heated_pool and h.amenities.heated_pool:
+                score_val += 0.15
+            candidates.append((score_val, h.min_price_per_night_rub, -float(h.rating), h))
+
+    candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
+
+    cards: List[HotelCardWidget] = []
+    for score, _, _, h in candidates[:6]:
         cards.append(_build_hotel_card(h, score, slots))
     return cards
 

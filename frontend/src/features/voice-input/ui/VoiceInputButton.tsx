@@ -3,6 +3,7 @@
 import React, { useEffect } from "react";
 import { Button } from "@/shared/ui";
 import { useVoiceInput } from "../model/useVoiceInput";
+import { useAudioVisualizer } from "../model/useAudioVisualizer";
 import { Mic, MicOff } from "lucide-react";
 
 interface VoiceInputButtonProps {
@@ -18,8 +19,9 @@ export function VoiceInputButton({
   onListeningChange,
   disabled,
 }: VoiceInputButtonProps) {
-  const { isListening, isSupported, interimTranscript, toggleListening } =
+  const { isListening, isSupported, interimTranscript, toggleListening, stopListening } =
     useVoiceInput(onTranscript);
+  const audioLevels = useAudioVisualizer(isListening, { numBars: 5, minHeight: 0.2 });
 
   useEffect(() => {
     onInterimTranscript?.(interimTranscript);
@@ -28,6 +30,14 @@ export function VoiceInputButton({
   useEffect(() => {
     onListeningChange?.(isListening);
   }, [isListening, onListeningChange]);
+
+  // При блокировке (например, началась генерация ответа isStreaming = true):
+  // сразу же отключаем микрофон, чтобы он не висел включенным
+  useEffect(() => {
+    if (disabled && isListening) {
+      stopListening();
+    }
+  }, [disabled, isListening, stopListening]);
 
   // Пока isSupported = false (SSR + первый клиентский рендер):
   // рендерим прозрачный placeholder того же размера h-12 w-12.
@@ -54,13 +64,17 @@ export function VoiceInputButton({
     >
       {isListening ? (
         <div className="flex items-center justify-center gap-1.5 w-full">
-          {/* Анимированная звуковая дорожка эквалайзера (Gemini style) */}
+          {/* Динамическая звуковая дорожка эквалайзера в такт с реальным вводом */}
           <div className="flex items-center gap-0.5 h-6">
-            <span className="w-1 bg-white rounded-full h-5 animate-wave-1" />
-            <span className="w-1 bg-white rounded-full h-5 animate-wave-2" />
-            <span className="w-1 bg-white rounded-full h-5 animate-wave-3" />
-            <span className="w-1 bg-white rounded-full h-5 animate-wave-4" />
-            <span className="w-1 bg-white rounded-full h-5 animate-wave-5" />
+            {audioLevels.map((level, idx) => (
+              <span
+                key={idx}
+                className="w-1 bg-white rounded-full transition-[height] duration-75 ease-out"
+                style={{
+                  height: `${Math.max(4, Math.round(level * 22))}px`,
+                }}
+              />
+            ))}
           </div>
           <MicOff className="h-4 w-4 text-white/90 shrink-0" />
         </div>

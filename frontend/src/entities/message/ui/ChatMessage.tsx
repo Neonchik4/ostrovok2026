@@ -32,13 +32,9 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
         )}
       >
         <div className="whitespace-pre-wrap">
-          {message.content || (
-            <span className="inline-flex items-center gap-2 text-muted-foreground text-sm font-medium">
-              <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-              Подбираю отели...
-            </span>
-          )}
+          {message.content}
         </div>
+
         <div
           className={cn(
             "mt-1.5 text-xs font-medium",

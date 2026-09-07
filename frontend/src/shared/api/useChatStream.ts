@@ -65,8 +65,14 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+  const isSubmittingRef = useRef(false);
+  const conversationIdRef = useRef<string>("");
+  if (!conversationIdRef.current) {
+    conversationIdRef.current = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  }
 
   const stopStream = useCallback(() => {
+    isSubmittingRef.current = false;
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
@@ -86,6 +92,8 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     ) => {
       const trimmed = text.trim();
       if (!trimmed && !queryOptions?.disambiguation) return;
+      if (isStreaming || isSubmittingRef.current) return;
+      isSubmittingRef.current = true;
 
       // Прерываем предыдущий стрим при новом запросе
       stopStream();
@@ -103,42 +111,54 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       };
 
       const assistantMsgId = `assistant-${Date.now()}`;
-      const placeholderAssistantMsg: ChatMessage = {
-        id: assistantMsgId,
-        role: "assistant",
-        content: "",
-        timestamp: new Date().toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-      };
 
-      setMessages((prev) => [...prev, userMsg, placeholderAssistantMsg]);
-      setThoughts([]);
+      setMessages((prev) => [...prev, userMsg]);
+      setThoughts([{ step: "reasoning", text: "Анализирую параметры запроса..." }]);
       setChips([]); // ← сброс старых чипсов при новом запросе
       setError(null);
       setIsStreaming(true);
 
-
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
+      const requestPayload = JSON.stringify({
+        message: trimmed || (queryOptions?.disambiguation ?? ""),
+        conversation_id: conversationIdRef.current,
+        disambiguation_selection: queryOptions?.disambiguation,
+        nights: queryOptions?.nights ?? 2,
+        guests: queryOptions?.guests ?? 2,
+        pets: queryOptions?.pets ?? 0,
+      });
+
       try {
-        const response = await fetch(apiEndpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "text/event-stream",
-          },
-          body: JSON.stringify({
-            message: trimmed,
-            disambiguation_selection: queryOptions?.disambiguation,
-            nights: queryOptions?.nights ?? 2,
-            guests: queryOptions?.guests ?? 2,
-            pets: queryOptions?.pets ?? 0,
-          }),
-          signal: controller.signal,
-        });
+        let response: Response;
+        try {
+          response = await fetch(apiEndpoint, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Accept: "text/event-stream",
+            },
+            body: requestPayload,
+            signal: controller.signal,
+          });
+        } catch (fetchErr) {
+          // Если прокси /api/... вернул net::ERR_CONNECTION_REFUSED, пробуем прямой бэкенд 127.0.0.1:8000
+          if (!controller.signal.aborted && (apiEndpoint.startsWith("/") || apiEndpoint.includes(":3000"))) {
+            console.warn("Порт 3000 недоступен, автоматическое переключение на 127.0.0.1:8000...");
+            response = await fetch("http://127.0.0.1:8000/api/chat/stream", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Accept: "text/event-stream",
+              },
+              body: requestPayload,
+              signal: controller.signal,
+            });
+          } else {
+            throw fetchErr;
+          }
+        }
 
         if (!response.ok) {
           throw new Error(`Ошибка сервера HTTP ${response.status}`);
@@ -153,6 +173,10 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
         let buffer = "";
 
         while (true) {
+          if (controller.signal.aborted) {
+            break;
+          }
+
           const { done, value } = await reader.read();
           if (done) break;
 
@@ -161,21 +185,22 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
           buffer = eventBlocks.pop() || "";
 
           for (const block of eventBlocks) {
-            if (!block.trim()) continue;
+            if (!block.trim() || controller.signal.aborted) continue;
 
             let eventType = "message";
-            let dataStr = "";
+            const dataLines: string[] = [];
 
-            const lines = block.split("\n");
+            const lines = block.split(/\r?\n/);
             for (const line of lines) {
               if (line.startsWith("event:")) {
-                eventType = line.replace("event:", "").trim();
+                eventType = line.substring(6).trim();
               } else if (line.startsWith("data:")) {
-                dataStr = line.replace("data:", "").trim();
+                dataLines.push(line.substring(5).trim());
               }
             }
 
-            if (!dataStr) continue;
+            if (dataLines.length === 0) continue;
+            const dataStr = dataLines.join("\n");
 
             try {
               const data = JSON.parse(dataStr);
@@ -186,21 +211,42 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                 setThoughts((prev) => {
                   const last = prev[prev.length - 1];
                   if (step === "reasoning" && last?.step === "reasoning") {
+                    const isInitialPlaceholder =
+                      last.text === "Анализирую параметры запроса...";
                     return [
                       ...prev.slice(0, -1),
-                      { ...last, text: last.text + text },
+                      {
+                        ...last,
+                        text: isInitialPlaceholder ? text : last.text + text,
+                      },
                     ];
                   }
                   return [...prev, { step, text }];
                 });
               } else if (eventType === "token") {
-                setMessages((prev) =>
-                  prev.map((m) =>
+                const chunk = data.content || "";
+                setMessages((prev) => {
+                  const existing = prev.find((m) => m.id === assistantMsgId);
+                  if (!existing) {
+                    return [
+                      ...prev,
+                      {
+                        id: assistantMsgId,
+                        role: "assistant",
+                        content: chunk,
+                        timestamp: new Date().toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        }),
+                      },
+                    ];
+                  }
+                  return prev.map((m) =>
                     m.id === assistantMsgId
-                      ? { ...m, content: m.content + (data.content || "") }
+                      ? { ...m, content: m.content + chunk }
                       : m
-                  )
-                );
+                  );
+                });
               } else if (eventType === "widget") {
                 if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
                   setHotels(data.hotels);
@@ -217,20 +263,32 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
           }
         }
       } catch (err: unknown) {
-        if (err instanceof DOMException && err.name === "AbortError") {
+        if (controller.signal.aborted) {
           console.log("Стрим прерван клиентом");
-        } else {
-          const errorMessage =
-            err instanceof Error ? err.message : "Не удалось связаться с сервером поиска";
-          console.error("Ошибка при стриминге:", err);
-          setError(errorMessage);
+          return;
         }
+        const errorMessage =
+          err instanceof Error ? err.message : "Не удалось связаться с сервером поиска";
+        console.error("Ошибка при стриминге:", err);
+        setError(errorMessage);
+        setThoughts((prev) => {
+          const filtered = prev.filter((t) => t.text !== "Анализирую параметры запроса...");
+          return [
+            ...filtered,
+            { step: "error", text: `Ошибка: ${errorMessage}. Попробуйте повторить запрос.` },
+          ];
+        });
       } finally {
-        setIsStreaming(false);
-        abortControllerRef.current = null;
+        isSubmittingRef.current = false;
+        // Завершаем стриминг только если это всё ещё активный запрос
+        if (abortControllerRef.current === controller) {
+          setIsStreaming(false);
+          abortControllerRef.current = null;
+        }
       }
+
     },
-    [apiEndpoint, stopStream]
+    [apiEndpoint, stopStream, isStreaming]
   );
 
   return {
