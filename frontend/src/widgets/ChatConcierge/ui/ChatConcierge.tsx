@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
-import { Button, Input, ScrollArea, Badge } from "@/shared/ui";
+import { Button, Input } from "@/shared/ui";
 import { ChatMessageItem, Message } from "@/entities/message";
 import { ThoughtStream, Thought } from "@/entities/thought";
 import { VoiceInputButton } from "@/features/voice-input";
@@ -26,6 +26,8 @@ export function ChatConcierge({
   onStopStream,
 }: ChatConciergeProps) {
   const [inputVal, setInputVal] = useState("");
+  const [interimSpeech, setInterimSpeech] = useState("");
+  const [isListeningVoice, setIsListeningVoice] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,6 +48,7 @@ export function ChatConcierge({
       setInputVal(text);
       onSendMessage(text);
       setInputVal("");
+      setInterimSpeech("");
     }
   };
 
@@ -58,43 +61,36 @@ export function ChatConcierge({
             <Compass className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold text-foreground flex items-center gap-2">
-              О!дин запрос
-              <Badge variant="accent" className="text-xs font-semibold py-0.5 px-2">
-                AI Concierge
-              </Badge>
-            </h2>
-            <p className="text-sm text-muted-foreground font-medium">Персональный подбор отелей</p>
+            <h2 className="text-base font-bold text-foreground">Консьерж Островок</h2>
+            <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+              AI Агент онлайн • Детерминированный чек
+            </p>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
-          <span className={`h-2.5 w-2.5 rounded-full ${isStreaming ? "bg-primary animate-ping" : "bg-emerald-400"}`} />
-          <span className="text-xs">{isStreaming ? "Рассуждаю..." : "Онлайн"}</span>
         </div>
       </div>
 
-      {/* Область сообщений */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-6 text-muted-foreground space-y-4 my-auto">
-            <div className="p-4 rounded-2xl bg-primary/15 text-primary border border-primary/25 shadow-lg">
-              <Sparkles className="h-8 w-8" />
+      {/* Список сообщений и мыслей */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 px-5 space-y-4">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center p-6 space-y-3">
+            <div className="h-12 w-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
+              <Sparkles className="h-6 w-6" />
             </div>
-            <div className="space-y-2 max-w-sm">
-              <h3 className="text-lg font-bold text-foreground">Задайте любой запрос</h3>
-              <p className="text-base text-muted-foreground leading-relaxed">
-                Например: «Красная Поляна на двоих с собакой и подогреваемым бассейном до 15 000 ₽» или воспользуйтесь голосовым вводом
-              </p>
-            </div>
+            <h3 className="font-bold text-foreground text-lg">О!дин запрос — и отель найден</h3>
+            <p className="text-sm text-muted-foreground max-w-[280px]">
+              Назовите город, даты, компанию или пожелания (например: «Красная Поляна с собакой и спа до 15 000 ₽»).
+            </p>
           </div>
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <ChatMessageItem key={msg.id} message={msg} />
-            ))}
-            <ThoughtStream thoughts={thoughts} isStreaming={isStreaming} />
-          </>
+        )}
+
+        {messages.map((msg) => (
+          <ChatMessageItem key={msg.id} message={msg} />
+        ))}
+
+        {/* Стрим рассуждений */}
+        {thoughts.length > 0 && (
+          <ThoughtStream thoughts={thoughts} isStreaming={isStreaming} />
         )}
       </div>
 
@@ -114,16 +110,32 @@ export function ChatConcierge({
         <form onSubmit={handleSubmit} className="flex items-center gap-3">
           <VoiceInputButton
             onTranscript={handleVoiceTranscript}
+            onInterimTranscript={setInterimSpeech}
+            onListeningChange={setIsListeningVoice}
             disabled={isStreaming}
           />
 
-          <Input
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
-            placeholder="Куда и как хотите поехать?..."
-            disabled={isStreaming}
-            className="flex-1 text-base h-12 px-4 bg-background/80 border-border focus-visible:ring-primary text-foreground placeholder:text-muted-foreground"
-          />
+          <div className="relative flex-1">
+            <Input
+              value={isListeningVoice && interimSpeech ? interimSpeech : inputVal}
+              onChange={(e) => setInputVal(e.target.value)}
+              placeholder={
+                isListeningVoice
+                  ? "Слушаю вас, говорите..."
+                  : "Куда и как хотите поехать?..."
+              }
+              disabled={isStreaming}
+              className={`text-base h-12 px-4 bg-background/80 border-border focus-visible:ring-primary text-foreground placeholder:text-muted-foreground w-full transition-all ${
+                isListeningVoice ? "border-primary/60 ring-1 ring-primary/40" : ""
+              }`}
+            />
+            {isListeningVoice && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary" />
+              </span>
+            )}
+          </div>
 
           {isStreaming ? (
             <Button

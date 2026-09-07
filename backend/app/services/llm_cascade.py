@@ -1,5 +1,7 @@
+import asyncio
 import re
 import json
+from typing import AsyncGenerator
 from ..config import settings
 from ..schemas.chat import ExtractedSlots
 
@@ -18,9 +20,112 @@ SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экст�
   "guests_count": int | null,
   "nights": int | null,
   "semantic_query": "строка с ключевыми пожеланиями к атмосфере и локации",
-  "disambiguation_suggestions": ["вопрос 1 для чипса", "вопрос 2"]
+  "disambiguation_suggestions": ["Только с завтраком", "До 8 000 ₽ / ночь"]
 }
+
+ВАЖНО: поле disambiguation_suggestions — это список ГОТОВЫХ ФИЛЬТРОВ-ДЕЙСТВИЙ для быстрого уточнения поиска.
+Каждый чипс — это короткая фраза-действие (не вопрос!), которую пользователь может добавить одним кликом.
+Примеры корректных чипсов: "Только с завтраком", "С теплым бассейном", "До 8 000 ₽ / ночь",
+"Свободная отмена", "С видом на горы", "Рядом с подъемником", "5 звезд", "Со спа".
+Генерируй 3-4 релевантных чипса, которых ещё нет в запросе пользователя.
 """
+
+SYSTEM_THINKING_PROMPT = """Ты — интеллектуальный AI-агент консьерж-сервиса Островок.
+Пользователь отправил запрос на поиск отеля или уточнение параметров.
+Твоя задача — рассуждать вслух по-русски в стиле мыслительного процесса LLM (Thinking Process):
+- Живо и емко проанализируй, что хочет пользователь (город/курорт, атмосфера, состав гостей, особые удобства: питомцы, спа, бассейн, бюджет).
+- Обозначь ключевую тактику отбора и критерии проверки чека.
+- Пиши 2-4 связных предложения от первого лица («Оцениваю запрос...», «Учитываю...»).
+- Строго без JSON, без списков с маркерами и без markdown-заголовков — только естественный мыслительный поток.
+"""
+
+async def think_stream(user_message: str, slots: ExtractedSlots) -> AsyncGenerator[str, None]:
+    """
+    Потоковая генерация хода рассуждения агента (Thinking Process).
+    Каскад:
+    1. Gemini PRIMARY_MODEL (стриминг токенов мысли)
+    2. Gemini FALLBACK_MODEL
+    3. Детерминированное осмысленное рассуждение на базе реальных слотов
+    """
+    if settings.GEMINI_API_KEY:
+        try:
+            from google import genai
+            client = genai.Client(api_key=settings.GEMINI_API_KEY)
+            stream = await client.aio.models.generate_content_stream(
+                model=settings.PRIMARY_MODEL,
+                contents=[
+                    {"role": "user", "parts": [{"text": f"{SYSTEM_THINKING_PROMPT}\n\nЗапрос пользователя:\n{user_message}"}]}
+                ]
+            )
+            has_content = False
+            async for chunk in stream:
+                if chunk.text:
+                    has_content = True
+                    yield chunk.text
+            if has_content:
+                return
+        except Exception as e1:
+            print(f"[LLM Thinking] Ошибка {settings.PRIMARY_MODEL}: {e1}. Пробуем {settings.FALLBACK_MODEL}...")
+            try:
+                from google import genai
+                client = genai.Client(api_key=settings.GEMINI_API_KEY)
+                stream = await client.aio.models.generate_content_stream(
+                    model=settings.FALLBACK_MODEL,
+                    contents=[
+                        {"role": "user", "parts": [{"text": f"{SYSTEM_THINKING_PROMPT}\n\nЗапрос пользователя:\n{user_message}"}]}
+                    ]
+                )
+                has_content = False
+                async for chunk in stream:
+                    if chunk.text:
+                        has_content = True
+                        yield chunk.text
+                if has_content:
+                    return
+            except Exception as e2:
+                print(f"[LLM Thinking] Ошибка {settings.FALLBACK_MODEL}: {e2}. Переход на детерминированное рассуждение...")
+
+    # Детерминированный fallback, основанный на реальных извлеченных слотах
+    fallback_text = _build_deterministic_reasoning(user_message, slots)
+    words = fallback_text.split(" ")
+    for i, word in enumerate(words):
+        chunk = word + (" " if i < len(words) - 1 else "")
+        yield chunk
+        await asyncio.sleep(0.02)
+
+def _build_deterministic_reasoning(user_message: str, slots: ExtractedSlots) -> str:
+    """
+    Формирует содержательное рассуждение на основе реального запроса и извлеченных слотов.
+    """
+    parts = []
+    if slots.city:
+        parts.append(f"Анализирую запрос на размещение в регионе {slots.city}.")
+    else:
+        parts.append(f"Анализирую запрос пользователя: «{user_message}».")
+
+    reqs = []
+    if slots.pet_friendly:
+        reqs.append("размещение с питомцем (требуется проверка политики и расчет депозита)")
+    if slots.heated_pool:
+        reqs.append("наличие круглогодичного подогреваемого бассейна")
+    if slots.spa:
+        reqs.append("наличие СПА-комплекса")
+    if slots.breakfast_included:
+        reqs.append("включенный завтрак")
+    if slots.free_cancellation:
+        reqs.append("опция бесплатной отмены брони")
+    if slots.stars:
+        reqs.append(f"категория от {slots.stars} звезд")
+    if slots.max_price_per_night_rub:
+        reqs.append(f"ограничение бюджета до {slots.max_price_per_night_rub:,} ₽/ночь".replace(",", " "))
+
+    if reqs:
+        parts.append(f"Ключевые критерии отбора: {', '.join(reqs)}.")
+    else:
+        parts.append("Специфических ограничений по удобствам не задано — приоритизирую отели с наивысшим рейтингом гостей.")
+
+    parts.append(f"Формирую пул предложений для {slots.guests_count or 2} гостей на {slots.nights or 2} ночи с расчетом прозрачного чека без скрытых комиссий.")
+    return " ".join(parts)
 
 async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
     """
@@ -29,7 +134,6 @@ async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
     2. Gemini 1.5 Flash-8b
     3. Детерминированный Mock-экстрактор
     """
-    # Если ключ есть, пробуем Gemini
     if settings.GEMINI_API_KEY:
         try:
             return await _call_gemini(user_message, settings.PRIMARY_MODEL)
@@ -40,8 +144,8 @@ async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
             except Exception as e2:
                 print(f"[LLM Cascade] Ошибка {settings.FALLBACK_MODEL}: {e2}. Переход на Local Mock...")
 
-    # Fallback на локальный детерминированный экстрактор
     return _mock_extract_slots(user_message)
+
 
 async def _call_gemini(user_message: str, model_name: str) -> ExtractedSlots:
     from google import genai
@@ -167,8 +271,10 @@ def _default_chips(lower: str) -> list[str]:
         chips.append("Только с завтраком")
     if "бассейн" not in lower:
         chips.append("С теплым бассейном")
-    if "цена" not in lower and "руб" not in lower:
+    if "цена" not in lower and "руб" not in lower and "000" not in lower:
         chips.append("До 10 000 ₽ / ночь")
-    if "вид" not in lower:
+    if "вид" not in lower and "гор" not in lower:
         chips.append("С видом на горы")
-    return chips[:3]
+    if "отмен" not in lower and "cancel" not in lower:
+        chips.append("Свободная отмена")
+    return chips[:4]

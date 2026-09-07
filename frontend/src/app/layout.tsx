@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru" className={`dark h-full ${inter.variable}`}>
-      <body className={`h-full overflow-hidden bg-background text-foreground font-sans antialiased`}>
+    <html lang="ru" className={`dark h-full ${inter.variable}`} suppressHydrationWarning>
+      <body className={`h-full overflow-hidden bg-background text-foreground font-sans antialiased`} suppressHydrationWarning>
         {children}
       </body>
     </html>
