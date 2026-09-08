@@ -261,7 +261,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                 });
 
                 // Пауза при отображении пакета токенов для плавности
-                if (eventBlocks.length > 1 && i < eventBlocks.length - 1) {
+                if (!controller.signal.aborted && eventBlocks.length > 1 && i < eventBlocks.length - 1) {
                   await new Promise((resolve) => setTimeout(resolve, 15));
                 }
               } else if (eventType === "widget") {
