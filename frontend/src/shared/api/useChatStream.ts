@@ -220,7 +220,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                         ...prev.slice(1),
                       ];
                     }
-                    return [{ step, text }, ...prev.slice(1)];
+                    return [{ step, text }, ...prev];
                   }
 
                   if (existingStepIdx !== -1) {
