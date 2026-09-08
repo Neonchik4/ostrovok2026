@@ -84,12 +84,12 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             "Дополнительные фильтры не заданы — ранжирую по рейтингу и популярности"
         )
         yield _format_sse("thought", {"step": "filtering", "text": filters_text})
-        await asyncio.sleep(0.75)
+        await asyncio.sleep(0.6)
 
         # 3. Шаг: Векторный поиск
         yield _format_sse("thought", {"step": "hybrid_search", "text": f"Векторный поиск релевантных вариантов в {city_label}..."})
         hotels = await search_hotels_unified(slots)
-        await asyncio.sleep(0.75)
+        await asyncio.sleep(0.6)
         
         # 4. Итог поиска с прозрачной статистикой
         if hotels:
@@ -110,7 +110,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
                 "step": "results",
                 "text": f"Отели по строгому запросу не найдены в {city_label}, предлагаю скорректировать фильтры"
             })
-        await asyncio.sleep(0.75)
+        await asyncio.sleep(0.6)
 
         # 5. Шаг рассуждения: Детерминированный расчет чека
         if hotels and hotels[0].receipt:
@@ -125,7 +125,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
                 "step": "receipt_calculation",
                 "text": f"Рассчитываю прозрачные чеки и проверяю правила отмены..."
             })
-        await asyncio.sleep(0.75)
+        await asyncio.sleep(0.6)
 
         # 6. Стриминг текста ответа консьержа (Real LLM, без шаблонных повторов)
         async for chunk in generate_concierge_response_stream(message, slots, hotels):
