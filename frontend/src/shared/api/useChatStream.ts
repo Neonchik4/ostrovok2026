@@ -232,7 +232,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                 });
 
                 // Если в одном сетевом пакете пришло несколько блоков мыслей, даём React отрисовать каждый шаг
-                if (eventBlocks.length > 1 && i < eventBlocks.length - 1) {
+                if (!controller.signal.aborted && eventBlocks.length > 1 && i < eventBlocks.length - 1) {
                   await new Promise((resolve) => setTimeout(resolve, 30));
                 }
               } else if (eventType === "token") {
