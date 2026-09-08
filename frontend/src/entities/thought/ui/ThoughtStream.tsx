@@ -80,7 +80,7 @@ export function ThoughtStream({ thoughts, isStreaming }: ThoughtStreamProps) {
                 key={idx}
                 className="flex items-start gap-2.5 animate-fade-in"
               >
-                {/* Статус-иконка: строго либо спиннер, либо галочка */}
+                {/* Статус-иконка: пока данный шаг текущий — показывает спиннер, иначе — галочку */}
                 <div className="shrink-0 mt-0.5">
                   {isLatest ? (
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -89,7 +89,7 @@ export function ThoughtStream({ thoughts, isStreaming }: ThoughtStreamProps) {
                   )}
                 </div>
 
-                {/* Чистый текст без зачёркивания и без вторичных значков */}
+                {/* Текст шага мыслей */}
                 <span
                   className={
                     isLatest
