@@ -6,15 +6,8 @@ import { ChatConcierge } from "@/widgets/ChatConcierge";
 import { HotelCanvas } from "@/widgets/HotelCanvas";
 
 export default function HomePage() {
-  const {
-    messages,
-    thoughts,
-    hotels,
-    chips,
-    isStreaming,
-    sendMessage,
-    stopStream,
-  } = useChatStream();
+  const { messages, thoughts, hotels, chips, isStreaming, isThinking, sendMessage, stopStream } =
+    useChatStream();
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background">
@@ -24,6 +17,7 @@ export default function HomePage() {
         thoughts={thoughts}
         chips={chips}
         isStreaming={isStreaming}
+        isThinking={isThinking}
         onSendMessage={sendMessage}
         onStopStream={stopStream}
       />

@@ -16,67 +16,82 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
   const [selectedHotelForBooking, setSelectedHotelForBooking] = useState<Hotel | null>(null);
 
   return (
-    <main className="flex-1 flex flex-col h-full bg-background overflow-hidden">
+    <main className="flex h-full flex-1 flex-col overflow-hidden bg-background">
       {/* Шапка канваса */}
-      <header className="h-20 shrink-0 border-b border-border px-8 flex items-center justify-between bg-card/60 backdrop-blur-md">
+      <header className="flex h-20 shrink-0 items-center justify-between border-b border-border bg-card/60 px-8 backdrop-blur-md">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/15 text-primary border border-primary/25">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/15 text-primary">
               <Building2 className="h-6 w-6" />
             </div>
-            <h1 className="text-xl md:text-2xl font-black text-foreground tracking-tight">Витрина отелей</h1>
+            <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">
+              Витрина отелей
+            </h1>
           </div>
           {hotels.length > 0 && (
-            <Badge variant="outline" className="text-sm font-semibold px-3 py-1 bg-card border-border text-primary shadow-sm">
-              Найдено {hotels.length} {hotels.length === 1 ? "отель" : hotels.length < 5 ? "отеля" : "отелей"}
+            <Badge
+              variant="outline"
+              className="border-border bg-card px-3 py-1 text-sm font-semibold text-primary shadow-sm"
+            >
+              Найдено {hotels.length}{" "}
+              {hotels.length === 1 ? "отель" : hotels.length < 5 ? "отеля" : "отелей"}
             </Badge>
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <SlidersHorizontal className="h-4 w-4 text-primary" />
-          <span>Сортировка: <strong className="text-foreground">По релевантности (Match Score)</strong></span>
+          <span>
+            Сортировка: <strong className="text-foreground">По релевантности (Match Score)</strong>
+          </span>
         </div>
       </header>
 
       {/* Основной контент */}
       <div className="flex-1 overflow-y-auto p-8">
         {hotels.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center max-w-xl mx-auto space-y-6 text-muted-foreground">
-            <div className="p-5 rounded-3xl bg-card border border-border text-primary shadow-xl">
+          <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center space-y-6 text-center text-muted-foreground">
+            <div className="rounded-3xl border border-border bg-card p-5 text-primary shadow-xl">
               <HotelIcon className="h-14 w-14 stroke-[1.5]" />
             </div>
 
             <div className="space-y-2">
-              <h2 className="text-2xl md:text-3xl font-black text-foreground">Здесь появятся найденные отели</h2>
-              <p className="text-base text-muted-foreground leading-relaxed">
-                Наш AI-агент в реальном времени подбирает идеальные варианты из базы 200 отелей, проверяет доступность номеров и рассчитывает прозрачный чек.
+              <h2 className="text-2xl font-black text-foreground md:text-3xl">
+                Здесь появятся найденные отели
+              </h2>
+              <p className="text-base leading-relaxed text-muted-foreground">
+                Наш AI-агент в реальном времени подбирает идеальные варианты из базы 200 отелей,
+                проверяет доступность номеров и рассчитывает прозрачный чек.
               </p>
             </div>
 
             {onSelectPrompt && (
-              <div className="pt-2 w-full space-y-3">
-                <span className="text-sm font-bold text-foreground block uppercase tracking-wider text-left pl-1">
+              <div className="w-full space-y-3 pt-2">
+                <span className="block pl-1 text-left text-sm font-bold uppercase tracking-wider text-foreground">
                   Попробуйте популярные запросы:
                 </span>
                 <div className="flex flex-col gap-2.5">
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onSelectPrompt("Красная Поляна на двоих с собакой и теплым бассейном")}
-                    className="text-base justify-start bg-card hover:bg-primary/15 hover:text-primary hover:border-primary/40 text-left border-border py-3.5 px-4 h-auto rounded-xl shadow-sm transition-all"
+                    onClick={() =>
+                      onSelectPrompt("Красная Поляна на двоих с собакой и теплым бассейном")
+                    }
+                    className="h-auto justify-start rounded-xl border-border bg-card px-4 py-3.5 text-left text-base shadow-sm transition-all hover:border-primary/40 hover:bg-primary/15 hover:text-primary"
                   >
-                    <Sparkles className="h-5 w-5 text-primary mr-3 shrink-0" />
+                    <Sparkles className="mr-3 h-5 w-5 shrink-0 text-primary" />
                     <span>«Красная Поляна на двоих с собакой и теплым бассейном»</span>
                   </Button>
 
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onSelectPrompt("Санкт-Петербург 5 звезд с включенным завтраком и спа")}
-                    className="text-base justify-start bg-card hover:bg-primary/15 hover:text-primary hover:border-primary/40 text-left border-border py-3.5 px-4 h-auto rounded-xl shadow-sm transition-all"
+                    onClick={() =>
+                      onSelectPrompt("Санкт-Петербург 5 звезд с включенным завтраком и спа")
+                    }
+                    className="h-auto justify-start rounded-xl border-border bg-card px-4 py-3.5 text-left text-base shadow-sm transition-all hover:border-primary/40 hover:bg-primary/15 hover:text-primary"
                   >
-                    <Sparkles className="h-5 w-5 text-primary mr-3 shrink-0" />
+                    <Sparkles className="mr-3 h-5 w-5 shrink-0 text-primary" />
                     <span>«Санкт-Петербург 5 звезд с включенным завтраком и спа»</span>
                   </Button>
 
@@ -84,9 +99,9 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
                     variant="outline"
                     size="sm"
                     onClick={() => onSelectPrompt("Сочи у моря с бесплатной отменой до 8000 руб")}
-                    className="text-base justify-start bg-card hover:bg-primary/15 hover:text-primary hover:border-primary/40 text-left border-border py-3.5 px-4 h-auto rounded-xl shadow-sm transition-all"
+                    className="h-auto justify-start rounded-xl border-border bg-card px-4 py-3.5 text-left text-base shadow-sm transition-all hover:border-primary/40 hover:bg-primary/15 hover:text-primary"
                   >
-                    <Sparkles className="h-5 w-5 text-primary mr-3 shrink-0" />
+                    <Sparkles className="mr-3 h-5 w-5 shrink-0 text-primary" />
                     <span>«Сочи у моря с бесплатной отменой до 8000 руб»</span>
                   </Button>
                 </div>
@@ -94,7 +109,7 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 max-w-7xl mx-auto">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
             {hotels.map((hotel) => (
               <HotelCard
                 key={hotel.id}

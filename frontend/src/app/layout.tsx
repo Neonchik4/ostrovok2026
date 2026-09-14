@@ -14,14 +14,13 @@ export const metadata: Metadata = {
     "AI-агент для умного поиска и прозрачного бронирования отелей на базе синтетического датасета и детерминированного чека.",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={`dark h-full ${inter.variable}`} suppressHydrationWarning>
-      <body className={`h-full overflow-hidden bg-background text-foreground font-sans antialiased`} suppressHydrationWarning>
+      <body
+        className={`h-full overflow-hidden bg-background font-sans text-foreground antialiased`}
+        suppressHydrationWarning
+      >
         {children}
       </body>
     </html>

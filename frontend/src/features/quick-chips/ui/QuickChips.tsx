@@ -30,7 +30,7 @@ export function QuickChips({ chips, onSelectChip, disabled }: QuickChipsProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-2 py-3">
-      <span className="text-xs font-bold text-muted-foreground mr-1 flex items-center gap-1">
+      <span className="mr-1 flex items-center gap-1 text-xs font-bold text-muted-foreground">
         <Filter className="h-3 w-3" />
         Уточнить поиск:
       </span>
@@ -43,13 +43,13 @@ export function QuickChips({ chips, onSelectChip, disabled }: QuickChipsProps) {
             size="sm"
             disabled={disabled || !!pressedChip}
             onClick={() => handleClick(chip)}
-            className={`h-9 text-sm font-medium rounded-full border-border px-4 gap-1.5 shadow-sm transition-all duration-150 ${
+            className={`h-9 gap-1.5 rounded-full border-border px-4 text-sm font-medium shadow-sm transition-all duration-150 ${
               isPressed
-                ? "bg-primary/30 text-primary border-primary/60 scale-95"
-                : "bg-card hover:bg-primary/20 hover:text-primary hover:border-primary/40"
+                ? "scale-95 border-primary/60 bg-primary/30 text-primary"
+                : "bg-card hover:border-primary/40 hover:bg-primary/20 hover:text-primary"
             }`}
           >
-            <Filter className="h-3.5 w-3.5 text-primary shrink-0" />
+            <Filter className="h-3.5 w-3.5 shrink-0 text-primary" />
             <span>{chip}</span>
           </Button>
         );

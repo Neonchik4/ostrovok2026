@@ -51,32 +51,28 @@ export function VoiceInputButton({
       variant={isListening ? "destructive" : "outline"}
       onClick={toggleListening}
       disabled={disabled}
-      title={
+      title={isListening ? "Остановить голосовой ввод" : "Голосовой ввод запроса (Web Speech API)"}
+      className={`h-12 shrink-0 rounded-xl transition-all duration-300 ${
         isListening
-          ? "Остановить голосовой ввод"
-          : "Голосовой ввод запроса (Web Speech API)"
-      }
-      className={`h-12 rounded-xl shrink-0 transition-all duration-300 ${
-        isListening
-          ? "w-20 bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20"
-          : "w-12 bg-card border-border hover:bg-primary/20 hover:border-primary/40"
+          ? "w-20 bg-destructive text-white shadow-lg shadow-destructive/20 hover:bg-destructive/90"
+          : "w-12 border-border bg-card hover:border-primary/40 hover:bg-primary/20"
       }`}
     >
       {isListening ? (
-        <div className="flex items-center justify-center gap-1.5 w-full">
+        <div className="flex w-full items-center justify-center gap-1.5">
           {/* Динамическая звуковая дорожка эквалайзера в такт с реальным вводом */}
-          <div className="flex items-center gap-0.5 h-6">
+          <div className="flex h-6 items-center gap-0.5">
             {audioLevels.map((level, idx) => (
               <span
                 key={idx}
-                className="w-1 bg-white rounded-full transition-[height] duration-75 ease-out"
+                className="w-1 rounded-full bg-white transition-[height] duration-75 ease-out"
                 style={{
                   height: `${Math.max(4, Math.round(level * 22))}px`,
                 }}
               />
             ))}
           </div>
-          <MicOff className="h-4 w-4 text-white/90 shrink-0" />
+          <MicOff className="h-4 w-4 shrink-0 text-white/90" />
         </div>
       ) : (
         <Mic className="h-5 w-5 text-primary" />
@@ -84,4 +80,3 @@ export function VoiceInputButton({
     </Button>
   );
 }
-

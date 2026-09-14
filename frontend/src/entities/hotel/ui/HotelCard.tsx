@@ -12,10 +12,12 @@ interface HotelCardProps {
 }
 
 export function HotelCard({ hotel, onBook }: HotelCardProps) {
-  const imageUrl = hotel.image_urls?.[0] || "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80";
+  const imageUrl =
+    hotel.image_urls?.[0] ||
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80";
 
   return (
-    <Card className="overflow-hidden border-border bg-card rounded-2xl transition-all duration-200 hover:border-primary/50 hover:shadow-2xl flex flex-col justify-between">
+    <Card className="flex flex-col justify-between overflow-hidden rounded-2xl border-border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-2xl">
       <div>
         {/* Фотография отеля и бейджи */}
         <div className="relative h-56 w-full overflow-hidden bg-muted">
@@ -26,26 +28,29 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
             className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
             loading="lazy"
           />
-          <div className="absolute top-3.5 right-3.5">
+          <div className="absolute right-3.5 top-3.5">
             <HotelScoreBadge scorePct={hotel.match_score_pct} />
           </div>
-          <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 rounded-lg bg-background/85 px-3 py-1.5 text-sm backdrop-blur-md font-semibold border border-border/50 shadow-md">
-            <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+          <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/85 px-3 py-1.5 text-sm font-semibold shadow-md backdrop-blur-md">
+            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
             <span className="font-bold text-foreground">{hotel.rating.toFixed(1)}</span>
-            <span className="text-muted-foreground text-xs">({hotel.reviews_count})</span>
+            <span className="text-xs text-muted-foreground">({hotel.reviews_count})</span>
           </div>
         </div>
 
         {/* Контент карточки */}
-        <div className="p-5 space-y-4">
+        <div className="space-y-4 p-5">
           <div>
-            <div className="flex items-center gap-1.5 text-muted-foreground text-sm font-medium mb-1">
-              <MapPin className="w-4 h-4 shrink-0 text-primary" />
-              <span>{hotel.city}{hotel.area ? `, ${hotel.area}` : ""}</span>
+            <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
+              <span>
+                {hotel.city}
+                {hotel.area ? `, ${hotel.area}` : ""}
+              </span>
               <span className="mx-1">•</span>
-              <span className="text-foreground font-semibold">{hotel.stars} ★</span>
+              <span className="font-semibold text-foreground">{hotel.stars} ★</span>
             </div>
-            <h3 className="text-xl font-bold text-foreground line-clamp-1 tracking-tight">
+            <h3 className="line-clamp-1 text-xl font-bold tracking-tight text-foreground">
               {hotel.name}
             </h3>
           </div>
@@ -53,7 +58,11 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
           {/* Теги отеля */}
           <div className="flex flex-wrap gap-2">
             {hotel.tags?.slice(0, 3).map((tag, idx) => (
-              <Badge key={idx} variant="outline" className="text-xs font-semibold py-1 px-3 bg-secondary/70 border-border text-foreground">
+              <Badge
+                key={idx}
+                variant="outline"
+                className="border-border bg-secondary/70 px-3 py-1 text-xs font-semibold text-foreground"
+              >
                 {tag}
               </Badge>
             ))}
@@ -61,13 +70,13 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
 
           {/* Рекомендованный номер */}
           {hotel.suitable_room && (
-            <div className="rounded-xl border border-border/90 bg-background/60 p-3.5 text-sm space-y-1.5">
-              <div className="flex items-center gap-2 text-primary font-bold text-sm">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+            <div className="space-y-1.5 rounded-xl border border-border/90 bg-background/60 p-3.5 text-sm">
+              <div className="flex items-center gap-2 text-sm font-bold text-primary">
+                <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>{hotel.suitable_room.name}</span>
               </div>
               {hotel.suitable_room.bed_setup && (
-                <p className="text-muted-foreground text-xs font-medium pl-6">
+                <p className="pl-6 text-xs font-medium text-muted-foreground">
                   {hotel.suitable_room.bed_setup}
                   {hotel.suitable_room.area_sqm ? ` • ${hotel.suitable_room.area_sqm} м²` : ""}
                 </p>
@@ -81,9 +90,11 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
       </div>
 
       {/* Футер карточки с ценой и кнопкой */}
-      <div className="p-5 pt-3 border-t border-border mt-2 flex items-center justify-between">
+      <div className="mt-2 flex items-center justify-between border-t border-border p-5 pt-3">
         <div>
-          <span className="text-xs uppercase tracking-wider font-bold text-muted-foreground block">от</span>
+          <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            от
+          </span>
           <div className="text-2xl font-black text-foreground">
             {formatPrice(hotel.min_price_per_night_rub)}
             <span className="text-sm font-normal text-muted-foreground"> / ночь</span>
@@ -92,7 +103,7 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
 
         <Button
           onClick={() => onBook?.(hotel)}
-          className="h-11 px-6 text-base font-bold rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 shadow-md transition-all"
+          className="h-11 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90"
         >
           Забронировать
         </Button>

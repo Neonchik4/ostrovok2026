@@ -9,6 +9,7 @@
     "dev:front": "npm --prefix frontend run dev",
     "dev:back": "npm --prefix backend run dev",
     "lint": "npm --prefix frontend run lint && npm --prefix backend run lint",
+    "format": "npm --prefix frontend run format",
     "test": "npm --prefix frontend run test && npm --prefix backend run test",
     "build": "npm --prefix frontend run build"
   },

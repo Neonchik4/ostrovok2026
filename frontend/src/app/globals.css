@@ -5,34 +5,34 @@
 @layer base {
   :root {
     /* Rich Oceanic Midnight Palette (High Contrast & Modern Tech) */
-    --background: 224 45% 6%;           /* #080D1A - Deep Midnight Navy */
-    --foreground: 210 40% 98%;          /* #F8FAFC - Crisp Pure White */
-    
-    --card: 222 47% 11%;                /* #0F172A - Premium Slate Blue */
+    --background: 224 45% 6%; /* #080D1A - Deep Midnight Navy */
+    --foreground: 210 40% 98%; /* #F8FAFC - Crisp Pure White */
+
+    --card: 222 47% 11%; /* #0F172A - Premium Slate Blue */
     --card-foreground: 210 40% 98%;
-    
+
     --popover: 222 47% 11%;
     --popover-foreground: 210 40% 98%;
-    
-    --primary: 201 96% 46%;             /* #0284C7 - Ostrovok Electric Cyan/Azure */
+
+    --primary: 201 96% 46%; /* #0284C7 - Ostrovok Electric Cyan/Azure */
     --primary-foreground: 0 0% 100%;
-    
-    --secondary: 220 33% 18%;           /* #1E293B */
+
+    --secondary: 220 33% 18%; /* #1E293B */
     --secondary-foreground: 210 40% 98%;
-    
+
     --muted: 220 33% 16%;
-    --muted-foreground: 217 24% 75%;     /* #94A3B8 - High contrast readable slate */
-    
-    --accent: 199 89% 48%;              /* #0EA5E9 */
+    --muted-foreground: 217 24% 75%; /* #94A3B8 - High contrast readable slate */
+
+    --accent: 199 89% 48%; /* #0EA5E9 */
     --accent-foreground: 0 0% 100%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
-    --border: 217 33% 22%;              /* #25334D - Clean crisp frame borders */
+
+    --border: 217 33% 22%; /* #25334D - Clean crisp frame borders */
     --input: 217 33% 20%;
     --ring: 201 96% 46%;
-    
+
     --radius: 0.75rem;
   }
 }
@@ -42,8 +42,18 @@
     @apply border-border;
     --tw-ring-offset-color: transparent;
   }
-  html, body {
-    font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  html,
+  body {
+    font-family:
+      var(--font-sans),
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif;
   }
   body {
     @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary;
@@ -62,7 +72,6 @@
     box-shadow: none !important;
   }
 }
-
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {

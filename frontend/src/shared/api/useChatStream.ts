@@ -62,6 +62,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   const [hotels, setHotels] = useState<HotelData[]>([]);
   const [chips, setChips] = useState<string[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -77,6 +78,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
       setIsStreaming(false);
+      setIsThinking(false);
     }
   }, []);
 
@@ -101,9 +103,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       const userMsg: ChatMessage = {
         id: `user-${Date.now()}`,
         role: "user",
-        content: queryOptions?.disambiguation
-          ? queryOptions.disambiguation
-          : trimmed,
+        content: queryOptions?.disambiguation ? queryOptions.disambiguation : trimmed,
         timestamp: new Date().toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -117,6 +117,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       setChips([]); // ← сброс старых чипсов при новом запросе
       setError(null);
       setIsStreaming(true);
+      setIsThinking(true);
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
@@ -144,7 +145,10 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
           });
         } catch (fetchErr) {
           // Если прокси /api/... вернул net::ERR_CONNECTION_REFUSED, пробуем прямой бэкенд 127.0.0.1:8000
-          if (!controller.signal.aborted && (apiEndpoint.startsWith("/") || apiEndpoint.includes(":3000"))) {
+          if (
+            !controller.signal.aborted &&
+            (apiEndpoint.startsWith("/") || apiEndpoint.includes(":3000"))
+          ) {
             console.warn("Порт 3000 недоступен, автоматическое переключение на 127.0.0.1:8000...");
             response = await fetch("http://127.0.0.1:8000/api/chat/stream", {
               method: "POST",
@@ -211,8 +215,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                 setThoughts((prev) => {
                   const last = prev[prev.length - 1];
                   if (step === "reasoning" && last?.step === "reasoning") {
-                    const isInitialPlaceholder =
-                      last.text === "Анализирую параметры запроса...";
+                    const isInitialPlaceholder = last.text === "Анализирую параметры запроса...";
                     return [
                       ...prev.slice(0, -1),
                       {
@@ -223,7 +226,14 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                   }
                   return [...prev, { step, text }];
                 });
+
+                // Если из сети пришло несколько дискретных шагов сразу в одном пакете,
+                // даём React и DOM возможность отрисовать переход между шагами (как в Gemini/Claude)
+                if (step !== "reasoning") {
+                  await new Promise((resolve) => setTimeout(resolve, 35));
+                }
               } else if (eventType === "token") {
+                setIsThinking(false);
                 const chunk = data.content || "";
                 setMessages((prev) => {
                   const existing = prev.find((m) => m.id === assistantMsgId);
@@ -242,12 +252,11 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                     ];
                   }
                   return prev.map((m) =>
-                    m.id === assistantMsgId
-                      ? { ...m, content: m.content + chunk }
-                      : m
+                    m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m
                   );
                 });
               } else if (eventType === "widget") {
+                setIsThinking(false);
                 if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
                   setHotels(data.hotels);
                   if (Array.isArray(data.disambiguation_chips)) {
@@ -255,6 +264,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                   }
                 }
               } else if (eventType === "done") {
+                setIsThinking(false);
                 setIsStreaming(false);
               }
             } catch (jsonErr) {
@@ -283,10 +293,10 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
         // Завершаем стриминг только если это всё ещё активный запрос
         if (abortControllerRef.current === controller) {
           setIsStreaming(false);
+          setIsThinking(false);
           abortControllerRef.current = null;
         }
       }
-
     },
     [apiEndpoint, stopStream, isStreaming]
   );
@@ -297,6 +307,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     hotels,
     chips,
     isStreaming,
+    isThinking,
     error,
     sendMessage,
     stopStream,
