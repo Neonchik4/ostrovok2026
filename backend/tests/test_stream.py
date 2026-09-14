@@ -101,7 +101,8 @@ def test_chat_stream_multiturn_dialog():
             )
             assert r3.status_code == 200
             assert "Москва" in r3.text
-            assert "Классик Спа 119" in r3.text
+            assert "hotel_grid" in r3.text
+            assert '"is_free_cancellation": true' in r3.text
 
     asyncio.run(_run())
 

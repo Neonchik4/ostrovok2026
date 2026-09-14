@@ -142,13 +142,13 @@ def test_search_relaxed_low_budget_always_finds():
     from app.services.hotel_search_adapter import search_hotels_unified
 
     async def _test():
-        # Бюджет 2 700 ₽ — в базе нет отелей ниже 3 000 ₽
-        slots = ExtractedSlots(city="Москва", max_price_per_night_rub=2700)
+        # Бюджет 1 000 ₽ — в реальной базе Москвы нет отелей ниже 1 800 ₽
+        slots = ExtractedSlots(city="Москва", max_price_per_night_rub=1000)
         results = await search_hotels_unified(slots)
-        # Агент не должен возвращать пустой список — должен мягко ослабить фильтр и найти отели от 3 000 ₽
+        # Агент не должен возвращать пустой список — должен мягко ослабить фильтр и найти отели
         assert len(results) > 0
         assert all(h.city == "Москва" for h in results)
-        assert results[0].min_price_per_night_rub >= 3000
+        assert results[0].min_price_per_night_rub >= 1800
 
     asyncio.run(_test())
 
