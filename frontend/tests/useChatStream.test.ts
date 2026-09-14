@@ -114,5 +114,78 @@ describe("useChatStream", () => {
       text: "Применяю фильтры",
     });
   });
+
+  it("marks active thought as cancelled when stopStream is called during stream", async () => {
+    let resolver: () => void = () => {};
+    const pendingPromise = new Promise<void>((r) => {
+      resolver = r;
+    });
+
+    global.fetch = vi.fn().mockImplementation(() =>
+      Promise.resolve({
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: vi
+              .fn()
+              .mockResolvedValueOnce({
+                done: false,
+                value: new TextEncoder().encode(
+                  'event: thought\ndata: {"step": "search", "text": "Ищу отели в Красной Поляне..."}\n\n'
+                ),
+              })
+              .mockImplementationOnce(() => pendingPromise.then(() => ({ done: true }))),
+          }),
+        },
+      })
+    );
+
+    const { result } = renderHook(() => useChatStream());
+
+    // Запускаем отправку
+    let sendPromise: Promise<void>;
+    act(() => {
+      sendPromise = result.current.sendMessage("Поиск");
+    });
+
+    // Даем микротаскам обработать первый chunk
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 20));
+    });
+
+    // Останавливаем стрим
+    act(() => {
+      result.current.stopStream();
+      resolver();
+    });
+
+    await act(async () => {
+      await sendPromise!;
+    });
+
+    expect(result.current.isStreaming).toBe(false);
+    expect(result.current.thoughts.length).toBeGreaterThan(0);
+    const lastThought = result.current.thoughts[result.current.thoughts.length - 1];
+    expect(lastThought.step).toBe("cancelled");
+    expect(lastThought.text).toContain("(остановлено пользователем)");
+  });
+
+  it("marks in-progress thought as error when network fails", async () => {
+    global.fetch = vi.fn().mockImplementation(() =>
+      Promise.reject(new Error("Failed to fetch"))
+    );
+
+    const { result } = renderHook(() => useChatStream());
+
+    await act(async () => {
+      await result.current.sendMessage("Поиск отеля");
+    });
+
+    expect(result.current.isStreaming).toBe(false);
+    expect(result.current.error).toBe("Failed to fetch");
+    const lastThought = result.current.thoughts[result.current.thoughts.length - 1];
+    expect(lastThought.step).toBe("error");
+    expect(lastThought.text).toContain("Ошибка: Failed to fetch");
+  });
 });
 

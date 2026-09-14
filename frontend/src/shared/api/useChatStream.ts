@@ -79,6 +79,25 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       abortControllerRef.current = null;
       setIsStreaming(false);
       setIsThinking(false);
+      setThoughts((prev) => {
+        if (prev.length === 0) return prev;
+        const last = prev[prev.length - 1];
+        if (
+          last.step === "error" ||
+          last.step === "cancelled" ||
+          last.step === "stopped" ||
+          last.text.includes("(остановлено)")
+        ) {
+          return prev;
+        }
+        return [
+          ...prev.slice(0, -1),
+          {
+            step: "cancelled",
+            text: `${last.text.replace(/\.\.\.$/, "").trim()} (остановлено пользователем)`,
+          },
+        ];
+      });
     }
   }, []);
 
@@ -298,6 +317,25 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
         setError(errorMessage);
         setThoughts((prev) => {
           const filtered = prev.filter((t) => t.text !== "Анализирую параметры запроса...");
+          if (filtered.length > 0) {
+            const last = filtered[filtered.length - 1];
+            if (
+              last.step !== "error" &&
+              last.step !== "cancelled" &&
+              last.step !== "stopped" &&
+              !last.text.includes("(сбой)")
+            ) {
+              return [
+                ...filtered.slice(0, -1),
+                {
+                  ...last,
+                  step: "error",
+                  text: `${last.text.replace(/\.\.\.$/, "").trim()} (сбой)`,
+                },
+                { step: "error", text: `Ошибка: ${errorMessage}. Попробуйте повторить запрос.` },
+              ];
+            }
+          }
           return [
             ...filtered,
             { step: "error", text: `Ошибка: ${errorMessage}. Попробуйте повторить запрос.` },
