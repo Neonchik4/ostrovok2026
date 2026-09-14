@@ -90,7 +90,7 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
                   )}
                 </div>
 
-                {/* Чистый текст без зачёркивания и без вторичных значков */}
+                {/* Текст шага мыслей */}
                 <span
                   className={
                     isLatest
