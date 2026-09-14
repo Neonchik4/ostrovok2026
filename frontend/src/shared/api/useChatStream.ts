@@ -188,7 +188,8 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
           const eventBlocks = buffer.split("\n\n");
           buffer = eventBlocks.pop() || "";
 
-          for (const block of eventBlocks) {
+          for (let i = 0; i < eventBlocks.length; i++) {
+            const block = eventBlocks[i];
             if (!block.trim() || controller.signal.aborted) continue;
 
             let eventType = "message";
@@ -213,24 +214,33 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                 const step = data.step || "thought";
                 const text = data.text || "";
                 setThoughts((prev) => {
-                  const last = prev[prev.length - 1];
-                  if (step === "reasoning" && last?.step === "reasoning") {
-                    const isInitialPlaceholder = last.text === "Анализирую параметры запроса...";
-                    return [
-                      ...prev.slice(0, -1),
-                      {
-                        ...last,
-                        text: isInitialPlaceholder ? text : last.text + text,
-                      },
-                    ];
+                  const existingStepIdx = prev.findIndex((t) => t.step === step);
+                  if (step === "reasoning") {
+                    const first = prev[0];
+                    if (first && first.step === "reasoning") {
+                      const isPlaceholder = first.text === "Анализирую параметры запроса...";
+                      return [
+                        { ...first, text: isPlaceholder ? text : first.text + text },
+                        ...prev.slice(1),
+                      ];
+                    }
+                    return [{ step, text }, ...prev];
+                  }
+
+                  if (existingStepIdx !== -1) {
+                    const updated = [...prev];
+                    updated[existingStepIdx] = { step, text };
+                    return updated;
                   }
                   return [...prev, { step, text }];
                 });
 
-                // Если из сети пришло несколько дискретных шагов сразу в одном пакете,
-                // даём React и DOM возможность отрисовать переход между шагами (как в Gemini/Claude)
-                if (step !== "reasoning") {
-                  await new Promise((resolve) => setTimeout(resolve, 35));
+                // Если из сети пришло несколько дискретных шагов сразу или пакетов мыслей, даём React отрисовать каждый шаг
+                if (
+                  !controller.signal.aborted &&
+                  (step !== "reasoning" || (eventBlocks.length > 1 && i < eventBlocks.length - 1))
+                ) {
+                  await new Promise((resolve) => setTimeout(resolve, 30));
                 }
               } else if (eventType === "token") {
                 setIsThinking(false);
@@ -255,6 +265,11 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                     m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m
                   );
                 });
+
+                // Пауза при отображении пакета токенов для плавности
+                if (!controller.signal.aborted && eventBlocks.length > 1 && i < eventBlocks.length - 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 15));
+                }
               } else if (eventType === "widget") {
                 setIsThinking(false);
                 if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
