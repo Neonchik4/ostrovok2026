@@ -95,6 +95,7 @@ async def think_stream(user_message: str, slots: ExtractedSlots | None = None) -
                         if chunk.text:
                             has_content = True
                             yield chunk.text
+                            await asyncio.sleep(0.01)
                     if has_content:
                         return
 
@@ -207,6 +208,7 @@ async def generate_concierge_response_stream(
                         if chunk.text:
                             has_content = True
                             yield chunk.text
+                            await asyncio.sleep(0.01)
                     if has_content:
                         return
                 except Exception as e:

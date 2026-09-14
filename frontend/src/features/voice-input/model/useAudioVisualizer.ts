@@ -10,16 +10,11 @@ interface UseAudioVisualizerOptions {
 const DEFAULT_BARS = 5;
 const DEFAULT_MIN_HEIGHT = 0.2;
 
-export function useAudioVisualizer(
-  isListening: boolean,
-  options?: UseAudioVisualizerOptions
-) {
+export function useAudioVisualizer(isListening: boolean, options?: UseAudioVisualizerOptions) {
   const numBars = options?.numBars ?? DEFAULT_BARS;
   const minHeight = options?.minHeight ?? DEFAULT_MIN_HEIGHT;
 
-  const [levels, setLevels] = useState<number[]>(() =>
-    Array(numBars).fill(minHeight)
-  );
+  const [levels, setLevels] = useState<number[]>(() => Array(numBars).fill(minHeight));
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -70,10 +65,7 @@ export function useAudioVisualizer(
       return;
     }
 
-    if (
-      typeof window === "undefined" ||
-      !navigator.mediaDevices?.getUserMedia
-    ) {
+    if (typeof window === "undefined" || !navigator.mediaDevices?.getUserMedia) {
       return;
     }
 
@@ -101,8 +93,7 @@ export function useAudioVisualizer(
 
         const AudioCtx =
           window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext;
+          (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
 
         if (!AudioCtx) return;
 

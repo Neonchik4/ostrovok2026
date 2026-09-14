@@ -61,4 +61,16 @@ describe("ThoughtStream component", () => {
     fireEvent.click(toggleButton);
     expect(screen.getByText("Тестовое рассуждение")).toBeInTheDocument();
   });
+
+  it("shows live step progress when isThinking is true", () => {
+    const thoughts = [
+      { step: "reasoning", text: "Анализирую параметры..." },
+      { step: "filtering", text: "Применяю фильтры..." },
+    ];
+
+    render(<ThoughtStream thoughts={thoughts} isStreaming={true} isThinking={true} />);
+
+    expect(screen.getByText("Шаг 2 из 5...")).toBeInTheDocument();
+    expect(screen.getByText("Применяю фильтры...")).toBeInTheDocument();
+  });
 });
