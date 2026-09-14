@@ -1,11 +1,15 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { readSSEStream } from "./sseReader";
+import {
+  ThoughtItem,
+  updateThought,
+  markThoughtCancelled,
+  markThoughtError,
+} from "./thoughtReducer";
 
-export interface ThoughtItem {
-  step: string;
-  text: string;
-}
+export type { ThoughtItem };
 
 export interface ChatMessage {
   id: string;
@@ -79,25 +83,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       abortControllerRef.current = null;
       setIsStreaming(false);
       setIsThinking(false);
-      setThoughts((prev) => {
-        if (prev.length === 0) return prev;
-        const last = prev[prev.length - 1];
-        if (
-          last.step === "error" ||
-          last.step === "cancelled" ||
-          last.step === "stopped" ||
-          last.text.includes("(остановлено)")
-        ) {
-          return prev;
-        }
-        return [
-          ...prev.slice(0, -1),
-          {
-            step: "cancelled",
-            text: `${last.text.replace(/\.\.\.$/, "").trim()} (остановлено пользователем)`,
-          },
-        ];
-      });
+      setThoughts((prev) => markThoughtCancelled(prev));
     }
   }, []);
 
@@ -133,7 +119,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
 
       setMessages((prev) => [...prev, userMsg]);
       setThoughts([{ step: "reasoning", text: "Анализирую параметры запроса..." }]);
-      setChips([]); // ← сброс старых чипсов при новом запросе
+      setChips([]); // сброс старых чипсов при новом запросе
       setError(null);
       setIsStreaming(true);
       setIsThinking(true);
@@ -191,121 +177,55 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
           throw new Error("Тело ответа пустое");
         }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder("utf-8");
-        let buffer = "";
+        await readSSEStream({
+          stream: response.body,
+          signal: controller.signal,
+          onEvent: async ({ event, data }) => {
+            if (event === "thought") {
+              const step = data.step || "thought";
+              const thoughtText = data.text || "";
+              setThoughts((prev) => updateThought(prev, step, thoughtText));
 
-        while (true) {
-          if (controller.signal.aborted) {
-            break;
-          }
-
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const eventBlocks = buffer.split("\n\n");
-          buffer = eventBlocks.pop() || "";
-
-          for (let i = 0; i < eventBlocks.length; i++) {
-            const block = eventBlocks[i];
-            if (!block.trim() || controller.signal.aborted) continue;
-
-            let eventType = "message";
-            const dataLines: string[] = [];
-
-            const lines = block.split(/\r?\n/);
-            for (const line of lines) {
-              if (line.startsWith("event:")) {
-                eventType = line.substring(6).trim();
-              } else if (line.startsWith("data:")) {
-                dataLines.push(line.substring(5).trim());
+              if (!controller.signal.aborted && step !== "reasoning") {
+                await new Promise((resolve) => setTimeout(resolve, 30));
               }
-            }
-
-            if (dataLines.length === 0) continue;
-            const dataStr = dataLines.join("\n");
-
-            try {
-              const data = JSON.parse(dataStr);
-
-              if (eventType === "thought") {
-                const step = data.step || "thought";
-                const text = data.text || "";
-                setThoughts((prev) => {
-                  const existingStepIdx = prev.findIndex((t) => t.step === step);
-                  if (step === "reasoning") {
-                    const first = prev[0];
-                    if (first && first.step === "reasoning") {
-                      const isPlaceholder = first.text === "Анализирую параметры запроса...";
-                      return [
-                        { ...first, text: isPlaceholder ? text : first.text + text },
-                        ...prev.slice(1),
-                      ];
-                    }
-                    return [{ step, text }, ...prev];
-                  }
-
-                  if (existingStepIdx !== -1) {
-                    const updated = [...prev];
-                    updated[existingStepIdx] = { step, text };
-                    return updated;
-                  }
-                  return [...prev, { step, text }];
-                });
-
-                // Если из сети пришло несколько дискретных шагов сразу или пакетов мыслей, даём React отрисовать каждый шаг
-                if (
-                  !controller.signal.aborted &&
-                  (step !== "reasoning" || (eventBlocks.length > 1 && i < eventBlocks.length - 1))
-                ) {
-                  await new Promise((resolve) => setTimeout(resolve, 30));
+            } else if (event === "token") {
+              setIsThinking(false);
+              const chunk = data.content || "";
+              setMessages((prev) => {
+                const existing = prev.find((m) => m.id === assistantMsgId);
+                if (!existing) {
+                  return [
+                    ...prev,
+                    {
+                      id: assistantMsgId,
+                      role: "assistant",
+                      content: chunk,
+                      timestamp: new Date().toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }),
+                    },
+                  ];
                 }
-              } else if (eventType === "token") {
-                setIsThinking(false);
-                const chunk = data.content || "";
-                setMessages((prev) => {
-                  const existing = prev.find((m) => m.id === assistantMsgId);
-                  if (!existing) {
-                    return [
-                      ...prev,
-                      {
-                        id: assistantMsgId,
-                        role: "assistant",
-                        content: chunk,
-                        timestamp: new Date().toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        }),
-                      },
-                    ];
-                  }
-                  return prev.map((m) =>
-                    m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m
-                  );
-                });
-
-                // Пауза при отображении пакета токенов для плавности
-                if (!controller.signal.aborted && eventBlocks.length > 1 && i < eventBlocks.length - 1) {
-                  await new Promise((resolve) => setTimeout(resolve, 15));
+                return prev.map((m) =>
+                  m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m
+                );
+              });
+            } else if (event === "widget") {
+              setIsThinking(false);
+              if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
+                setHotels(data.hotels);
+                if (Array.isArray(data.disambiguation_chips)) {
+                  setChips(data.disambiguation_chips);
                 }
-              } else if (eventType === "widget") {
-                setIsThinking(false);
-                if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
-                  setHotels(data.hotels);
-                  if (Array.isArray(data.disambiguation_chips)) {
-                    setChips(data.disambiguation_chips);
-                  }
-                }
-              } else if (eventType === "done") {
-                setIsThinking(false);
-                setIsStreaming(false);
               }
-            } catch (jsonErr) {
-              console.warn("Ошибка разбора SSE пакета:", jsonErr, dataStr);
+            } else if (event === "done") {
+              setIsThinking(false);
+              setIsStreaming(false);
             }
-          }
-        }
+          },
+        });
       } catch (err: unknown) {
         if (controller.signal.aborted) {
           console.log("Стрим прерван клиентом");
@@ -315,35 +235,9 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
           err instanceof Error ? err.message : "Не удалось связаться с сервером поиска";
         console.error("Ошибка при стриминге:", err);
         setError(errorMessage);
-        setThoughts((prev) => {
-          const filtered = prev.filter((t) => t.text !== "Анализирую параметры запроса...");
-          if (filtered.length > 0) {
-            const last = filtered[filtered.length - 1];
-            if (
-              last.step !== "error" &&
-              last.step !== "cancelled" &&
-              last.step !== "stopped" &&
-              !last.text.includes("(сбой)")
-            ) {
-              return [
-                ...filtered.slice(0, -1),
-                {
-                  ...last,
-                  step: "error",
-                  text: `${last.text.replace(/\.\.\.$/, "").trim()} (сбой)`,
-                },
-                { step: "error", text: `Ошибка: ${errorMessage}. Попробуйте повторить запрос.` },
-              ];
-            }
-          }
-          return [
-            ...filtered,
-            { step: "error", text: `Ошибка: ${errorMessage}. Попробуйте повторить запрос.` },
-          ];
-        });
+        setThoughts((prev) => markThoughtError(prev, errorMessage));
       } finally {
         isSubmittingRef.current = false;
-        // Завершаем стриминг только если это всё ещё активный запрос
         if (abortControllerRef.current === controller) {
           setIsStreaming(false);
           setIsThinking(false);
