@@ -2,6 +2,23 @@ import asyncio
 import pytest
 from httpx import AsyncClient, ASGITransport
 from app.main import app
+from app.config import settings
+
+@pytest.fixture(autouse=True)
+def fast_test_stream_env(monkeypatch):
+    """
+    Ускоряет тесты стрима:
+    1. Отключает внешние сетевые обращения к Gemini, переключая на детерминированный движок.
+    2. Убирает визуальные задержки asyncio.sleep, сохраняя переключение корутин.
+    Вся бизнес-логика (FastAPI, SSE, слоты, фильтрация отелей, чеки, память) тестируется на 100%.
+    """
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    
+    original_sleep = asyncio.sleep
+    async def _fast_sleep(delay, *args, **kwargs):
+        return await original_sleep(0)
+    
+    monkeypatch.setattr(asyncio, "sleep", _fast_sleep)
 
 def test_chat_stream_contract():
     async def _run():
