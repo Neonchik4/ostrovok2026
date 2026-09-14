@@ -70,7 +70,7 @@ describe("ThoughtStream component", () => {
 
     render(<ThoughtStream thoughts={thoughts} isStreaming={true} isThinking={true} />);
 
-    expect(screen.getByText("Шаг 2 из 5...")).toBeInTheDocument();
+    expect(screen.getByText("Шаг 2 из 5")).toBeInTheDocument();
     expect(screen.getByText("Применяю фильтры...")).toBeInTheDocument();
   });
 });
