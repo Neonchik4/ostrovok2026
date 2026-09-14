@@ -57,3 +57,8 @@ Thumbs.db
 
 # Scraper raw cache
 outputs/raw_ostrovok/
+
+# Chroma dynamic index runtime files
+outputs/chroma_db_v2/**/header.bin
+outputs/chroma_db_v2/**/link_lists.bin
+
