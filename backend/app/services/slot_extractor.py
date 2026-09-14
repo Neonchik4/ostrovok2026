@@ -6,12 +6,13 @@ from ..config import settings
 from ..schemas.chat import ExtractedSlots
 from .text_helpers import sanitize_user_input
 from .llm_client import get_cascade_models
+from .location_registry import match_city, get_known_cities
 
 SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экстрактор параметров поиска отелей для платформы Ostrovok.
 Твоя задача — ТОЛЬКО извлечь параметры из запроса пользователя и вернуть строго JSON-объект без пояснений.
 Никаких выдуманных отелей, никаких цен, только слоты:
 {
-  "city": "Сочи" | "Красная Поляна" | "Москва" | "Санкт-Петербург" | "Казань" | "Калининград" | null,
+  "city": "Сочи" | "Красная Поляна" | "Москва" | "Санкт-Петербург" | "Казань" | "Калининград" | "Екатеринбург" | "Нижний Новгород" | "Шерегеш" | "Алтай" | "Иркутск (Байкал)" | "Дагестан (Махачкала)" | "Карелия (Петрозаводск)" | "Владивосток" | "Анапа" | "Геленджик" | "Зеленоградск" | "Мурманск" | "Самара" | null,
   "stars": int (1-5) | null,
   "max_price_per_night_rub": int | null,
   "pet_friendly": bool | null,
@@ -76,20 +77,8 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
     safe_text = sanitize_user_input(text, max_length=1000)
     lower = safe_text.lower()
 
-    # Город (с поддержкой падежей)
-    city = None
-    if re.search(r"красн\w*\s+полян|полян", lower):
-        city = "Красная Поляна"
-    elif "сочи" in lower:
-        city = "Сочи"
-    elif re.search(r"питер|петербург", lower):
-        city = "Санкт-Петербург"
-    elif re.search(r"москв", lower):
-        city = "Москва"
-    elif re.search(r"казан", lower):
-        city = "Казань"
-    elif re.search(r"калининград", lower):
-        city = "Калининград"
+    # Город (динамический поиск через реестр локаций с падежами и алиасами)
+    city = match_city(safe_text)
 
     # Питомцы
     pet_friendly = True if re.search(r"собак|кошк|питомц|животн|псом|с догом", lower) else None
