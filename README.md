@@ -57,14 +57,27 @@ git clone https://github.com/Neonchik4/ostrovok2026.git
 cd ostrovok2026
 ```
 
-### 2. Установка зависимостей
-Установка пакетов для фронтенда и бэкенда выполняется одной командой:
+### 2. Создание виртуального окружения Python (рекомендуется)
+Перед установкой библиотек бэкенда активируйте виртуальное окружение:
+* **Windows (PowerShell):**
+  ```powershell
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+  ```
+* **Linux / macOS:**
+  ```bash
+  python3 -m venv .venv
+  source .venv/bin/activate
+  ```
+
+### 3. Установка всех зависимостей
+Установка всех пакетов (инструменты корня, Next.js фронтенд и FastAPI бэкенд) выполняется одной командой:
 ```bash
 npm run setup
 ```
-*(Или вручную: `npm --prefix frontend install` и `pip install -r backend/requirements.txt`).*
+*Под капотом запускается:* `npm install && npm --prefix frontend install && pip install -r backend/requirements.txt`.
 
-### 3. Запуск приложения в режиме разработки
+### 4. Запуск приложения в режиме разработки
 Основная команда запускает параллельно фронтенд и бэкенд в режиме hot-reload:
 ```bash
 npm run dev
