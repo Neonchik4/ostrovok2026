@@ -31,12 +31,28 @@ export function ChatConcierge({
   const [interimSpeech, setInterimSpeech] = useState("");
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    if (isStreaming) {
+      // Во время стриминга токенов с высокой частотой удерживаем скролл строго внизу,
+      // предотвращая зависание браузерных smooth-анимаций из-за постоянных прерываний
+      el.scrollTop = el.scrollHeight;
+    } else {
+      // По окончании ответа или при дискретных обновлениях — плавно докручиваем до конца
+      if (typeof el.scrollTo === "function") {
+        el.scrollTo({
+          top: el.scrollHeight,
+          behavior: "smooth",
+        });
+      } else {
+        el.scrollTop = el.scrollHeight;
+      }
     }
-  }, [messages, thoughts]);
+  }, [messages, thoughts, isStreaming]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +119,9 @@ export function ChatConcierge({
             message={messages[messages.length - 1]}
           />
         )}
+
+        {/* Якорь для автопрокрутки к концу сообщений */}
+        <div ref={messagesEndRef} className="h-1 w-full shrink-0" aria-hidden="true" />
       </div>
 
       {/* Быстрые чипсы уточнений */}

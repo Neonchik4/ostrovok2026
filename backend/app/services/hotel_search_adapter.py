@@ -75,7 +75,7 @@ async def search_hotels_unified(slots: ExtractedSlots) -> List[HotelCardWidget]:
     """
     Гибридный отказоустойчивый поиск:
     1. Если доступна ChromaDB + SentenceTransformer -> Векторный + метаданные
-    2. Иначе -> Быстрый детерминированный in-memory поиск по 200 отелям с расчетом match_score
+    2. Иначе -> Быстрый детерминированный in-memory поиск по 2 600+ отелям с расчетом match_score
     """
     init_dataset()
     if not _hotels_dataset:

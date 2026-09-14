@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { Thought } from "../model/types";
-import { Sparkles, Check, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, Check, Loader2, ChevronDown, ChevronUp, X } from "lucide-react";
 
 interface ThoughtStreamProps {
   thoughts: Thought[];
@@ -16,8 +16,24 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
   if (thoughts.length === 0) return null;
 
   const totalSteps = thoughts.length;
-  // Если передан isThinking — используем его, иначе опираемся на isStreaming
-  const activeThinking = isThinking !== undefined ? isThinking : isStreaming;
+  const hasError = thoughts.some(
+    (t) =>
+      t.step === "error" ||
+      t.text.startsWith("Ошибка:") ||
+      t.text.includes("(сбой)") ||
+      t.text.toLowerCase().includes("ошибка")
+  );
+  const isCancelled = thoughts.some(
+    (t) =>
+      t.step === "cancelled" ||
+      t.step === "stopped" ||
+      t.text.toLowerCase().includes("остановлен") ||
+      t.text.toLowerCase().includes("прерван")
+  );
+
+  const isFailedOrStopped = hasError || isCancelled;
+  // Если передан isThinking — используем его, иначе опираемся на isStreaming (при ошибке/остановке процесс прекращается)
+  const activeThinking = !isFailedOrStopped && (isThinking !== undefined ? isThinking : isStreaming);
   // Прогресс: при активном рассуждении последний шаг ещё в процессе
   const completedSteps = activeThinking ? Math.max(0, totalSteps - 1) : totalSteps;
   const expectedSteps = 5;
@@ -39,7 +55,15 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
         <span className="flex items-center gap-2">
           <Sparkles className={`h-4 w-4 text-primary ${activeThinking ? "animate-pulse" : ""}`} />
           Ход рассуждений агента
-          {!activeThinking ? (
+          {hasError ? (
+            <span className="ml-1.5 rounded-md border border-destructive/40 bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive shadow-sm">
+              Сбой
+            </span>
+          ) : isCancelled ? (
+            <span className="ml-1.5 rounded-md border border-destructive/40 bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive shadow-sm">
+              Остановлено
+            </span>
+          ) : !activeThinking ? (
             <span className="ml-1.5 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary shadow-sm">
               {totalSteps} шагов
             </span>
@@ -60,7 +84,9 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
       {!isCollapsed && (
         <div className="mx-0 h-0.5 w-full bg-border">
           <div
-            className="h-full bg-primary transition-all duration-300 ease-out"
+            className={`h-full transition-all duration-300 ease-out ${
+              isFailedOrStopped ? "bg-destructive" : "bg-primary"
+            }`}
             style={{ width: `${progressPct}%` }}
             aria-valuenow={progressPct}
             aria-valuemin={0}
@@ -74,16 +100,50 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
       {!isCollapsed && (
         <div className="space-y-2.5 px-4 py-3 pl-3">
           {thoughts.map((item, idx) => {
-            const isLatest = idx === thoughts.length - 1 && activeThinking;
+            const isStepError =
+              item.step === "error" ||
+              item.text.startsWith("Ошибка:") ||
+              item.text.includes("(сбой)") ||
+              item.text.toLowerCase().includes("ошибка");
+
+            const isStepCancelled =
+              item.step === "cancelled" ||
+              item.step === "stopped" ||
+              item.text.toLowerCase().includes("остановлен") ||
+              item.text.toLowerCase().includes("прерван");
+
+            // Шаг считается прерванным сбоем только если следующим элементом идёт системное сообщение об ошибке
+            const nextItem = thoughts[idx + 1];
+            const isInterruptedByError = Boolean(
+              nextItem &&
+                (nextItem.step === "error" || nextItem.text.startsWith("Ошибка:")) &&
+                !item.text.startsWith("Ошибка:")
+            );
+
+            // Если стрим был остановлен пользователем и это последний шаг, он не завершён
+            const isUnfinishedCancelledLast =
+              idx === thoughts.length - 1 && isCancelled;
+
+            const isFailed =
+              isStepError ||
+              isStepCancelled ||
+              isInterruptedByError ||
+              isUnfinishedCancelledLast;
+
+            const isLatest = idx === thoughts.length - 1 && activeThinking && !isFailed;
 
             return (
               <div
                 key={`${item.step}-${idx}`}
                 className="flex animate-fade-in items-start gap-2.5 transition-all duration-200"
               >
-                {/* Статус-иконка: строго либо спиннер у активного шага, либо галочка у завершённого */}
+                {/* Статус-иконка: сбой/остановка (красный крестик), спиннер (активный шаг) или галочка (завершенный шаг) */}
                 <div className="mt-0.5 shrink-0">
-                  {isLatest ? (
+                  {isFailed ? (
+                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive">
+                      <X className="h-3 w-3 stroke-[2.5]" />
+                    </div>
+                  ) : isLatest ? (
                     <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   ) : (
                     <Check className="h-4 w-4 text-emerald-400" />
@@ -93,9 +153,11 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
                 {/* Текст шага мыслей */}
                 <span
                   className={
-                    isLatest
-                      ? "font-medium leading-relaxed text-foreground"
-                      : "leading-relaxed text-muted-foreground"
+                    isFailed
+                      ? "font-medium leading-relaxed text-destructive"
+                      : isLatest
+                        ? "font-medium leading-relaxed text-foreground"
+                        : "leading-relaxed text-muted-foreground"
                   }
                 >
                   {item.text}
@@ -108,3 +170,4 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
     </div>
   );
 }
+

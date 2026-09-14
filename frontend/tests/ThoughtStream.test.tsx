@@ -73,4 +73,63 @@ describe("ThoughtStream component", () => {
     expect(screen.getByText("Шаг 2 из 5")).toBeInTheDocument();
     expect(screen.getByText("Применяю фильтры...")).toBeInTheDocument();
   });
+
+  it("renders red error styling and failure badge when a thought step is an error", () => {
+    const thoughts = [
+      { step: "reasoning", text: "Оцениваю параметры поездки" },
+      { step: "search", text: "Ищу отели в Красной Поляне..." },
+      { step: "error", text: "Ошибка: Failed to fetch. Попробуйте повторить запрос." },
+    ];
+
+    const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+
+    expect(screen.getByText("Сбой")).toBeInTheDocument();
+    const errorText = screen.getByText("Ошибка: Failed to fetch. Попробуйте повторить запрос.");
+    expect(errorText).toBeInTheDocument();
+    expect(errorText.className).toContain("text-destructive");
+
+    // Незавершённый шаг поиска перед ошибкой также должен быть помечен сбоем, а не зелёной галочкой
+    const searchText = screen.getByText("Ищу отели в Красной Поляне...");
+    expect(searchText.className).toContain("text-destructive");
+
+    // В DOM должна быть только одна галочка (для первого успешно завершённого шага reasoning)
+    const checkmarks = container.querySelectorAll(".text-emerald-400");
+    expect(checkmarks.length).toBe(1);
+
+    // И два красных крестика (для прерванного поиска и для самой ошибки)
+    const errorCrosses = container.querySelectorAll(".text-destructive");
+    expect(errorCrosses.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("renders red cross and stopped badge without green checkmark when stream is cancelled by user", () => {
+    const thoughts = [
+      { step: "reasoning", text: "Оцениваю параметры запроса" },
+      { step: "cancelled", text: "Ищу подходящие варианты (остановлено пользователем)" },
+    ];
+
+    const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+
+    // В шапке должен быть бейдж остановки
+    expect(screen.getByText("Остановлено")).toBeInTheDocument();
+
+    // Остановленный шаг обязан иметь цвет ошибки/отмены
+    const stoppedText = screen.getByText("Ищу подходящие варианты (остановлено пользователем)");
+    expect(stoppedText.className).toContain("text-destructive");
+
+    // Только один первый шаг получил галочку, остановленный шаг НЕ должен получать галочку
+    const checkmarks = container.querySelectorAll(".text-emerald-400");
+    expect(checkmarks.length).toBe(1);
+  });
+
+  it("renders red cross on single step if cancelled immediately", () => {
+    const thoughts = [
+      { step: "cancelled", text: "Анализирую параметры запроса (остановлено пользователем)" },
+    ];
+
+    const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+
+    expect(screen.getByText("Остановлено")).toBeInTheDocument();
+    const checkmarks = container.querySelectorAll(".text-emerald-400");
+    expect(checkmarks.length).toBe(0);
+  });
 });
