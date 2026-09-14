@@ -163,3 +163,5 @@
 - При добавлении новых компонентов строго размещайте их в соответствующем слое FSD (`widgets`, `features`, `entities`, `shared`) и не забывайте обновлять `index.ts`.
 - При модификации поисковой логики используйте модуль `backend/app/services/hotel_search_adapter.py`.
 - Всегда запускайте `npm run lint` и `npm run test` перед фиксацией изменений.
+- Детальные операционные правила и регламенты для AI-агентов зафиксированы в каталоге [`.agents/`](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/.agents/README.md) и его специализированных модулях в `.agents/rules/`.
+
