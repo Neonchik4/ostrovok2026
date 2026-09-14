@@ -1,8 +1,14 @@
 import asyncio
 import time
+import pytest
 from app.schemas.chat import ChatStreamRequest
 from app.graph.workflow import run_agent_workflow
 from app.services.llm_cascade import _mock_extract_slots
+from app.config import settings
+
+@pytest.fixture(autouse=True)
+def fast_timing_env(monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
 
 
 def test_stream_first_thought_is_immediate():
