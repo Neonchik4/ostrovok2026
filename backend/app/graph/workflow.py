@@ -153,26 +153,11 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         yield _format_sse("token", {"content": "Произошла ошибка при поиске отелей. Пожалуйста, попробуйте изменить запрос."})
         yield _format_sse("done", {"status": "error", "error": str(e)})
 
-def _pluralize_guests(n: int) -> str:
-    if n % 10 == 1 and n % 100 != 11:
-        return "гость"
-    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
-        return "гостя"
-    return "гостей"
-
-def _pluralize_nights(n: int) -> str:
-    if n % 10 == 1 and n % 100 != 11:
-        return "ночь"
-    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
-        return "ночи"
-    return "ночей"
-
-def _pluralize_hotels(n: int) -> str:
-    if n % 10 == 1 and n % 100 != 11:
-        return "отель"
-    if 2 <= n % 10 <= 4 and not (12 <= n % 100 <= 14):
-        return "отеля"
-    return "отелей"
+from ..services.text_helpers import (
+    pluralize_guests as _pluralize_guests,
+    pluralize_nights as _pluralize_nights,
+    pluralize_hotels as _pluralize_hotels,
+)
 
 
 def _format_sse(event_type: str, data: Dict[str, object]) -> str:
