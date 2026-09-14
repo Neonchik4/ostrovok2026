@@ -54,3 +54,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Scraper raw cache
+outputs/raw_ostrovok/

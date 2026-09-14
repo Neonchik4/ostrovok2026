@@ -91,143 +91,158 @@ async def search_hotels_unified(slots: ExtractedSlots) -> List[HotelCardWidget]:
     # 2. In-Memory фильтрация и скоринг
     return _search_in_memory(slots)
 
+def _compute_calibrated_match_score(raw_similarity: float, hotel: HotelFullSchema, slots: ExtractedSlots) -> int:
+    """
+    Качественная калибровка Match Score:
+    1. raw_similarity: косинусное сходство (от 0.30 до 0.85)
+    2. Плавная нормализация в базовый диапазон [62 .. 88]
+    3. Дополнительные баллы за точные совпадения слотов:
+       + город (+5)
+       + питомцы (+4)
+       + бассейн / спа (+3)
+       + бюджет в лимите (+3.5)
+       + высокий рейтинг гостей (+2)
+    4. Итоговый процент: 68% .. 97%, без слипания на 50% или 99%.
+    """
+    sim = max(0.0, min(1.0, raw_similarity))
+    norm = max(0.0, min(1.0, (sim - 0.30) / 0.55))
+    base_score = 62.0 + norm * 26.0
+
+    bonus = 0.0
+    if slots.city and slots.city.lower() in hotel.city.lower():
+        bonus += 5.0
+    if slots.pet_friendly and hotel.amenities.pet_friendly:
+        bonus += 4.0
+    if slots.heated_pool and hotel.amenities.heated_pool:
+        bonus += 3.0
+    if slots.spa and hotel.amenities.spa:
+        bonus += 2.5
+    if slots.max_price_per_night_rub and hotel.min_price_per_night_rub <= slots.max_price_per_night_rub:
+        bonus += 3.5
+    if hotel.rating >= 9.0:
+        bonus += 2.0
+    elif hotel.rating >= 8.0:
+        bonus += 1.0
+
+    final_pct = int(round(base_score + bonus))
+    return max(65, min(97, final_pct))
+
 async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
     if _chroma_collection is None or _embedding_model is None:
         return []
 
-    clauses: List[Dict[str, Dict[str, str | int | float]]] = []
+    # Строим семантический запрос из слотов
+    query_parts = []
     if slots.city:
-        clauses.append({"city": {"$eq": slots.city}})
+        query_parts.append(f"город {slots.city}")
     if slots.area_type:
-        clauses.append({"area_type": {"$eq": slots.area_type}})
-    if slots.stars:
-        clauses.append({"stars": {"$gte": slots.stars}})
-    if slots.max_price_per_night_rub:
-        clauses.append({"min_price_rub": {"$lte": slots.max_price_per_night_rub}})
-    if slots.min_rating:
-        clauses.append({"rating": {"$gte": slots.min_rating}})
-    if slots.pet_friendly is not None:
-        clauses.append({"pet_friendly": {"$eq": str(slots.pet_friendly)}})
-    if slots.heated_pool is not None:
-        clauses.append({"heated_pool": {"$eq": str(slots.heated_pool)}})
-    if slots.spa is not None:
-        clauses.append({"spa": {"$eq": str(slots.spa)}})
-    if slots.breakfast_included is not None:
-        clauses.append({"breakfast_included": {"$eq": str(slots.breakfast_included)}})
-    if slots.free_cancellation is not None:
-        clauses.append({"free_cancellation": {"$eq": str(slots.free_cancellation)}})
+        query_parts.append(slots.area_type)
+    if slots.pet_friendly:
+        query_parts.append("проживание с собакой питомцем pet-friendly")
+    if slots.heated_pool:
+        query_parts.append("подогреваемый теплый бассейн")
+    if slots.spa:
+        query_parts.append("спа центр сауна")
+    if slots.semantic_query:
+        query_parts.append(slots.semantic_query)
 
-    where = {"$and": clauses} if len(clauses) > 1 else (clauses[0] if clauses else None)
-    query_text = slots.semantic_query or slots.city or "отель отдых"
+    query_text = " ".join(query_parts) if query_parts else (slots.city or "отель отдых")
     query_emb = await asyncio.to_thread(_embedding_model.encode, [query_text])
-    
-    kwargs: Dict[str, object] = {
-        "query_embeddings": query_emb.tolist(), # type: ignore
-        "n_results": min(10, _chroma_collection.count()),
-        "include": ["metadatas", "documents", "distances"]
-    }
-    if where:
-        kwargs["where"] = where
-        
-    res = _chroma_collection.query(**kwargs) # type: ignore
-    
-    results: List[HotelCardWidget] = []
+
+    # Запрашиваем пул кандидатов из ChromaDB v2
+    n_query = min(50, _chroma_collection.count())
+    res = _chroma_collection.query(
+        query_embeddings=query_emb.tolist(),
+        n_results=n_query,
+        include=["metadatas", "distances"]
+    )
+
     raw_metadatas = res.get("metadatas")
     raw_distances = res.get("distances")
     raw_ids = res.get("ids")
     if not raw_metadatas or not raw_distances or not raw_ids:
-        return results
+        return _search_in_memory(slots)
 
     metadatas = raw_metadatas[0]
     distances = raw_distances[0]
     ids = raw_ids[0]
 
-    for i, (meta, dist) in enumerate(zip(metadatas, distances)):
-        hotel_id = ids[i]
-        hotel = _hotels_by_id.get(hotel_id)
+    scored_candidates = []
+    for i in range(len(ids)):
+        h_id = ids[i]
+        hotel = _hotels_by_id.get(h_id)
         if not hotel:
             continue
-        card = _build_hotel_card(hotel, 1.0 - float(dist), slots)
-        results.append(card)
-        
-    return results[:6]
+
+        # Фильтр по городу (подстрока, регистронезависимо)
+        if slots.city and slots.city.lower() not in hotel.city.lower():
+            continue
+
+        # Детерминированные фильтры
+        if slots.stars and hotel.stars < slots.stars:
+            continue
+        if slots.min_rating and hotel.rating < slots.min_rating:
+            continue
+        if slots.max_price_per_night_rub and hotel.min_price_per_night_rub > slots.max_price_per_night_rub:
+            continue
+        if slots.pet_friendly and not hotel.amenities.pet_friendly:
+            continue
+        if slots.heated_pool and not hotel.amenities.heated_pool:
+            continue
+        if slots.spa and not hotel.amenities.spa:
+            continue
+
+        dist = distances[i]
+        raw_sim = 1.0 - float(dist)
+        score_pct = _compute_calibrated_match_score(raw_sim, hotel, slots)
+        scored_candidates.append((score_pct, hotel))
+
+    scored_candidates.sort(key=lambda x: x[0], reverse=True)
+
+    cards: List[HotelCardWidget] = []
+    for score_pct, hotel in scored_candidates[:6]:
+        cards.append(_build_hotel_card(hotel, float(score_pct), slots))
+
+    # Если строгие фильтры оставили 0 отелей — умное ослабление
+    if not cards:
+        cards = _search_relaxed(slots)
+
+    return cards
 
 def _search_in_memory(slots: ExtractedSlots) -> List[HotelCardWidget]:
-    scored_hotels: List[tuple[float, HotelFullSchema]] = []
+    scored_hotels: List[tuple[int, HotelFullSchema]] = []
     
     for h in _hotels_dataset:
-        score = 0.5
-        
-        # Строгая фильтрация по городу при наличии
-        if slots.city:
-            if slots.city.lower() not in h.city.lower():
-                continue
-            score += 0.2
-            
-        # Строгие детерминированные фильтры (AGENTS.md п. 1.1 и 2.1)
+        if slots.city and slots.city.lower() not in h.city.lower():
+            continue
+
         if slots.stars and h.stars < slots.stars:
             continue
-        if slots.stars and h.stars >= slots.stars:
-            score += 0.1
-
         if slots.min_rating and h.rating < slots.min_rating:
             continue
-        if slots.min_rating and h.rating >= slots.min_rating:
-            score += 0.1
-
         if slots.max_price_per_night_rub and h.min_price_per_night_rub > slots.max_price_per_night_rub:
             continue
-        if slots.max_price_per_night_rub and h.min_price_per_night_rub <= slots.max_price_per_night_rub:
-            score += 0.1
-            
-        if slots.pet_friendly:
-            if not h.amenities.pet_friendly:
-                continue
-            score += 0.15
-            
-        if slots.heated_pool:
-            if not h.amenities.heated_pool:
-                continue
-            score += 0.1
-            
-        if slots.spa:
-            if not h.amenities.spa:
-                continue
-            score += 0.05
-            
-        if slots.breakfast_included:
-            if not h.amenities.breakfast_included_available:
-                continue
-            score += 0.05
+        if slots.pet_friendly and not h.amenities.pet_friendly:
+            continue
+        if slots.heated_pool and not h.amenities.heated_pool:
+            continue
+        if slots.spa and not h.amenities.spa:
+            continue
 
-        if slots.free_cancellation:
-            if not (h.policies and h.policies.cancellation and h.policies.cancellation.is_free_cancellation):
-                continue
-            score += 0.1
-
-        if slots.max_distance_to_beach_m:
-            if h.location_details.distance_to_beach_m is None or h.location_details.distance_to_beach_m > slots.max_distance_to_beach_m:
-                continue
-
-        if slots.max_distance_to_ski_lift_m:
-            if h.location_details.distance_to_ski_lift_m is None or h.location_details.distance_to_ski_lift_m > slots.max_distance_to_ski_lift_m:
-                continue
-
-        # Семантическое совпадение по описанию и тегам
+        # Семантическая оценка по тегам и названию
         q_words = (slots.semantic_query or "").lower().split()
         tag_match = sum(1 for w in q_words if any(w in t.lower() for t in h.tags))
-        score += min(0.15, tag_match * 0.05)
-        
-        scored_hotels.append((min(0.99, round(score, 2)), h))
+        raw_sim = 0.55 + min(0.30, tag_match * 0.08)
+
+        score_pct = _compute_calibrated_match_score(raw_sim, h, slots)
+        scored_hotels.append((score_pct, h))
         
     scored_hotels.sort(key=lambda x: x[0], reverse=True)
     
     cards: List[HotelCardWidget] = []
-    for score, h in scored_hotels[:6]:
-        cards.append(_build_hotel_card(h, score, slots))
+    for score_pct, h in scored_hotels[:6]:
+        cards.append(_build_hotel_card(h, float(score_pct), slots))
 
-    # Если строгий поиск дал 0 отелей (например, бюджет ниже минимальной цены в городе)
-    # применяем умное ослабление ограничений, чтобы гость никогда не оставался с пустым экраном
     if not cards and _hotels_dataset:
         cards = _search_relaxed(slots)
 
@@ -244,42 +259,38 @@ def _search_relaxed(slots: ExtractedSlots) -> List[HotelCardWidget]:
         if slots.city and slots.city.lower() not in h.city.lower():
             continue
 
-        match_score = 0.50
+        match_pct = 70
         if slots.pet_friendly and h.amenities.pet_friendly:
-            match_score += 0.15
+            match_pct += 8
         if slots.heated_pool and h.amenities.heated_pool:
-            match_score += 0.15
+            match_pct += 7
         if slots.spa and h.amenities.spa:
-            match_score += 0.10
-        if slots.breakfast_included and h.amenities.breakfast_included_available:
-            match_score += 0.10
+            match_pct += 5
         if slots.stars and h.stars >= slots.stars:
-            match_score += 0.10
+            match_pct += 4
 
-        # Корректировка за превышение бюджета
         if slots.max_price_per_night_rub and h.min_price_per_night_rub > slots.max_price_per_night_rub:
             diff = h.min_price_per_night_rub - slots.max_price_per_night_rub
-            penalty = min(0.20, (diff / max(slots.max_price_per_night_rub, 1000)) * 0.1)
-            match_score -= penalty
+            penalty = int(min(15, (diff / max(slots.max_price_per_night_rub, 1000)) * 10))
+            match_pct -= penalty
 
-        score_val = max(0.40, min(0.85, round(match_score, 2)))
+        score_val = max(62, min(92, match_pct))
         candidates.append((score_val, h.min_price_per_night_rub, -float(h.rating), h))
 
-    # Если в указанном городе вообще ничего нет, берем популярные отели по всей базе
     if not candidates:
         for h in _hotels_dataset:
-            score_val = 0.50
+            score_val = 72
             if slots.pet_friendly and h.amenities.pet_friendly:
-                score_val += 0.15
+                score_val += 8
             if slots.heated_pool and h.amenities.heated_pool:
-                score_val += 0.15
+                score_val += 7
             candidates.append((score_val, h.min_price_per_night_rub, -float(h.rating), h))
 
     candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
 
     cards: List[HotelCardWidget] = []
-    for score, _, _, h in candidates[:6]:
-        cards.append(_build_hotel_card(h, score, slots))
+    for score_pct, _, _, h in candidates[:6]:
+        cards.append(_build_hotel_card(h, float(score_pct), slots))
     return cards
 
 def _build_hotel_card(hotel: HotelFullSchema, score: float, slots: ExtractedSlots) -> HotelCardWidget:
@@ -297,6 +308,14 @@ def _build_hotel_card(hotel: HotelFullSchema, score: float, slots: ExtractedSlot
     receipt_target_room = chosen_room or RoomType(name="Стандартный номер", price_per_night_rub=hotel.min_price_per_night_rub)
     receipt = calculate_receipt(receipt_target_room, hotel.policies, nights, guests, pets)
     
+    # Качественный процент совпадения
+    if score > 1.0:
+        match_score_pct = int(round(score))
+    else:
+        match_score_pct = _compute_calibrated_match_score(score, hotel, slots)
+
+    match_score_pct = max(65, min(98, match_score_pct))
+
     return HotelCardWidget(
         id=hotel.id,
         name=hotel.name,
@@ -310,7 +329,7 @@ def _build_hotel_card(hotel: HotelFullSchema, score: float, slots: ExtractedSlot
         image_urls=hotel.image_urls or [
             "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"
         ],
-        match_score_pct=max(50, min(99, int(score * 100))),
+        match_score_pct=match_score_pct,
         tags=hotel.tags[:4],
         min_price_per_night_rub=hotel.min_price_per_night_rub,
         suitable_room=chosen_room,

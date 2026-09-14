@@ -12,9 +12,17 @@ interface HotelCardProps {
 }
 
 export function HotelCard({ hotel, onBook }: HotelCardProps) {
-  const imageUrl =
-    hotel.image_urls?.[0] ||
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80";
+  const fallbackCategory = ["mountains", "sea", "center", "nature"].includes(hotel.area_type)
+    ? hotel.area_type
+    : "center";
+  const fallbackIndex = ((hotel.id.charCodeAt(0) || 1) % 5) + 1;
+  const fallbackUrl = `/hotels/${fallbackCategory}/${fallbackIndex}.jpg`;
+
+  const [imgSrc, setImgSrc] = React.useState<string>(hotel.image_urls?.[0] || fallbackUrl);
+
+  React.useEffect(() => {
+    setImgSrc(hotel.image_urls?.[0] || fallbackUrl);
+  }, [hotel.id, hotel.image_urls, fallbackUrl]);
 
   return (
     <Card className="flex flex-col justify-between overflow-hidden rounded-2xl border-border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-2xl">
@@ -23,8 +31,13 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
         <div className="relative h-56 w-full overflow-hidden bg-muted">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={imageUrl}
+            src={imgSrc}
             alt={hotel.name}
+            onError={() => {
+              if (imgSrc !== fallbackUrl) {
+                setImgSrc(fallbackUrl);
+              }
+            }}
             className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
             loading="lazy"
           />
