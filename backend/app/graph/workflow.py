@@ -113,9 +113,10 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         await asyncio.sleep(0.6)
 
         # 5. Шаг рассуждения: Детерминированный расчет чека
-        if hotels and hotels[0].receipt:
+        top_receipt = hotels[0].receipt if hotels else None
+        if hotels and top_receipt is not None:
             top_h = hotels[0]
-            top_rec = top_h.receipt
+            top_rec = top_receipt
             yield _format_sse("thought", {
                 "step": "receipt_calculation",
                 "text": f"Прозрачный чек для «{top_h.name}»: {top_rec.nights} {_pluralize_nights(top_rec.nights)} × {top_rec.price_per_night_rub:,} ₽ = {top_rec.total_rub:,} ₽ без скрытых комиссий".replace(",", " ")

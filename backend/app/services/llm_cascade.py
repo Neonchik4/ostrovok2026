@@ -73,8 +73,8 @@ async def think_stream(user_message: str, slots: ExtractedSlots | None = None) -
             from google.genai import types
 
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            gen_config = types.GenerateContentConfig(
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+            gen_config = types.GenerateContentConfig.model_validate(
+                {"automatic_function_calling": {"disable": True}}
             )
             models_to_try = _get_cascade_models()
 
@@ -188,8 +188,8 @@ async def generate_concierge_response_stream(
             from google.genai import types
 
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
-            gen_config = types.GenerateContentConfig(
-                automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+            gen_config = types.GenerateContentConfig.model_validate(
+                {"automatic_function_calling": {"disable": True}}
             )
             models_to_try = _get_cascade_models()
 
@@ -199,7 +199,6 @@ async def generate_concierge_response_stream(
                         client.aio.models.generate_content_stream(
                             model=model_name,
                             contents=[{"role": "user", "parts": [{"text": prompt_text}]}],
-                            config=gen_config,
                         ),
                         timeout=5.0
                     )
@@ -285,8 +284,8 @@ async def _call_gemini(user_message: str, model_name: str) -> ExtractedSlots:
     from google.genai import types
 
     client = genai.Client(api_key=settings.GEMINI_API_KEY)
-    gen_config = types.GenerateContentConfig(
-        automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True)
+    gen_config = types.GenerateContentConfig.model_validate(
+        {"automatic_function_calling": {"disable": True}}
     )
 
     response = await asyncio.wait_for(
