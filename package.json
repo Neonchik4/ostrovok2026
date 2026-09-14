@@ -16,7 +16,7 @@
     "test:front": "npm --prefix frontend run test",
     "test:back": "npm --prefix backend run test",
     "build": "npm --prefix frontend run build",
-    "setup": "npm --prefix frontend install && pip install -r backend/requirements.txt"
+    "setup": "npm install && npm --prefix frontend install && pip install -r backend/requirements.txt"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
