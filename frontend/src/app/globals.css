@@ -41,6 +41,10 @@
   * {
     @apply border-border;
     --tw-ring-offset-color: transparent;
+    scrollbar-gutter: stable;
+  }
+  html {
+    scrollbar-gutter: stable;
   }
   html,
   body {
@@ -73,7 +77,12 @@
   }
 }
 
-/* Custom scrollbars */
+/* Резервация места под скроллбары и кастомная кроссбраузерная стилизация */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -87,4 +96,7 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

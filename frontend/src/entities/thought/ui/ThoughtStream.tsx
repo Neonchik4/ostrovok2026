@@ -45,7 +45,7 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
             </span>
           ) : (
             <span className="ml-1.5 rounded-md border border-primary/30 bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary shadow-sm">
-              Шаг {Math.min(totalSteps, expectedSteps)} из {expectedSteps}...
+              Шаг {Math.min(totalSteps, expectedSteps)} из {expectedSteps}
             </span>
           )}
         </span>
