@@ -1,6 +1,12 @@
 import asyncio
+import time
 from typing import AsyncGenerator, List, Optional
 from ..config import settings
+
+# Модели, недавно словившие 429 (rate limit), и время, когда с ними можно снова пробовать.
+# Общий для call_gemini_content/stream_gemini_content процесс-локальный кэш.
+_model_cooldowns: dict[str, float] = {}
+_COOLDOWN_SEC = 60.0
 
 def get_cascade_models() -> List[str]:
     """Возвращает приоритетный список моделей для каскада."""
@@ -10,6 +16,21 @@ def get_cascade_models() -> List[str]:
         if m not in models:
             models.append(m)
     return models
+
+def _is_rate_limit_error(err: Exception) -> bool:
+    text = str(err)
+    return "429" in text or "RESOURCE_EXHAUSTED" in text.upper()
+
+def _order_by_cooldown(models: List[str]) -> List[str]:
+    """Ставит модели, ещё не восстановившиеся после 429, в конец очереди."""
+    now = time.monotonic()
+    available = [m for m in models if _model_cooldowns.get(m, 0.0) <= now]
+    cooling_down = [m for m in models if _model_cooldowns.get(m, 0.0) > now]
+    # Если все модели в кулдауне, пробуем их всё равно (лучше медленно, чем никак).
+    return available + cooling_down
+
+def _mark_rate_limited(model_name: str) -> None:
+    _model_cooldowns[model_name] = time.monotonic() + _COOLDOWN_SEC
 
 async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Optional[str]:
     """
@@ -29,7 +50,7 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Opt
         gen_config = types.GenerateContentConfig.model_validate(
             {"automatic_function_calling": {"disable": True}}
         )
-        models_to_try = get_cascade_models()
+        models_to_try = _order_by_cooldown(get_cascade_models())
 
         for idx, model_name in enumerate(models_to_try):
             try:
@@ -44,6 +65,8 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Opt
                 if response and response.text:
                     return response.text
             except Exception as e:
+                if _is_rate_limit_error(e):
+                    _mark_rate_limited(model_name)
                 next_target = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "fallback"
                 print(f"[LLM Client] Ошибка {model_name}: {e}. Переход на {next_target}...")
     except Exception as client_err:
@@ -66,7 +89,7 @@ async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> A
         gen_config = types.GenerateContentConfig.model_validate(
             {"automatic_function_calling": {"disable": True}}
         )
-        models_to_try = get_cascade_models()
+        models_to_try = _order_by_cooldown(get_cascade_models())
 
         for idx, model_name in enumerate(models_to_try):
             try:
@@ -87,6 +110,8 @@ async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> A
                 if has_content:
                     return
             except Exception as e:
+                if _is_rate_limit_error(e):
+                    _mark_rate_limited(model_name)
                 next_target = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "fallback"
                 print(f"[LLM Stream] Ошибка {model_name}: {e}. Переход на {next_target}...")
     except Exception as client_err:
