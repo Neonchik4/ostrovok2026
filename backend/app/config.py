@@ -22,9 +22,9 @@ class Settings(BaseModel):
     FALLBACK_MODEL: str = Field(default_factory=lambda: os.getenv("FALLBACK_MODEL", "gemini-3.5-flash"))
     FALLBACK_MODELS: list[str] = [
         "gemini-3.5-flash",
-        "gemini-flash-lite-latest",
         "gemini-3.1-flash-lite",
         "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
     ]
     
     # Dataset & Vector DB Paths
@@ -33,21 +33,3 @@ class Settings(BaseModel):
     CHROMA_DB_PATH: str = Field(default_factory=lambda: os.getenv("CHROMA_DB_PATH", str(BASE_DIR / "outputs" / "chroma_db_v2")))
 
 settings = Settings()
-
-# Автоматический fallback: если ключ не задан в .env, проверяем gemini_api.txt
-if not settings.GEMINI_API_KEY:
-    txt_candidates = [
-        settings.BASE_DIR / "gemini_api.txt",
-        Path("gemini_api.txt"),
-        Path("../gemini_api.txt")
-    ]
-    for p in txt_candidates:
-        if p.exists():
-            try:
-                with open(p, "r", encoding="utf-8") as f:
-                    key = f.read().strip()
-                    if key:
-                        settings.GEMINI_API_KEY = key
-                        break
-            except Exception:
-                pass
