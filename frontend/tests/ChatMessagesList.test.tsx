@@ -20,7 +20,7 @@ describe("ChatMessagesList (Single Responsibility Component)", () => {
       />
     );
 
-    expect(screen.getByText("О!дин запрос — и отель найден")).toBeInTheDocument();
+    expect(screen.getByText("Один запрос — и отель найден")).toBeInTheDocument();
   });
 
   it("renders user and assistant messages in correct order", () => {

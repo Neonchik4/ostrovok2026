@@ -18,10 +18,7 @@ export function updateThought(
     const first = prev[0];
     if (first && first.step === "reasoning") {
       const isPlaceholder = first.text === "Анализирую параметры запроса...";
-      return [
-        { ...first, text: isPlaceholder ? text : first.text + text },
-        ...prev.slice(1),
-      ];
+      return [{ ...first, text: isPlaceholder ? text : first.text + text }, ...prev.slice(1)];
     }
     return [{ step, text }, ...prev];
   }

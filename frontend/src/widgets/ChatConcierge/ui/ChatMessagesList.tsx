@@ -8,8 +8,8 @@ interface ChatMessagesListProps {
   thoughts: Thought[];
   isStreaming: boolean;
   isThinking?: boolean;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
 export function ChatMessagesList({
@@ -27,21 +27,20 @@ export function ChatMessagesList({
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
             <Sparkles className="h-6 w-6" />
           </div>
-          <h3 className="text-lg font-bold text-foreground">О!дин запрос — и отель найден</h3>
+          <h3 className="text-lg font-bold text-foreground">Один запрос — и отель найден</h3>
           <p className="max-w-[280px] text-sm text-muted-foreground">
-            Назовите город, даты, компанию или пожелания (например: «Красная Поляна с собакой и
-            спа до 15 000 ₽»).
+            Назовите город, даты, компанию или пожелания (например: «Красная Поляна с собакой и спа
+            до 15 000 ₽»).
           </p>
         </div>
       )}
 
       {/* История сообщений до текущего ответа */}
-      {(messages[messages.length - 1]?.role === "assistant"
-        ? messages.slice(0, -1)
-        : messages
-      ).map((msg) => (
-        <ChatMessageItem key={msg.id} message={msg} />
-      ))}
+      {(messages[messages.length - 1]?.role === "assistant" ? messages.slice(0, -1) : messages).map(
+        (msg) => (
+          <ChatMessageItem key={msg.id} message={msg} />
+        )
+      )}
 
       {/* Стрим рассуждений агента */}
       {thoughts.length > 0 && (

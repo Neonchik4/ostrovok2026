@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Button, Input } from "@/shared/ui";
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
 import { VoiceInputButton } from "@/features/voice-input";
 import { QuickChips } from "@/features/quick-chips";
-import { Send, Square, Sparkles } from "lucide-react";
+import { Send, Square, Sparkles, ArrowLeft } from "lucide-react";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 import { ChatMessagesList } from "./ChatMessagesList";
 
@@ -33,10 +34,7 @@ export function ChatConcierge({
   const [interimSpeech, setInterimSpeech] = useState("");
   const [isListeningVoice, setIsListeningVoice] = useState(false);
 
-  const { scrollRef, messagesEndRef } = useChatAutoScroll(
-    [messages, thoughts],
-    isStreaming
-  );
+  const { scrollRef, messagesEndRef } = useChatAutoScroll([messages, thoughts], isStreaming);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +58,13 @@ export function ChatConcierge({
       {/* Шапка чата */}
       <div className="flex items-center justify-between border-b border-border bg-card/90 p-4 px-5 backdrop-blur-md">
         <div className="flex items-center gap-3">
+          <Link
+            href="/"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-border bg-background/50 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/10 hover:text-foreground"
+            title="Вернуться на главную"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
           <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/20 text-primary shadow-md">
             <Sparkles className="h-6 w-6" />
           </div>

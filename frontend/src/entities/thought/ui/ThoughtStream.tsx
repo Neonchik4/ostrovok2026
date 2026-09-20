@@ -33,7 +33,8 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
 
   const isFailedOrStopped = hasError || isCancelled;
   // Если передан isThinking — используем его, иначе опираемся на isStreaming (при ошибке/остановке процесс прекращается)
-  const activeThinking = !isFailedOrStopped && (isThinking !== undefined ? isThinking : isStreaming);
+  const activeThinking =
+    !isFailedOrStopped && (isThinking !== undefined ? isThinking : isStreaming);
   // Прогресс: при активном рассуждении последний шаг ещё в процессе
   const completedSteps = activeThinking ? Math.max(0, totalSteps - 1) : totalSteps;
   const expectedSteps = 5;
@@ -116,19 +117,15 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
             const nextItem = thoughts[idx + 1];
             const isInterruptedByError = Boolean(
               nextItem &&
-                (nextItem.step === "error" || nextItem.text.startsWith("Ошибка:")) &&
-                !item.text.startsWith("Ошибка:")
+              (nextItem.step === "error" || nextItem.text.startsWith("Ошибка:")) &&
+              !item.text.startsWith("Ошибка:")
             );
 
             // Если стрим был остановлен пользователем и это последний шаг, он не завершён
-            const isUnfinishedCancelledLast =
-              idx === thoughts.length - 1 && isCancelled;
+            const isUnfinishedCancelledLast = idx === thoughts.length - 1 && isCancelled;
 
             const isFailed =
-              isStepError ||
-              isStepCancelled ||
-              isInterruptedByError ||
-              isUnfinishedCancelledLast;
+              isStepError || isStepCancelled || isInterruptedByError || isUnfinishedCancelledLast;
 
             const isLatest = idx === thoughts.length - 1 && activeThinking && !isFailed;
 
@@ -170,4 +167,3 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
     </div>
   );
 }
-
