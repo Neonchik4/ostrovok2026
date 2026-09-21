@@ -100,26 +100,30 @@
   background: transparent;
 }
 
-/* ChatGPT-style Thinking text shimmer (smooth metallic light sweep, strictly no opacity pulsing) */
+/* ChatGPT-style Thinking text shimmer (smooth metallic light sweep, strictly no opacity pulsing, seamless loop) */
 @keyframes thinking-shimmer {
   0% {
-    background-position: 150% 0;
+    background-position: 100% 0;
   }
-  100% {
-    background-position: -150% 0;
+  65%, 100% {
+    background-position: 0% 0;
   }
 }
 
 .thinking-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(148, 163, 184, 0.35) 0%,
-    rgba(255, 255, 255, 0.95) 50%,
-    rgba(148, 163, 184, 0.35) 100%
+    rgba(161, 161, 170, 0.75) 0%,
+    rgba(161, 161, 170, 0.75) 35%,
+    rgba(255, 255, 255, 1) 50%,
+    rgba(161, 161, 170, 0.75) 65%,
+    rgba(161, 161, 170, 0.75) 100%
   );
-  background-size: 200% 100%;
+  background-size: 300% 100%;
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   display: inline-block;
-  animation: thinking-shimmer 2s infinite linear;
+  will-change: background-position;
+  animation: thinking-shimmer 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
