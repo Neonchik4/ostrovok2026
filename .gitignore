@@ -55,10 +55,13 @@ htmlcov/
 .DS_Store
 Thumbs.db
 
-# Scraper raw cache
+# Scraper raw cache & sharded hotel files
 outputs/raw_ostrovok/
+outputs/raw_reviews/
+outputs/hotels/
+outputs/gemini_vectors_cache/
 
 # Chroma dynamic index runtime files
-outputs/chroma_db_v2/**/header.bin
-outputs/chroma_db_v2/**/link_lists.bin
+outputs/chroma_db_v2/
+outputs/chroma_db_gemini/
 

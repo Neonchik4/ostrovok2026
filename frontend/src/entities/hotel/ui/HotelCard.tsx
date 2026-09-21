@@ -9,9 +9,10 @@ import { Star, MapPin, CheckCircle2 } from "lucide-react";
 interface HotelCardProps {
   hotel: Hotel;
   onBook?: (hotel: Hotel) => void;
+  onSelect?: (hotel: Hotel) => void;
 }
 
-export function HotelCard({ hotel, onBook }: HotelCardProps) {
+export function HotelCard({ hotel, onBook, onSelect }: HotelCardProps) {
   const fallbackCategory = ["mountains", "sea", "center", "nature"].includes(hotel.area_type)
     ? hotel.area_type
     : "center";
@@ -28,7 +29,10 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
     <Card className="flex flex-col justify-between overflow-hidden rounded-2xl border-border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-2xl">
       <div>
         {/* Фотография отеля и бейджи */}
-        <div className="relative h-56 w-full overflow-hidden bg-muted">
+        <div
+          onClick={() => onSelect?.(hotel)}
+          className={`relative h-56 w-full overflow-hidden bg-muted ${onSelect ? "cursor-pointer" : ""}`}
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={imgSrc}
@@ -63,7 +67,12 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
               <span className="mx-1">•</span>
               <span className="font-semibold text-foreground">{hotel.stars} ★</span>
             </div>
-            <h3 className="line-clamp-1 text-xl font-bold tracking-tight text-foreground">
+            <h3
+              onClick={() => onSelect?.(hotel)}
+              className={`line-clamp-1 text-xl font-bold tracking-tight text-foreground transition-colors hover:text-primary ${
+                onSelect ? "cursor-pointer" : ""
+              }`}
+            >
               {hotel.name}
             </h3>
           </div>
@@ -114,12 +123,23 @@ export function HotelCard({ hotel, onBook }: HotelCardProps) {
           </div>
         </div>
 
-        <Button
-          onClick={() => onBook?.(hotel)}
-          className="h-11 rounded-xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90"
-        >
-          Забронировать
-        </Button>
+        <div className="flex items-center gap-2">
+          {onSelect && (
+            <Button
+              variant="outline"
+              onClick={() => onSelect(hotel)}
+              className="h-11 rounded-xl border-border bg-card/60 px-4 text-sm font-semibold hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
+            >
+              Подробнее
+            </Button>
+          )}
+          <Button
+            onClick={() => onBook?.(hotel)}
+            className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90"
+          >
+            Забронировать
+          </Button>
+        </div>
       </div>
     </Card>
   );

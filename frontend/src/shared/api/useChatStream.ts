@@ -18,6 +18,24 @@ export interface ChatMessage {
   timestamp: string;
 }
 
+export interface ReviewItem {
+  id: number | string;
+  author: string;
+  date: string;
+  rating: number;
+  plus: string;
+  minus: string;
+  room?: string;
+  traveller_type?: string;
+}
+
+export interface ReviewsSummary {
+  positive_highlights?: string[];
+  negative_highlights?: string[];
+  valid_reviews_count?: number;
+  traveller_distribution?: Record<string, number>;
+}
+
 export interface HotelData {
   id: string;
   name: string;
@@ -26,6 +44,7 @@ export interface HotelData {
   area: string;
   area_type: string;
   address?: string;
+  description?: string;
   rating: number;
   reviews_count: number;
   image_urls: string[];
@@ -52,6 +71,9 @@ export interface HotelData {
   };
   distance_to_beach_m?: number;
   distance_to_ski_lift_m?: number;
+  amenities?: Record<string, boolean>;
+  reviews?: ReviewItem[];
+  reviews_summary?: ReviewsSummary;
 }
 
 export interface UseChatStreamOptions {

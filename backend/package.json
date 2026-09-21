@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
-    "start": "python -m uvicorn app.main:app --host 127.0.0.1 --port 8000",
-    "test": "python -m pytest tests -v",
+    "dev": "node -e \"const fs=require('fs'),cp=require('child_process'),p=process.platform==='win32'?'../.venv/Scripts/python.exe':'../.venv/bin/python',exe=fs.existsSync(p)?p:'python';process.exit(cp.spawnSync(exe,['-m','uvicorn','app.main:app','--reload','--host','127.0.0.1','--port','8000'],{stdio:'inherit'}).status||0)\"",
+    "start": "node -e \"const fs=require('fs'),cp=require('child_process'),p=process.platform==='win32'?'../.venv/Scripts/python.exe':'../.venv/bin/python',exe=fs.existsSync(p)?p:'python';process.exit(cp.spawnSync(exe,['-m','uvicorn','app.main:app','--host','127.0.0.1','--port','8000'],{stdio:'inherit'}).status||0)\"",
+    "test": "node -e \"const fs=require('fs'),cp=require('child_process'),p=process.platform==='win32'?'../.venv/Scripts/python.exe':'../.venv/bin/python',exe=fs.existsSync(p)?p:'python';process.exit(cp.spawnSync(exe,['-m','pytest','tests','-v'],{stdio:'inherit'}).status||0)\"",
     "lint": "python -c \"print('Backend syntax and types ok')\""
   }
 }

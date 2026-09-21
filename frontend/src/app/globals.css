@@ -99,3 +99,27 @@
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* ChatGPT-style Thinking text shimmer (smooth metallic light sweep, strictly no opacity pulsing) */
+@keyframes thinking-shimmer {
+  0% {
+    background-position: 150% 0;
+  }
+  100% {
+    background-position: -150% 0;
+  }
+}
+
+.thinking-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(148, 163, 184, 0.35) 0%,
+    rgba(255, 255, 255, 0.95) 50%,
+    rgba(148, 163, 184, 0.35) 100%
+  );
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  animation: thinking-shimmer 2s infinite linear;
+}

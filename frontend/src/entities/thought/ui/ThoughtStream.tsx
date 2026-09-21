@@ -53,8 +53,12 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
         aria-expanded={!isCollapsed}
       >
         <span className="flex items-center gap-2">
-          <Sparkles className={`h-4 w-4 text-primary ${activeThinking ? "animate-pulse" : ""}`} />
-          Ход рассуждений агента
+          <Sparkles className="h-4 w-4 text-primary" />
+          {activeThinking ? (
+            <span className="thinking-shimmer">Рассуждаю...</span>
+          ) : (
+            <span>Ход рассуждений агента</span>
+          )}
           {hasError ? (
             <span className="ml-1.5 rounded-md border border-destructive/40 bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive shadow-sm">
               Сбой
