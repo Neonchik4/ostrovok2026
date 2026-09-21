@@ -1,12 +1,14 @@
 import asyncio
 import time
-from typing import AsyncGenerator, List, Optional
+from typing import Any, AsyncGenerator, List, Optional, Tuple
 from ..config import settings
 
-# Модели, недавно словившие 429 (rate limit), и время, когда с ними можно снова пробовать.
+# (ключ, модель), недавно словившие 429 (rate limit), и время, когда с ними можно снова пробовать.
 # Общий для call_gemini_content/stream_gemini_content процесс-локальный кэш.
-_model_cooldowns: dict[str, float] = {}
+_cooldowns: dict[Tuple[str, str], float] = {}
 _COOLDOWN_SEC = 60.0
+
+_clients_cache: dict[str, Any] = {}
 
 def get_cascade_models() -> List[str]:
     """Возвращает приоритетный список моделей для каскада."""
@@ -17,43 +19,72 @@ def get_cascade_models() -> List[str]:
             models.append(m)
     return models
 
+def _get_api_keys() -> List[str]:
+    keys = getattr(settings, "GEMINI_API_KEYS", None) or []
+    if keys:
+        return keys
+    return [settings.GEMINI_API_KEY] if settings.GEMINI_API_KEY else []
+
+def _mask_key(key: str) -> str:
+    return f"...{key[-4:]}" if len(key) >= 4 else "***"
+
 def _is_rate_limit_error(err: Exception) -> bool:
     text = str(err)
     return "429" in text or "RESOURCE_EXHAUSTED" in text.upper()
 
-def _order_by_cooldown(models: List[str]) -> List[str]:
-    """Ставит модели, ещё не восстановившиеся после 429, в конец очереди."""
+def _build_attempts() -> List[Tuple[str, str]]:
+    """
+    Строит очередь попыток (ключ, модель): сначала PRIMARY_MODEL на всех доступных
+    ключах/проектах (максимально использует самую быструю/дешёвую модель на разных
+    квотах), затем аналогично для каждой fallback-модели. Пары в кулдауне после 429
+    уходят в конец очереди, а не выбрасываются — лучше медленно, чем никак.
+    """
+    keys = _get_api_keys()
+    models = get_cascade_models()
     now = time.monotonic()
-    available = [m for m in models if _model_cooldowns.get(m, 0.0) <= now]
-    cooling_down = [m for m in models if _model_cooldowns.get(m, 0.0) > now]
-    # Если все модели в кулдауне, пробуем их всё равно (лучше медленно, чем никак).
+    available: List[Tuple[str, str]] = []
+    cooling_down: List[Tuple[str, str]] = []
+    for model_name in models:
+        for key in keys:
+            pair = (key, model_name)
+            if _cooldowns.get(pair, 0.0) <= now:
+                available.append(pair)
+            else:
+                cooling_down.append(pair)
     return available + cooling_down
 
-def _mark_rate_limited(model_name: str) -> None:
-    _model_cooldowns[model_name] = time.monotonic() + _COOLDOWN_SEC
+def _mark_rate_limited(key: str, model_name: str) -> None:
+    _cooldowns[(key, model_name)] = time.monotonic() + _COOLDOWN_SEC
+
+def _get_client(key: str):
+    client = _clients_cache.get(key)
+    if client is None:
+        from google import genai
+        client = genai.Client(api_key=key)
+        _clients_cache[key] = client
+    return client
 
 async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Optional[str]:
     """
     Secure by Design:
-    - Каскадный обход моделей (PRIMARY -> FALLBACK).
+    - Каскадный обход (ключ проекта AI Studio x модель): PRIMARY -> FALLBACK, на каждом ключе.
     - Таймаут на каждый запрос для предотвращения зависания.
-    - Отсутствие утечки ключей API и системных учетных данных в логи.
+    - Отсутствие утечки ключей API и системных учетных данных в логи (ключи маскируются).
     """
-    if not settings.GEMINI_API_KEY:
+    attempts = _build_attempts()
+    if not attempts:
         return None
 
     try:
-        from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
         gen_config = types.GenerateContentConfig.model_validate(
             {"automatic_function_calling": {"disable": True}}
         )
-        models_to_try = _order_by_cooldown(get_cascade_models())
 
-        for idx, model_name in enumerate(models_to_try):
+        for idx, (key, model_name) in enumerate(attempts):
             try:
+                client = _get_client(key)
                 response = await asyncio.wait_for(
                     client.aio.models.generate_content(
                         model=model_name,
@@ -66,9 +97,10 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Opt
                     return response.text
             except Exception as e:
                 if _is_rate_limit_error(e):
-                    _mark_rate_limited(model_name)
-                next_target = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "fallback"
-                print(f"[LLM Client] Ошибка {model_name}: {e}. Переход на {next_target}...")
+                    _mark_rate_limited(key, model_name)
+                next_target = attempts[idx + 1] if idx + 1 < len(attempts) else None
+                next_desc = f"{next_target[1]} ({_mask_key(next_target[0])})" if next_target else "fallback"
+                print(f"[LLM Client] Ошибка {model_name} ({_mask_key(key)}): {e}. Переход на {next_desc}...")
     except Exception as client_err:
         print(f"[LLM Client Init Error]: {client_err}")
 
@@ -76,23 +108,22 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Opt
 
 async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> AsyncGenerator[str, None]:
     """
-    Потоковый вызов Gemini API с поддержкой каскадного переключения моделей.
+    Потоковый вызов Gemini API с поддержкой каскадного переключения (ключ x модель).
     """
-    if not settings.GEMINI_API_KEY:
+    attempts = _build_attempts()
+    if not attempts:
         return
 
     try:
-        from google import genai
         from google.genai import types
 
-        client = genai.Client(api_key=settings.GEMINI_API_KEY)
         gen_config = types.GenerateContentConfig.model_validate(
             {"automatic_function_calling": {"disable": True}}
         )
-        models_to_try = _order_by_cooldown(get_cascade_models())
 
-        for idx, model_name in enumerate(models_to_try):
+        for idx, (key, model_name) in enumerate(attempts):
             try:
+                client = _get_client(key)
                 stream = await asyncio.wait_for(
                     client.aio.models.generate_content_stream(
                         model=model_name,
@@ -111,8 +142,9 @@ async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> A
                     return
             except Exception as e:
                 if _is_rate_limit_error(e):
-                    _mark_rate_limited(model_name)
-                next_target = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "fallback"
-                print(f"[LLM Stream] Ошибка {model_name}: {e}. Переход на {next_target}...")
+                    _mark_rate_limited(key, model_name)
+                next_target = attempts[idx + 1] if idx + 1 < len(attempts) else None
+                next_desc = f"{next_target[1]} ({_mask_key(next_target[0])})" if next_target else "fallback"
+                print(f"[LLM Stream] Ошибка {model_name} ({_mask_key(key)}): {e}. Переход на {next_desc}...")
     except Exception as client_err:
         print(f"[LLM Stream Client Error]: {client_err}")
