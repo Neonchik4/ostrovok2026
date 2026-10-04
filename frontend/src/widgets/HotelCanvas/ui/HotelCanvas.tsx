@@ -18,7 +18,7 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
   const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<Hotel | null>(null);
 
   return (
-    <main className="flex h-full flex-1 flex-col overflow-hidden bg-background">
+    <main className="flex h-full flex-1 min-w-0 flex-col overflow-hidden bg-background">
       {/* Шапка канваса */}
       <header className="flex h-20 shrink-0 items-center justify-between border-b border-border bg-card/60 px-8 backdrop-blur-md">
         <div className="flex items-center gap-4">
@@ -50,7 +50,7 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
       </header>
 
       {/* Основной контент */}
-      <div className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 min-h-0 overflow-y-auto p-8 hotel-canvas-scroll">
         {hotels.length === 0 ? (
           <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center space-y-6 text-center text-muted-foreground">
             <div className="rounded-3xl border border-border bg-card p-5 text-primary shadow-xl">

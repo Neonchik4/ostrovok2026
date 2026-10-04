@@ -131,7 +131,7 @@ export function HotelDetailModal({ hotel, onClose, onBook }: HotelDetailModalPro
                 className="h-full w-full object-cover transition-transform duration-300"
               />
               <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/85 px-3 py-1.5 text-sm font-bold shadow-md backdrop-blur-md">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+                <Star className="h-4 w-4 fill-rating text-rating" />
                 <span className="text-foreground">{currentHotel.rating.toFixed(1)}</span>
                 <span className="text-xs text-muted-foreground">
                   ({currentHotel.reviews_count} отзывов)

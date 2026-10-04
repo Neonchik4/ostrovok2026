@@ -30,7 +30,7 @@ export function BookRoomModal({ hotel, onClose }: BookRoomModalProps) {
 
         {isBooked ? (
           <div className="space-y-3 py-6 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-500/30 bg-emerald-500/20 text-emerald-400">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-success/30 bg-success-bg text-success">
               <CheckCircle2 className="h-8 w-8" />
             </div>
             <h3 className="text-xl font-bold text-foreground">Бронирование подтверждено!</h3>
@@ -107,7 +107,7 @@ export function BookRoomModal({ hotel, onClose }: BookRoomModalProps) {
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-sm font-semibold text-emerald-400">
+            <div className="flex items-center gap-2 text-sm font-semibold text-success">
               <ShieldCheck className="h-5 w-5 shrink-0" />
               <span>{receipt?.cancellation_deadline || "Бесплатная отмена бронирования"}</span>
             </div>

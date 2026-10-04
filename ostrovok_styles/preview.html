@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ostrovok.ru — style extraction</title>
+<link rel="stylesheet" href="font-face.css">
+<link rel="stylesheet" href="theme.css">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 32px;
+    font-family: "PT Root UI Web", Helvetica, Arial, sans-serif;
+    color: var(--text);
+    background: var(--block-bg-secondary);
+  }
+  h1, h2 { font-family: "Spoof", sans-serif; font-weight: 500; }
+  h1 { font-size: 32px; margin: 0 0 4px; }
+  h2 { font-size: 20px; margin: 40px 0 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .sub { color: var(--text-secondary); margin: 0 0 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .swatch { border: 1px solid var(--border); border-radius: var(--t-radius-md); overflow: hidden; background: var(--block-bg); }
+  .chip { height: 64px; }
+  .chip-label { padding: 8px 10px; font-size: 12px; line-height: 1.5; }
+  .chip-label b { display: block; font-weight: 500; }
+  .chip-label code { color: var(--text-secondary); }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+  .btn { border: 0; border-radius: var(--t-button-radius); font-family: inherit; font-size: 16px; padding: 12px 20px; cursor: default; }
+  .btn.primary { background: var(--t-button-primary-bg); color: var(--t-button-primary-label); }
+  .btn.secondary { background: var(--t-button-secondary-bg); color: var(--t-button-secondary-label); }
+  .btn.alert { background: var(--t-button-alert-bg); color: var(--t-button-alert-label); }
+  .btn.outline { background: transparent; color: var(--button-outline-typo); border: 1px solid var(--button-outline-border); }
+  .scale p { margin: 0 0 6px; }
+  .radius-box { width: 96px; height: 64px; background: var(--block-bg); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-secondary); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--block-bg); border: 1px solid var(--border); border-radius: var(--t-radius-sm); overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  th { color: var(--text-secondary); font-weight: 500; }
+  code { font-family: ui-monospace, Menlo, Consolas, monospace; }
+</style>
+</head>
+<body>
+  <h1>ostrovok.ru — extracted styles</h1>
+  <p class="sub">Static extraction from CSS + Next.js bundles. Fonts are local woff2 from the site.</p>
+
+  <h2>Fonts</h2>
+  <div class="scale">
+    <p style="font-family:'Spoof',sans-serif;font-size:32px">Spoof — display / headings 32px</p>
+    <p style="font-weight:300;font-size:24px">PT Root UI Web Light 300 — 24px</p>
+    <p style="font-weight:400;font-size:20px">PT Root UI Web Regular 400 — 20px</p>
+    <p style="font-weight:500;font-size:18px">PT Root UI Web Medium 500 — 18px</p>
+    <p style="font-weight:700;font-size:16px">PT Root UI Web Bold 700 — 16px</p>
+    <p style="font-weight:400;font-size:16px">Body 16px — Скажи, куда хочешь отправиться. Остальное устроит агент.</p>
+    <p style="font-weight:400;font-size:14px;color:var(--text-secondary)">Secondary 14px — var(--text-secondary)</p>
+    <p style="font-weight:400;font-size:12px;color:var(--text-secondary)">Caption 12px — var(--t-fontsize-xs)</p>
+  </div>
+
+  <h2>Palette</h2>
+  <div class="grid">
+    <div class="swatch"><div class="chip" style="background:var(--palette-black)"></div><div class="chip-label"><b>palette-black</b><code>#2d3137</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-dark)"></div><div class="chip-label"><b>palette-dark</b><code>#868686</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-gray)"></div><div class="chip-label"><b>palette-gray</b><code>#c8c8c8</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-light)"></div><div class="chip-label"><b>palette-light</b><code>#e5e5e5</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-ulight)"></div><div class="chip-label"><b>palette-ulight</b><code>#f4f4f4</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-white)"></div><div class="chip-label"><b>palette-white</b><code>#ffffff</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-disabled)"></div><div class="chip-label"><b>palette-disabled</b><code>#afafaf</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-main)"></div><div class="chip-label"><b>palette-main</b><code>#0E41D2</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--palette-sec)"></div><div class="chip-label"><b>palette-sec</b><code>#E3EBFD</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--alert)"></div><div class="chip-label"><b>alert</b><code>#CE2121</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--warning)"></div><div class="chip-label"><b>warning</b><code>#E77D00</code></div></div>
+    <div class="swatch"><div class="chip" style="background:var(--success)"></div><div class="chip-label"><b>success</b><code>#53AF24</code></div></div>
+  </div>
+
+  <h2>Buttons</h2>
+  <div class="row">
+    <button class="btn primary">Primary</button>
+    <button class="btn secondary">Secondary</button>
+    <button class="btn alert">Danger</button>
+    <button class="btn outline">Outline</button>
+  </div>
+
+  <h2>Radius scale</h2>
+  <div class="row">
+    <div class="radius-box" style="border-radius:4px">4px</div>
+    <div class="radius-box" style="border-radius:6px">6px</div>
+    <div class="radius-box" style="border-radius:8px">8px</div>
+    <div class="radius-box" style="border-radius:12px">12px</div>
+    <div class="radius-box" style="border-radius:20px">20px</div>
+  </div>
+
+  <h2>Spacing scale</h2>
+  <table>
+    <tr><th>token</th><th>value</th><th>preview</th></tr>
+    <tr><td>2xs</td><td>2px</td><td><span style="display:inline-block;width:2px;height:12px;background:var(--palette-main)"></span></td></tr>
+    <tr><td>xs</td><td>4px</td><td><span style="display:inline-block;width:4px;height:12px;background:var(--palette-main)"></span></td></tr>
+    <tr><td>sm</td><td>8px</td><td><span style="display:inline-block;width:8px;height:12px;background:var(--palette-main)"></span></td></tr>
+    <tr><td>md</td><td>12px</td><td><span style="display:inline-block;width:12px;height:12px;background:var(--palette-main)"></span></td></tr>
+    <tr><td>lg</td><td>16px</td><td><span style="display:inline-block;width:16px;height:12px;background:var(--palette-main)"></span></td></tr>
+    <tr><td>xl</td><td>20px</td><td><span style="display:inline-block;width:20px;height:12px;background:var(--palette-main)"></span></td></tr>
+    <tr><td>2xl</td><td>24px</td><td><span style="display:inline-block;width:24px;height:12px;background:var(--palette-main)"></span></td></tr>
+  </table>
+
+  <h2>Layout</h2>
+  <p>page-max-width: <code>1380px</code> · desktop padding <code>30px</code> · tablet <code>32px</code> · mobile <code>16px</code></p>
+  <p>Breakpoints: mobile ≤ <code>680px</code> · tablet <code>681–1074px</code> · desktop ≥ <code>1075px</code></p>
+</body>
+</html>

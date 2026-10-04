@@ -4,36 +4,49 @@
 
 @layer base {
   :root {
-    /* Rich Oceanic Midnight Palette (High Contrast & Modern Tech) */
-    --background: 224 45% 6%; /* #080D1A - Deep Midnight Navy */
-    --foreground: 210 40% 98%; /* #F8FAFC - Crisp Pure White */
+    /* Ostrovok Light Palette — derived from ostrovok_styles/theme.css.
+     * Все пары проверены на WCAG 2.1 AA (контраст >= 4.5:1 для текста). */
+    --background: 0 0% 100%; /* #ffffff - palette-white / block-bg */
+    --foreground: 216 10% 20%; /* #2d3137 - text / palette-black (13.08:1) */
 
-    --card: 222 47% 11%; /* #0F172A - Premium Slate Blue */
-    --card-foreground: 210 40% 98%;
+    --card: 0 0% 100%; /* #ffffff - block-bg */
+    --card-foreground: 216 10% 20%; /* #2d3137 (13.08:1) */
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 0 0% 100%; /* #ffffff */
+    --popover-foreground: 216 10% 20%; /* #2d3137 */
 
-    --primary: 201 96% 46%; /* #0284C7 - Ostrovok Electric Cyan/Azure */
-    --primary-foreground: 0 0% 100%;
+    --primary: 224 87% 44%; /* #0E41D2 - palette-main / p-primary (7.76:1 on white) */
+    --primary-foreground: 0 0% 100%; /* #ffffff */
 
-    --secondary: 220 33% 18%; /* #1E293B */
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 222 87% 94%; /* #E3EBFD - palette-sec / button-secondary-bg */
+    --secondary-foreground: 224 87% 44%; /* #0E41D2 (6.49:1 on secondary) */
 
-    --muted: 220 33% 16%;
-    --muted-foreground: 217 24% 75%; /* #94A3B8 - High contrast readable slate */
+    --muted: 0 0% 96%; /* #f4f4f4 - block-bg-secondary / palette-ulight */
+    --muted-foreground: 218 7% 42%; /* #636973 - darkened from #868686 for AA (4.83:1 white, 4.52:1 muted) */
 
-    --accent: 199 89% 48%; /* #0EA5E9 */
-    --accent-foreground: 0 0% 100%;
+    --accent: 222 87% 94%; /* #E3EBFD - light blue accent surface */
+    --accent-foreground: 224 87% 44%; /* #0E41D2 (6.49:1 on accent) */
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 72% 47%; /* #CE2121 - p-alert / button-danger-bg (5.43:1, white text) */
+    --destructive-foreground: 0 0% 100%; /* #ffffff */
 
-    --border: 217 33% 22%; /* #25334D - Clean crisp frame borders */
-    --input: 217 33% 20%;
-    --ring: 201 96% 46%;
+    --border: 0 0% 90%; /* #e5e5e5 - border / palette-light */
+    --input: 0 0% 90%; /* #e5e5e5 - field-border */
+    --ring: 224 87% 44%; /* #0E41D2 - focus-outline base / p-primary */
 
-    --radius: 0.75rem;
+    /* Статусные токены (светлая тема, AA-safe как текст на белом и на своих подложках) */
+    --success: 120 61% 26%; /* #1A6B1A (6.64:1 white, 5.49:1 success-bg) */
+    --success-bg: 99 47% 88%; /* #DDEFD3 - p-success-bg */
+    --warning: 23 82% 31%; /* #92400E (7.09:1 white, 5.79:1 warning-bg) */
+    --warning-bg: 33 82% 89%; /* #FAE5CC - p-warning-bg */
+    --alert: 0 74% 42%; /* #B91C1C (6.47:1 white, 5.51:1 alert-bg) */
+    --alert-bg: 0 68% 95%; /* #FAE9E9 - p-alert-bg */
+    --rating: 32 100% 45%; /* #E77D00 - декоративная заливка звёзд (icon-only) */
+
+    --radius: 0.75rem; /* 12px = t-radius-md Островка */
+    --radius-2xs: 4px; /* t-radius-2xs */
+    --radius-sm: 8px; /* t-radius-sm */
+    --radius-lg: 20px; /* t-radius-lg */
   }
 }
 
@@ -100,7 +113,26 @@
   background: transparent;
 }
 
-/* ChatGPT-style Thinking text shimmer (smooth metallic light sweep, strictly no opacity pulsing, seamless loop) */
+/* Специфичный видимый скроллбар исключительно для витрины отелей справа */
+.hotel-canvas-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.5) transparent;
+}
+.hotel-canvas-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.hotel-canvas-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.hotel-canvas-scroll::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.45);
+  border-radius: 9999px;
+}
+.hotel-canvas-scroll::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.8);
+}
+
+/* ChatGPT-style Thinking text shimmer (adapted for light theme: dark base text with a soft light sweep) */
 @keyframes thinking-shimmer {
   0% {
     background-position: 100% 0;
@@ -113,11 +145,11 @@
 .thinking-shimmer {
   background: linear-gradient(
     90deg,
-    rgba(161, 161, 170, 0.75) 0%,
-    rgba(161, 161, 170, 0.75) 35%,
-    rgba(255, 255, 255, 1) 50%,
-    rgba(161, 161, 170, 0.75) 65%,
-    rgba(161, 161, 170, 0.75) 100%
+    rgba(99, 105, 115, 0.9) 0%,
+    rgba(99, 105, 115, 0.9) 35%,
+    rgba(14, 65, 210, 1) 50%,
+    rgba(99, 105, 115, 0.9) 65%,
+    rgba(99, 105, 115, 0.9) 100%
   );
   background-size: 300% 100%;
   -webkit-background-clip: text;

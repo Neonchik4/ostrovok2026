@@ -49,7 +49,7 @@ export function HotelReceiptPreview({ receipt }: ReceiptProps) {
         </span>
       </div>
 
-      <div className="flex items-center gap-2 border-t border-border/50 pt-2 text-xs font-semibold text-emerald-400">
+      <div className="flex items-center gap-2 border-t border-border/50 pt-2 text-xs font-semibold text-success">
         <ShieldCheck className="h-4 w-4 shrink-0" />
         <span>{receipt.cancellation_deadline || "Бесплатная отмена"}</span>
       </div>

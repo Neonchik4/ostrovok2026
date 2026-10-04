@@ -31,14 +31,14 @@ export function HotelAspectsSummary({ summary }: HotelAspectsSummaryProps) {
     <div className="space-y-4">
       {/* Плюсы по отзывам */}
       {positive_highlights && positive_highlights.length > 0 && (
-        <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-4">
-          <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-emerald-400">
+        <div className="rounded-xl border border-success/25 bg-success-bg p-4">
+          <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-success">
             <ThumbsUp className="h-4 w-4" />
             <span>Плюсы по отзывам гостей</span>
           </div>
           <div className="space-y-1.5">
             {positive_highlights.map((highlight, idx) => (
-              <div key={idx} className="text-xs font-medium leading-relaxed text-emerald-100">
+              <div key={idx} className="text-xs font-medium leading-relaxed text-success">
                 • {highlight}
               </div>
             ))}
@@ -48,14 +48,14 @@ export function HotelAspectsSummary({ summary }: HotelAspectsSummaryProps) {
 
       {/* Нюансы и предупреждения */}
       {negative_highlights && negative_highlights.length > 0 && (
-        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
-          <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-amber-400">
+        <div className="rounded-xl border border-warning/25 bg-warning-bg p-4">
+          <div className="mb-2.5 flex items-center gap-2 text-sm font-bold text-warning">
             <AlertTriangle className="h-4 w-4" />
             <span>Обратите внимание (из отзывов)</span>
           </div>
           <div className="space-y-1.5">
             {negative_highlights.map((highlight, idx) => (
-              <div key={idx} className="text-xs font-medium leading-relaxed text-amber-100">
+              <div key={idx} className="text-xs font-medium leading-relaxed text-warning">
                 • {highlight}
               </div>
             ))}

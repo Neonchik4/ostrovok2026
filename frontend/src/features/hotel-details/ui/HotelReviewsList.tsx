@@ -46,15 +46,15 @@ export function HotelReviewsList({ reviews }: HotelReviewsListProps) {
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 font-bold text-amber-400">
-                <Star className="h-3 w-3 fill-amber-400" />
+              <div className="flex items-center gap-1 rounded-md border border-border bg-card px-2 py-0.5 font-bold text-rating">
+                <Star className="h-3 w-3 fill-rating" />
                 <span>{rev.rating}</span>
               </div>
             </div>
 
             {rev.plus && rev.plus !== "-" && (
-              <div className="rounded-lg bg-emerald-500/10 p-2.5 leading-relaxed text-emerald-200">
-                <strong className="text-emerald-400">Плюсы: </strong>
+              <div className="rounded-lg bg-success-bg p-2.5 leading-relaxed text-success">
+                <strong className="text-success">Плюсы: </strong>
                 {rev.plus}
               </div>
             )}

@@ -1,0 +1,42 @@
+/* @font-face with locally saved font files (fonts/). Source: ostrovok.ru */
+
+@font-face {
+  font-family: "PT Root UI Web";
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/PT-Root-UI-Web-Light.974865d0.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "PT Root UI Web";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/PT-Root-UI-Web-Regular.fa37ad7a.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "PT Root UI Web";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/PT-Root-UI-Web-Medium.4b7fa55b.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "PT Root UI Web";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("fonts/PT-Root-UI-Web-Bold.853746a2.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "Spoof";
+  font-weight: 500;
+  font-style: normal;
+  font-feature-settings: "ss06";
+  font-display: swap;
+  src: url("fonts/Spoof-Medium.a41d118c.woff2") format("woff2");
+}

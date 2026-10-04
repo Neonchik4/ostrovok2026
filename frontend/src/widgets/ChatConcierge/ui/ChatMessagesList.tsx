@@ -8,8 +8,8 @@ interface ChatMessagesListProps {
   thoughts: Thought[];
   isStreaming: boolean;
   isThinking?: boolean;
-  scrollRef: React.RefObject<HTMLDivElement | null>;
-  messagesEndRef: React.RefObject<HTMLDivElement | null>;
+  scrollRef: React.RefObject<HTMLDivElement>;
+  messagesEndRef: React.RefObject<HTMLDivElement>;
 }
 
 export function ChatMessagesList({

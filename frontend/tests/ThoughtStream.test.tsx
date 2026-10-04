@@ -93,7 +93,7 @@ describe("ThoughtStream component", () => {
     expect(searchText.className).toContain("text-destructive");
 
     // В DOM должна быть только одна галочка (для первого успешно завершённого шага reasoning)
-    const checkmarks = container.querySelectorAll(".text-emerald-400");
+    const checkmarks = container.querySelectorAll(".text-success");
     expect(checkmarks.length).toBe(1);
 
     // И два красных крестика (для прерванного поиска и для самой ошибки)
@@ -117,7 +117,7 @@ describe("ThoughtStream component", () => {
     expect(stoppedText.className).toContain("text-destructive");
 
     // Только один первый шаг получил галочку, остановленный шаг НЕ должен получать галочку
-    const checkmarks = container.querySelectorAll(".text-emerald-400");
+    const checkmarks = container.querySelectorAll(".text-success");
     expect(checkmarks.length).toBe(1);
   });
 
@@ -129,7 +129,7 @@ describe("ThoughtStream component", () => {
     const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
 
     expect(screen.getByText("Остановлено")).toBeInTheDocument();
-    const checkmarks = container.querySelectorAll(".text-emerald-400");
+    const checkmarks = container.querySelectorAll(".text-success");
     expect(checkmarks.length).toBe(0);
   });
 });

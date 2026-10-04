@@ -49,7 +49,7 @@ export function HotelCard({ hotel, onBook, onSelect }: HotelCardProps) {
             <HotelScoreBadge scorePct={hotel.match_score_pct} />
           </div>
           <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/85 px-3 py-1.5 text-sm font-semibold shadow-md backdrop-blur-md">
-            <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+            <Star className="h-4 w-4 fill-rating text-rating" />
             <span className="font-bold text-foreground">{hotel.rating.toFixed(1)}</span>
             <span className="text-xs text-muted-foreground">({hotel.reviews_count})</span>
           </div>
