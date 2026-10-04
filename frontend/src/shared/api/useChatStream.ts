@@ -159,37 +159,16 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
       });
 
       try {
-        let response: Response;
-        try {
-          response = await fetch(apiEndpoint, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Accept: "text/event-stream",
-            },
-            body: requestPayload,
-            signal: controller.signal,
-          });
-        } catch (fetchErr) {
-          // Если прокси /api/... вернул net::ERR_CONNECTION_REFUSED, пробуем прямой бэкенд 127.0.0.1:8000
-          if (
-            !controller.signal.aborted &&
-            (apiEndpoint.startsWith("/") || apiEndpoint.includes(":3000"))
-          ) {
-            console.warn("Порт 3000 недоступен, автоматическое переключение на 127.0.0.1:8000...");
-            response = await fetch("http://127.0.0.1:8000/api/chat/stream", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Accept: "text/event-stream",
-              },
-              body: requestPayload,
-              signal: controller.signal,
-            });
-          } else {
-            throw fetchErr;
-          }
-        }
+        // Same-origin in production (Traefik) and development (Next.js proxy).
+        const response = await fetch(apiEndpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+          },
+          body: requestPayload,
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           throw new Error(`Ошибка сервера HTTP ${response.status}`);

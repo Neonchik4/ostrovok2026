@@ -8,11 +8,10 @@ import { Star, MapPin, CheckCircle2 } from "lucide-react";
 
 interface HotelCardProps {
   hotel: Hotel;
-  onBook?: (hotel: Hotel) => void;
   onSelect?: (hotel: Hotel) => void;
 }
 
-export function HotelCard({ hotel, onBook, onSelect }: HotelCardProps) {
+export function HotelCard({ hotel, onSelect }: HotelCardProps) {
   const fallbackCategory = ["mountains", "sea", "center", "nature"].includes(hotel.area_type)
     ? hotel.area_type
     : "center";
@@ -133,12 +132,6 @@ export function HotelCard({ hotel, onBook, onSelect }: HotelCardProps) {
               Подробнее
             </Button>
           )}
-          <Button
-            onClick={() => onBook?.(hotel)}
-            className="h-11 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90"
-          >
-            Забронировать
-          </Button>
         </div>
       </div>
     </Card>

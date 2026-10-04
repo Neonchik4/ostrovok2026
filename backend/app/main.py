@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
+from .middleware.body_limit import RequestBodyLimitMiddleware
 from .services.hotel_search_adapter import warmup_models
 from .api.chat_stream import router as chat_router
 from .api.hotels import router as hotels_router
@@ -32,6 +33,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Limit request bodies only; SSE response chunks pass through unchanged.
+app.add_middleware(RequestBodyLimitMiddleware, max_bytes=2 * 1024 * 1024)
 
 # Подключение роутов
 app.include_router(chat_router, prefix=settings.API_PREFIX)

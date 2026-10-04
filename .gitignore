@@ -45,6 +45,9 @@ htmlcov/
 !.env.example
 *.local
 
+# TLS certificates and ACME account private keys
+letsencrypt/
+
 # IDEs
 .idea/
 .vscode/

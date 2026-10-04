@@ -99,25 +99,11 @@ describe("HotelDetailModal", () => {
     expect(handleClose).toHaveBeenCalledTimes(1);
   });
 
-  it("triggers onBook when booking button in modal is clicked", async () => {
-    const handleClose = vi.fn();
-    const handleBook = vi.fn();
+  it("does not render a booking button (anti-slop)", async () => {
     await act(async () => {
-      render(
-        <HotelDetailModal
-          hotel={mockHotel}
-          onClose={handleClose}
-          onBook={handleBook}
-        />
-      );
+      render(<HotelDetailModal hotel={mockHotel} onClose={vi.fn()} />);
     });
 
-    const bookBtn = screen.getByRole("button", { name: /Забронировать/i });
-    fireEvent.click(bookBtn);
-
-    expect(handleClose).toHaveBeenCalledTimes(1);
-    expect(handleBook).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "hotel-polyana-1" })
-    );
+    expect(screen.queryByRole("button", { name: /Забронировать/i })).not.toBeInTheDocument();
   });
 });

@@ -22,10 +22,9 @@ import {
 interface HotelDetailModalProps {
   hotel: Hotel | null;
   onClose: () => void;
-  onBook?: (hotel: Hotel) => void;
 }
 
-export function HotelDetailModal({ hotel, onClose, onBook }: HotelDetailModalProps) {
+export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
   const [detailedHotel, setDetailedHotel] = useState<Hotel | null>(hotel);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -203,15 +202,6 @@ export function HotelDetailModal({ hotel, onClose, onBook }: HotelDetailModalPro
               className="h-11 rounded-xl px-5 text-sm font-semibold"
             >
               Закрыть
-            </Button>
-            <Button
-              onClick={() => {
-                onClose();
-                onBook?.(currentHotel);
-              }}
-              className="h-11 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-primary/90"
-            >
-              Забронировать
             </Button>
           </div>
         </div>

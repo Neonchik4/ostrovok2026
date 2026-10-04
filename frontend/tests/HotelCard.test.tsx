@@ -1,6 +1,6 @@
 import React from "react";
-import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { HotelCard, Hotel } from "@/entities/hotel";
 
 describe("HotelCard", () => {
@@ -51,14 +51,9 @@ describe("HotelCard", () => {
     expect(screen.getByText(/Бесплатная отмена за 48 ч до заезда/)).toBeInTheDocument();
   });
 
-  it("calls onBook callback when booking button is clicked", () => {
-    const handleBook = vi.fn();
-    render(<HotelCard hotel={mockHotel} onBook={handleBook} />);
+  it("does not render a booking button (anti-slop)", () => {
+    render(<HotelCard hotel={mockHotel} />);
 
-    const bookButton = screen.getByRole("button", { name: /Забронировать/i });
-    fireEvent.click(bookButton);
-
-    expect(handleBook).toHaveBeenCalledTimes(1);
-    expect(handleBook).toHaveBeenCalledWith(mockHotel);
+    expect(screen.queryByRole("button", { name: /Забронировать/i })).not.toBeInTheDocument();
   });
 });

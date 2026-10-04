@@ -15,6 +15,7 @@
     "test:backend": "npm --prefix backend run test",
     "test:front": "npm --prefix frontend run test",
     "test:back": "npm --prefix backend run test",
+    "test:deploy": "node --test scripts/test-deployment.mjs",
     "build": "npm --prefix frontend run build",
     "setup": "npm install && npm --prefix frontend install && pip install -r backend/requirements.txt"
   },

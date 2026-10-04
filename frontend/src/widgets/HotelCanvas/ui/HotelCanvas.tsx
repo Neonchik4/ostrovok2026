@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { HotelCard, Hotel } from "@/entities/hotel";
-import { BookRoomModal } from "@/features/book-room";
 import { HotelDetailModal } from "@/features/hotel-details";
 import { Badge, Button } from "@/shared/ui";
 import { Hotel as HotelIcon, SlidersHorizontal, Sparkles, Building2 } from "lucide-react";
@@ -14,7 +13,6 @@ interface HotelCanvasProps {
 }
 
 export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvasProps) {
-  const [selectedHotelForBooking, setSelectedHotelForBooking] = useState<Hotel | null>(null);
   const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<Hotel | null>(null);
 
   return (
@@ -116,7 +114,6 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
               <HotelCard
                 key={hotel.id}
                 hotel={hotel}
-                onBook={(h) => setSelectedHotelForBooking(h)}
                 onSelect={(h) => setSelectedHotelForDetails(h)}
               />
             ))}
@@ -128,16 +125,6 @@ export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvas
       <HotelDetailModal
         hotel={selectedHotelForDetails}
         onClose={() => setSelectedHotelForDetails(null)}
-        onBook={(h) => {
-          setSelectedHotelForDetails(null);
-          setSelectedHotelForBooking(h);
-        }}
-      />
-
-      {/* Модалка бронирования с чеком */}
-      <BookRoomModal
-        hotel={selectedHotelForBooking}
-        onClose={() => setSelectedHotelForBooking(null)}
       />
     </main>
   );

@@ -1,0 +1,144 @@
+name: ostrovok2026
+
+services:
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.constraints=Label(`com.docker.compose.project`, `${COMPOSE_PROJECT_NAME:-ostrovok2026}`)"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
+      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
+      - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
+      - "--entrypoints.web.transport.respondingtimeouts.readtimeout=30s"
+      - "--entrypoints.websecure.transport.respondingtimeouts.readtimeout=30s"
+      # A long-lived SSE response must not have an overall write deadline.
+      - "--entrypoints.websecure.transport.respondingtimeouts.writetimeout=0s"
+      - "--serversTransport.forwardingTimeouts.responseHeaderTimeout=30s"
+      - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?Set ACME_EMAIL in .env}"
+      - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
+      - "--ping=true"
+      - "--log.level=INFO"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - type: bind
+        source: /var/run/docker.sock
+        target: /var/run/docker.sock
+        read_only: true
+      - type: bind
+        source: ./letsencrypt/acme.json
+        target: /letsencrypt/acme.json
+        bind:
+          create_host_path: false
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [app]
+
+  backend:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 35s
+    environment:
+      GEMINI_API_KEYS: "${GEMINI_API_KEYS:-}"
+      GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
+      PRIMARY_MODEL: "${PRIMARY_MODEL:-gemini-3.5-flash-lite}"
+      FALLBACK_MODEL: "${FALLBACK_MODEL:-gemini-3.5-flash}"
+      DATASET_PATH: /app/outputs/hotels_catalog.json
+      CHROMA_DB_PATH: /app/outputs/chroma_db_v2
+    volumes:
+      - type: bind
+        source: ./outputs
+        target: /app/outputs
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./outputs/chroma_db_v2
+        target: /app/outputs/chroma_db_v2
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./outputs/chroma_db_gemini
+        target: /app/outputs/chroma_db_gemini
+        bind:
+          create_host_path: false
+      - model-cache:/home/app/.cache/huggingface
+    expose: ["8000"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 6
+      start_period: 180s
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ostrovok-api.rule: "Host(`${DOMAIN:?Set DOMAIN in .env}`) && (Path(`/api`) || PathPrefix(`/api/`))"
+      traefik.http.routers.ostrovok-api.entrypoints: websecure
+      traefik.http.routers.ostrovok-api.tls: "true"
+      traefik.http.routers.ostrovok-api.tls.certresolver: letsencrypt
+      traefik.http.routers.ostrovok-api.priority: "20"
+      traefik.http.routers.ostrovok-api.service: ostrovok-api
+      traefik.http.services.ostrovok-api.loadbalancer.server.port: "8000"
+    networks: [app]
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    init: true
+    environment:
+      BACKEND_URL: http://backend:8000
+    expose: ["3000"]
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    labels:
+      traefik.enable: "true"
+      traefik.http.routers.ostrovok-web.rule: "Host(`${DOMAIN:?Set DOMAIN in .env}`)"
+      traefik.http.routers.ostrovok-web.entrypoints: websecure
+      traefik.http.routers.ostrovok-web.tls: "true"
+      traefik.http.routers.ostrovok-web.tls.certresolver: letsencrypt
+      traefik.http.routers.ostrovok-web.priority: "10"
+      traefik.http.routers.ostrovok-web.service: ostrovok-web
+      traefik.http.services.ostrovok-web.loadbalancer.server.port: "3000"
+    networks: [app]
+
+networks:
+  app:
+    driver: bridge
+
+volumes:
+  model-cache:

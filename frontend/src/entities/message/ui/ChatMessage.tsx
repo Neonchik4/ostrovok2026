@@ -22,7 +22,7 @@ export function ChatMessageItem({ message }: ChatMessageProps) {
         className={cn(
           "max-w-[85%] rounded-2xl px-5 py-3 text-base leading-relaxed shadow-sm transition-all",
           isUser
-            ? "rounded-tr-none bg-primary font-medium text-primary-foreground"
+            ? "rounded-tr-none bg-primary font-medium text-primary-foreground selection:bg-white/30 selection:text-white"
             : "rounded-tl-none border border-border bg-card text-foreground"
         )}
       >
