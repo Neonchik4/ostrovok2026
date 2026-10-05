@@ -22,10 +22,13 @@ def init_dataset() -> None:
     global _hotels_dataset, _hotels_by_id
     if not _hotels_dataset:
         candidates = [
+            "./outputs/hotels.json",
+            "../outputs/hotels.json",
+            "outputs/hotels.json",
+            settings.DATASET_PATH,
             "./outputs/hotels_catalog.json",
             "../outputs/hotels_catalog.json",
             "outputs/hotels_catalog.json",
-            settings.DATASET_PATH,
             "./outputs/hotels_dataset.json",
             "../outputs/hotels_dataset.json",
             "outputs/hotels_dataset.json",

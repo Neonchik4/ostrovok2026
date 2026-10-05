@@ -49,6 +49,9 @@ def matches_scalar_filters(hotel: HotelFullSchema, slots: ExtractedSlots) -> boo
         return False
     if slots.max_price_per_night_rub and hotel.min_price_per_night_rub > slots.max_price_per_night_rub:
         return False
+    # Цена неизвестна (0 + data_quality.has_real_prices=false): бюджет подтвердить нельзя
+    if slots.max_price_per_night_rub and hotel.min_price_per_night_rub <= 0:
+        return False
     if slots.pet_friendly and not hotel.amenities.pet_friendly:
         return False
     if slots.heated_pool and not hotel.amenities.heated_pool:
@@ -90,9 +93,7 @@ def build_hotel_card(hotel: HotelFullSchema, score: float, slots: ExtractedSlots
         address=hotel.address,
         rating=float(hotel.rating),
         reviews_count=hotel.reviews_count,
-        image_urls=hotel.image_urls or [
-            "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80"
-        ],
+        image_urls=hotel.image_urls,
         match_score_pct=match_score_pct,
         tags=hotel.tags[:4],
         min_price_per_night_rub=hotel.min_price_per_night_rub,

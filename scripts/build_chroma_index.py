@@ -2,10 +2,12 @@
 import chromadb, shutil, os, json
 from sentence_transformers import SentenceTransformer
 
-# Загрузка датасета отелей
-DATASET_PATH = "./outputs/hotels_dataset.json"
+# Загрузка датасета отелей: итоговый hotels.json, fallback — legacy hotels_dataset.json
+DATASET_PATH = "./outputs/hotels.json"
 if not os.path.exists(DATASET_PATH):
-    raise FileNotFoundError(f"Файл {DATASET_PATH} не найден. Сначала запустите скрипт парсера.")
+    DATASET_PATH = "./outputs/hotels_dataset.json"
+if not os.path.exists(DATASET_PATH):
+    raise FileNotFoundError("Файл outputs/hotels.json не найден. Сначала запустите scripts/build_hotels_json.py.")
 
 with open(DATASET_PATH, "r", encoding="utf-8") as f:
     hotels = json.load(f)

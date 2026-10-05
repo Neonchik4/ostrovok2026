@@ -24,6 +24,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("gemini_indexer")
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+HOTELS_PATH = os.path.join(ROOT_DIR, "outputs", "hotels.json")
 CATALOG_PATH = os.path.join(ROOT_DIR, "outputs", "hotels_catalog.json")
 FALLBACK_DATASET = os.path.join(ROOT_DIR, "outputs", "hotels_dataset.json")
 DB_PATH = os.path.join(ROOT_DIR, "outputs", "chroma_db_gemini")
@@ -241,7 +242,11 @@ def main():
 
     HOTELS_DIR = os.path.join(ROOT_DIR, "outputs", "hotels")
     hotels = []
-    if os.path.exists(CATALOG_PATH):
+    if os.path.exists(HOTELS_PATH):
+        logger.info(f"Загрузка каталога из: {HOTELS_PATH}")
+        with open(HOTELS_PATH, "r", encoding="utf-8") as f:
+            hotels = json.load(f)
+    elif os.path.exists(CATALOG_PATH):
         logger.info(f"Загрузка каталога из: {CATALOG_PATH}")
         with open(CATALOG_PATH, "r", encoding="utf-8") as f:
             hotels = json.load(f)

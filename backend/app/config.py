@@ -47,7 +47,7 @@ class Settings(BaseModel):
     
     # Dataset & Vector DB Paths
     BASE_DIR: Path = BASE_DIR
-    DATASET_PATH: str = Field(default_factory=lambda: os.getenv("DATASET_PATH", str(BASE_DIR / "outputs" / "hotels_dataset.json")))
+    DATASET_PATH: str = Field(default_factory=lambda: os.getenv("DATASET_PATH", str(BASE_DIR / "outputs" / "hotels.json")))
     CHROMA_DB_PATH: str = Field(default_factory=lambda: os.getenv("CHROMA_DB_PATH", str(BASE_DIR / "outputs" / "chroma_db_v2")))
 
 settings = Settings()

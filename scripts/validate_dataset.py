@@ -3,8 +3,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import json
 from backend.app.schemas.hotel_models import HotelFullSchema
 
-with open("outputs/hotels_dataset.json", "r", encoding="utf-8") as f:
+path = "outputs/hotels.json" if os.path.exists("outputs/hotels.json") else "outputs/hotels_dataset.json"
+with open(path, "r", encoding="utf-8") as f:
     data = json.load(f)
+
+print(f"Dataset: {path}")
 
 print(f"Total hotels loaded: {len(data)}")
 validated = 0

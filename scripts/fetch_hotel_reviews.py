@@ -16,6 +16,9 @@ import asyncio
 from typing import Dict, List, Any, Optional
 import httpx
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from review_metrics import extract_review_metrics
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("reviews_fetcher")
 
@@ -31,108 +34,6 @@ DEFAULT_HEADERS = {
     "Accept-Language": "ru-RU,ru;q=0.9",
     "Referer": "https://ostrovok.ru/",
 }
-
-MIN_REVIEW_TEXT_LEN = 50
-
-
-def clean_str(val: Optional[str]) -> str:
-    return (val or "").strip()
-
-
-def extract_review_metrics(raw_reviews: List[Dict[str, Any]]) -> Dict[str, Any]:
-    """Фильтрует отзывы по длине и рассчитывает реальные метрики на основе отзывов гостей."""
-    valid_reviews = []
-    clean_scores = []
-    loc_scores = []
-    service_scores = []
-    meal_scores = []
-    wifi_scores = []
-    traveller_counts: Dict[str, int] = {}
-
-    pos_quotes = []
-    neg_quotes = []
-
-    for r in raw_reviews:
-        plus = clean_str(r.get("review_plus") or r.get("reviewPlus"))
-        minus = clean_str(r.get("review_minus") or r.get("reviewMinus"))
-        text = clean_str(r.get("review_text") or r.get("reviewText"))
-        combined_text = f"{plus} {minus} {text}".strip()
-
-        # Фильтр насыщенности: отсекаем отзывы короче порога
-        if len(combined_text) < MIN_REVIEW_TEXT_LEN:
-            continue
-
-        rating = r.get("rating")
-        date_str = r.get("review_date") or r.get("reviewDate") or ""
-        author = ""
-        room_name = ""
-        order_ctx = r.get("order_context") or r.get("orderContext") or {}
-        if isinstance(order_ctx, dict):
-            author = order_ctx.get("author_name") or ""
-            room_name = order_ctx.get("author_room") or ""
-
-        trav_type = r.get("traveller_type") or r.get("travellerType") or "other"
-        traveller_counts[trav_type] = traveller_counts.get(trav_type, 0) + 1
-
-        detailed = r.get("detailed") or {}
-        if isinstance(detailed, dict):
-            if detailed.get("cleanness"):
-                clean_scores.append(float(detailed["cleanness"]))
-            if detailed.get("location"):
-                loc_scores.append(float(detailed["location"]))
-            if detailed.get("services"):
-                service_scores.append(float(detailed["services"]))
-            if detailed.get("meal"):
-                meal_scores.append(float(detailed["meal"]))
-            if detailed.get("wifi"):
-                wifi_scores.append(float(detailed["wifi"]))
-
-        if len(plus) >= 40:
-            pos_quotes.append(plus)
-        if len(minus) >= 40:
-            neg_quotes.append(minus)
-
-        valid_reviews.append({
-            "id": r.get("id"),
-            "author": author,
-            "date": date_str,
-            "rating": rating,
-            "plus": plus,
-            "minus": minus,
-            "room": room_name,
-            "traveller_type": trav_type,
-        })
-
-    def avg_or_none(scores: List[float], default: float = 4.5) -> float:
-        if not scores:
-            return default
-        # Оценки в API от 1 до 10, приводим к 5-балльной шкале Островка
-        return round((sum(scores) / len(scores)) / 2.0, 1)
-
-    # Сортируем цитаты по информативности (длине)
-    pos_quotes.sort(key=len, reverse=True)
-    neg_quotes.sort(key=len, reverse=True)
-
-    total_trav = sum(traveller_counts.values()) or 1
-    traveller_stats = {k: round(v / total_trav, 2) for k, v in traveller_counts.items()}
-
-    summary = {
-        "score_cleanliness": avg_or_none(clean_scores, 4.6),
-        "score_location": avg_or_none(loc_scores, 4.7),
-        "score_service": avg_or_none(service_scores, 4.5),
-        "score_value_for_money": avg_or_none(meal_scores, 4.4),
-        "score_wifi": avg_or_none(wifi_scores, 4.8),
-        "positive_highlights": pos_quotes[:5],
-        "negative_highlights": neg_quotes[:3],
-        "review_snippets": pos_quotes[:3],
-        "valid_reviews_count": len(valid_reviews),
-        "traveller_distribution": traveller_stats,
-    }
-
-    return {
-        "reviews": valid_reviews,
-        "reviews_summary": summary,
-    }
 
 
 async def fetch_single_hotel_reviews(

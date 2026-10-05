@@ -19,6 +19,7 @@ class RoomType(BaseModel):
     room_id: Optional[str] = None
     name: str
     price_per_night_rub: int
+    derived: bool = False
     capacity: Optional[RoomCapacity] = None
     bed_setup: Optional[str] = None
     area_sqm: Optional[int] = None
@@ -91,14 +92,31 @@ class Policies(BaseModel):
     pets: PetPolicy = Field(default_factory=PetPolicy)
 
 class ReviewsSummary(BaseModel):
-    score_cleanliness: float = 4.5
-    score_location: float = 4.5
-    score_service: float = 4.5
-    score_value_for_money: float = 4.5
-    score_wifi: float = 4.5
+    score_cleanliness: float = 0.0
+    score_location: float = 0.0
+    score_service: float = 0.0
+    score_value_for_money: float = 0.0
+    score_wifi: float = 0.0
     positive_highlights: List[str] = Field(default_factory=list)
     negative_highlights: List[str] = Field(default_factory=list)
-    review_snippets: List[str] = Field(default_factory=list)
+    valid_reviews_count: int = 0
+    traveller_distribution: Dict[str, float] = Field(default_factory=dict)
+
+class TopReview(BaseModel):
+    author: str = ""
+    date: str = ""
+    rating: Optional[float] = None
+    plus: str = ""
+    minus: str = ""
+    room: str = ""
+    traveller_type: str = "other"
+
+class DataQuality(BaseModel):
+    has_real_reviews: bool = False
+    has_real_prices: bool = True
+    has_real_rating: bool = True
+    rooms_derived: bool = True
+    policies_derived: bool = True
 
 class HotelFullSchema(BaseModel):
     id: str
@@ -120,6 +138,9 @@ class HotelFullSchema(BaseModel):
     description: Optional[str] = None
     image_urls: List[str] = Field(default_factory=list)
     coordinates: Optional[Coordinates] = None
+    top_reviews: List[TopReview] = Field(default_factory=list)
+    total_ostrovok_reviews: int = 0
+    data_quality: DataQuality = Field(default_factory=DataQuality)
 
     # Полнофункциональные поля Островка для боевой готовности
     master_id: Optional[int] = None
