@@ -44,6 +44,7 @@ class Settings(BaseModel):
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
     ]
+    GEMINI_BASE_URL: str = Field(default_factory=lambda: os.getenv("GEMINI_BASE_URL", ""))
     
     # Dataset & Vector DB Paths
     BASE_DIR: Path = BASE_DIR

@@ -60,9 +60,17 @@ def _get_client(key: str):
     client = _clients_cache.get(key)
     if client is None:
         from google import genai
-        client = genai.Client(api_key=key)
+        from google.genai import types
+        http_opts = None
+        base_url = getattr(settings, "GEMINI_BASE_URL", "")
+        if base_url:
+            http_opts = types.HttpOptions(base_url=base_url)
+        client = genai.Client(api_key=key, http_options=http_opts)
         _clients_cache[key] = client
     return client
+
+get_gemini_client = _get_client
+
 
 async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Optional[str]:
     """

@@ -155,11 +155,11 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         disambiguation_suggestions=default_chips(lower),
     )
 
-async def _call_gemini_extractor(user_message: str, model_name: str) -> ExtractedSlots:
-    from google import genai
+async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -> ExtractedSlots:
     from google.genai import types
+    from .llm_client import get_gemini_client
 
-    client = genai.Client(api_key=settings.GEMINI_API_KEY)
+    client = get_gemini_client(key)
     gen_config = types.GenerateContentConfig.model_validate(
         {"automatic_function_calling": {"disable": True}}
     )
@@ -221,16 +221,18 @@ async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
     """
     Каскадный экстрактор слотов:
     1. Gemini PRIMARY_MODEL
-    2. Резервные модели из FALLBACK_MODELS
+    2. Резервные модели из FALLBACK_MODELS на всех доступных ключах (через Cloudflare AI Gateway)
     3. Детерминированный офлайн-экстрактор
     """
-    if settings.GEMINI_API_KEY:
-        models_to_try = get_cascade_models()
-        for idx, model_name in enumerate(models_to_try):
-            try:
-                return await _call_gemini_extractor(user_message, model_name)
-            except Exception as e:
-                next_target = models_to_try[idx + 1] if idx + 1 < len(models_to_try) else "Local Mock"
-                print(f"[LLM Cascade] Ошибка {model_name}: {e}. Пробуем {next_target}...")
+    from .llm_client import _build_attempts
+    attempts = _build_attempts()
+    for idx, (key, model_name) in enumerate(attempts):
+        try:
+            return await _call_gemini_extractor(user_message, model_name, key)
+        except Exception as e:
+            next_target = attempts[idx + 1] if idx + 1 < len(attempts) else None
+            next_desc = f"{next_target[1]}" if next_target else "Local Mock"
+            print(f"[LLM Cascade] Ошибка {model_name}: {e}. Пробуем {next_desc}...")
 
     return mock_extract_slots(user_message)
+
