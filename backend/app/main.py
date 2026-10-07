@@ -14,6 +14,11 @@ async def lifespan(app: FastAPI):
     Исключает задержку первого запроса пользователя.
     """
     print("=== [Startup] Инициализация сервисов и моделей ===")
+    from .services.dataset_loader import ensure_dataset_available
+    try:
+        ensure_dataset_available()
+    except Exception as e:
+        print(f"[Startup Warning] Ошибка при проверке датасета из S3: {e}")
     warmup_models()
     print("=== [Startup] Сервер готов к обработке запросов ===")
     yield

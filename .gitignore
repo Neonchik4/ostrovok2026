@@ -68,3 +68,8 @@ outputs/gemini_vectors_cache/
 outputs/chroma_db_v2/
 outputs/chroma_db_gemini/
 
+# Large datasets & S3 downloaded archives
+outputs/*.gz
+outputs/hotels.json
+!outputs/hotels_stats.json
+

@@ -27,6 +27,12 @@ def init_dataset() -> None:
             "outputs/hotels.json",
             settings.DATASET_PATH,
         ]
+        if not any(os.path.exists(p) for p in candidates):
+            try:
+                from .dataset_loader import ensure_dataset_available
+                ensure_dataset_available()
+            except Exception as e:
+                print(f"[Dataset Warning] Автоматическая загрузка датасета не удалась: {e}")
         for p in candidates:
             if os.path.exists(p):
                 try:
