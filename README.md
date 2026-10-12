@@ -39,6 +39,63 @@ Ostrovok AI Concierge — интеллектуальный ассистент д
 
 ---
 
+## Секреты команды через Doppler
+
+Единый источник правды по секретам — Doppler (проект `ostrovok2026`). Локальная разработка берёт значения из конфига `dev` и **не требует файла `.env`**; `.env.example` остаётся образцом и резервным вариантом.
+
+### Первый запуск у разработчика
+
+1. Установите Doppler CLI ([cli.doppler.com](https://cli.doppler.com)) и войдите:
+   ```bash
+   doppler login
+   ```
+2. Запустите приложение со всеми секретами команды:
+   ```bash
+   bun run dev:dop
+   ```
+   Команда сама передаёт `--project ostrovok2026 --config dev`, поэтому доступны общие dev-секреты без ручного копирования `.env`.
+
+### Доступ участников (только чтение)
+
+Участники получают **read-only service token** конфига `dev` (через дашборд: `Project -> dev -> Access -> Generate`, либо CLI `doppler configs tokens create <name> --project ostrovok2026 --config dev --access read`). Далее достаточно:
+
+```bash
+# Git Bash / Linux / macOS
+export DOPPLER_TOKEN=dp.st.dev.xxxx
+export HISTIGNORE='export DOPPLER_TOKEN*'
+bun run dev
+```
+
+```powershell
+# PowerShell
+$env:DOPPLER_TOKEN = "dp.st.dev.xxxx"
+bun run dev
+```
+
+Токен читает конфиг `dev` и не имеет прав на запись. Токены `prd` участникам не выдаются.
+
+### Production (`prd`)
+
+Конфиг `prd` содержит Gemini/S3-ключи, `ACME_EMAIL`, `APP_ENV=production`, `HOST=0.0.0.0`, `PORT=8000` и `BACKEND_URL=http://backend:8000`, но **не содержит `DOMAIN`**: домен задаётся отдельно на хосте, чтобы `localhost` из dev никогда не попал в разметку Traefik. Перед первым деплоем задайте домен одним из способов:
+
+```bash
+doppler secrets set DOMAIN=app.example.com --config prd
+# либо оставьте DOMAIN в .env на сервере — compose требует его явно
+```
+
+Бэкенд и оба контейнера запускаются только с `APP_ENV=production`: иначе сработает `runtime_guard`/`docker-compose.yml` и старт будет остановлен.
+
+### Защита от запуска dev-режима на production
+
+Несколько независимых барьеров не дают dev-профилю попасть на прод:
+
+* `bun run dev` и `bun run dev:static-back` сначала выполняют `scripts/guard-dev-environment.mjs`: запуск блокируется при `NODE_ENV=production`, `APP_ENV`, отличном от `development`, нелокальном `DOMAIN`, Doppler-конфиге `prd`/`stg` или запуске внутри Docker.
+* `docker-compose.yml` жёстко задаёт `APP_ENV=production` для обоих контейнеров, потому сервисы не могут унаследовать dev-профиль.
+* Бэкенд при старте вызывает `runtime_guard`: в контейнере допускается только `APP_ENV=production`.
+* Frontend `environment-guard.mjs` запрещает production-сборку с dev-профилем и dev-сервер с production-профилем.
+
+---
+
 ## Что нужно для старта
 
 Перед началом работы убедитесь, что в системе установлены:
@@ -103,6 +160,8 @@ bun run dev
 
 | Команда | Назначение |
 | :--- | :--- |
+| `bun run dev` | Запуск фронтенда и бэкенда в hot-reload |
+| `bun run dev:dop` | То же, но секреты приходят из Doppler (`--config dev`) |
 | `bun run dev:front` | Запуск только фронтенда (порт 3000) |
 | `bun run dev:back` | Запуск только бэкенда (порт 8000 c reload) |
 | `bun run dev:static-back` | Запуск фронтенда в hot-reload, бэкенда — в статичном режиме |

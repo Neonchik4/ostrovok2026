@@ -51,6 +51,8 @@ services:
     init: true
     stop_grace_period: 35s
     environment:
+      # Production is the only profile this stack may run (see runtime_guard).
+      APP_ENV: production
       GEMINI_API_KEYS: "${GEMINI_API_KEYS:-}"
       GEMINI_API_KEY: "${GEMINI_API_KEY:-}"
       PRIMARY_MODEL: "${PRIMARY_MODEL:-gemini-3.5-flash-lite}"
@@ -108,6 +110,7 @@ services:
     restart: unless-stopped
     init: true
     environment:
+      APP_ENV: production
       BACKEND_URL: http://backend:8000
     expose: ["3000"]
     depends_on:

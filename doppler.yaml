@@ -1,0 +1,6 @@
+# Doppler project binding for `doppler setup` and `npm run dev:dop`.
+# Only the local development config is referenced: production hosts receive the
+# `prd` config through a service token, never through this file.
+setup:
+  - project: ostrovok2026
+    config: dev

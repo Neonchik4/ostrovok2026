@@ -27,6 +27,8 @@ class Settings(BaseModel):
     PROJECT_NAME: str = "Ostrovok Travel AI Agent"
     VERSION: str = "1.0.0"
     API_PREFIX: str = "/api"
+    # development is host-only; production runs inside the Docker stack.
+    APP_ENV: str = Field(default_factory=lambda: os.getenv("APP_ENV", "development"))
     HOST: str = Field(default_factory=lambda: os.getenv("HOST", "127.0.0.1"))
     PORT: int = Field(default_factory=lambda: int(os.getenv("PORT", "8000")))
 

@@ -1,3 +1,8 @@
+import { assertNextEnvironment } from './environment-guard.mjs';
+
+// A dev server with production settings (or the reverse) must never boot.
+assertNextEnvironment();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,

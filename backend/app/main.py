@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .middleware.body_limit import RequestBodyLimitMiddleware
 from .services.hotel_search_adapter import warmup_models
+from .services.runtime_guard import assert_safe_runtime, is_containerized
 from .api.chat_stream import router as chat_router
 from .api.hotels import router as hotels_router
 
@@ -14,6 +15,7 @@ async def lifespan(app: FastAPI):
     Исключает задержку первого запроса пользователя.
     """
     print("=== [Startup] Инициализация сервисов и моделей ===")
+    assert_safe_runtime(settings.APP_ENV, is_containerized())
     from .services.dataset_loader import ensure_dataset_available
     try:
         ensure_dataset_available()

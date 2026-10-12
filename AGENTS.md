@@ -170,6 +170,7 @@ Python-зависимости управляются через uv: корнев
 | `bun run setup:front`      | Установка зависимостей корня и фронтенда по frozen lockfile |
 | `bun run setup:back`       | `uv sync --locked` в корневую `.venv`                        |
 | `bun run dev`             | **Основная команда:** Запуск фронтенда и бэкенда в hot-reload |
+| `bun run dev:dop`         | То же, но секреты инжектит Doppler CLI (`--config dev`)        |
 | `bun run dev:static-back` | Запуск фронтенда в hot-reload, бэкенда — в статичном режиме   |
 | `bun run dev:front`       | Запуск только фронтенда (Next.js на порту 3000)               |
 | `bun run dev:back`        | Запуск только бэкенда (FastAPI на порту 8000 с `--reload`)    |

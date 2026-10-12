@@ -29,6 +29,12 @@ test("only Traefik publishes ports", () => {
   assert.equal(services.frontend.ports, undefined);
 });
 
+test("containers are forced onto the production profile", () => {
+  assert.equal(services.backend.environment.APP_ENV, "production");
+  assert.equal(services.frontend.environment.APP_ENV, "production");
+  assert.doesNotMatch(read("docker-compose.yml"), /APP_ENV:\s*\$\{APP_ENV/);
+});
+
 test("API routing preserves the prefix and does not match /apix", () => {
   const labels = services.backend.labels;
   assert.equal(labels["traefik.http.routers.ostrovok-api.rule"],
