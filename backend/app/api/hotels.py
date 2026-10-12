@@ -15,7 +15,18 @@ async def get_hotel_details(hotel_id: str):
     Возвращает полную информацию об отеле с массивом реальных отзывов
     из локального дискового кэша outputs/hotels/{hotel_id}.json.
     """
-    sharded_path = os.path.join(HOTELS_DIR, f"{hotel_id}.json")
+    if ".." in hotel_id or "/" in hotel_id or '\\' in hotel_id or chr(0) in hotel_id:
+        raise HTTPException(status_code=400, detail="Invalid hotel ID format")
+
+    base_dir = os.path.abspath(HOTELS_DIR)
+    sharded_path = os.path.abspath(os.path.join(base_dir, f"{hotel_id}.json"))
+
+    try:
+        if os.path.commonpath([base_dir, sharded_path]) != base_dir:
+            raise HTTPException(status_code=400, detail="Invalid hotel ID format")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid hotel ID format")
+
     if os.path.exists(sharded_path):
         try:
             with open(sharded_path, "r", encoding="utf-8") as f:
