@@ -1,0 +1,8 @@
+# Keep workflow and script sources on LF so CI (and the local deploy-config
+# tests that read these files verbatim) see the expected line endings even on
+# Windows checkouts with core.autocrlf=true.
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.mjs   text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf

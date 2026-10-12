@@ -126,7 +126,7 @@ test("release workflow publishes to GHCR with the built-in token", () => {
   const release = read(".github/workflows/release.yml");
   assert.match(release, /packages: write/);
   assert.match(release, /secrets\.GITHUB_TOKEN/);
-  assert.match(release, /docker\/build-push-action@v6/);
+  assert.match(release, /docker\/build-push-action@v7/);
   assert.match(release, /image: backend\s+context: \.\s+dockerfile: backend\/Dockerfile/);
   assert.match(release, /file: \$\{\{ matrix\.dockerfile \}\}/);
   const ci = read(".github/workflows/ci.yml");
