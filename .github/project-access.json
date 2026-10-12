@@ -1,0 +1,18 @@
+{
+  "project": {
+    "owner": "Neonchik4",
+    "number": 3
+  },
+  "source": {
+    "repository": "Neonchik4/ostrovok2026",
+    "affiliation": "all",
+    "min_permission": "read",
+    "exclude_bots": true,
+    "include_project_owner": false,
+    "exclude": []
+  },
+  "role": {
+    "default": "READER",
+    "overrides": {}
+  }
+}
