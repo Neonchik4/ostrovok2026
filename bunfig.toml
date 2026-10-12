@@ -1,0 +1,6 @@
+# Backend and Next.js keep their existing environment-file loaders.
+env = false
+
+[run]
+# Use Bun as the package manager and script runner, not as a Node.js replacement.
+bun = false

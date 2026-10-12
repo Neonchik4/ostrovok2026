@@ -1,7 +1,7 @@
 import React from "react";
 import { ChatMessageItem, Message } from "@/entities/message";
 import { ThoughtStream, Thought } from "@/entities/thought";
-import { Sparkles } from "lucide-react";
+import { Logo } from "@/shared/ui";
 
 interface ChatMessagesListProps {
   messages: Message[];
@@ -24,9 +24,7 @@ export function ChatMessagesList({
     <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4 px-5">
       {messages.length === 0 && (
         <div className="flex h-full flex-col items-center justify-center space-y-3 p-6 text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 text-primary">
-            <Sparkles className="h-6 w-6" />
-          </div>
+          <Logo variant="mark" size={48} className="rounded-2xl" />
           <h3 className="text-lg font-bold text-foreground">О!дин запрос — и отель найден</h3>
           <p className="max-w-[280px] text-sm text-muted-foreground">
             Назовите город, даты, компанию или пожелания (например: «Красная Поляна с собакой и

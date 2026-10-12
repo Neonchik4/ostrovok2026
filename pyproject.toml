@@ -1,0 +1,36 @@
+[project]
+name = "ostrovok2026-backend"
+version = "1.0.0"
+description = "Ostrovok AI Concierge backend"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "chromadb==1.5.9",
+    "fastapi>=0.115.0",
+    "google-genai>=2.0.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.2.0",
+    "sentence-transformers>=3.0.0",
+    "torch>=2.0.0",
+    "uvicorn[standard]>=0.30.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.uv]
+package = false
+required-version = ">=0.12.5"
+
+# Match the CPU-only Linux deployment; Windows and macOS use their PyPI wheels.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true

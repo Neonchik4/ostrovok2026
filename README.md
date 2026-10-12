@@ -42,9 +42,10 @@ Ostrovok AI Concierge — интеллектуальный ассистент д
 ## Что нужно для старта
 
 Перед началом работы убедитесь, что в системе установлены:
-* **Node.js** версии 18.18.0 или выше;
-* **npm** версии 9.0.0 или выше;
-* **Python** версии 3.10 – 3.14;
+* **Bun** версии **1.3.13** (закреплена в `.bun-version` и `packageManager`);
+* **Node.js** версии **22 LTS** или выше — среда исполнения Next.js, Vitest и служебных скриптов;
+* **uv** версии **0.12.5** или выше — управление Python-зависимостями и окружением;
+* **Python 3.11** — закреплен в `.python-version`, при необходимости устанавливается через uv;
 * **Git**.
 
 ---
@@ -57,31 +58,39 @@ git clone https://github.com/Neonchik4/ostrovok2026.git
 cd ostrovok2026
 ```
 
-### 2. Создание виртуального окружения Python (рекомендуется)
-Перед установкой библиотек бэкенда активируйте виртуальное окружение:
-* **Windows (PowerShell):**
-  ```powershell
-  python -m venv .venv
-  .\.venv\Scripts\Activate.ps1
-  ```
-* **Linux / macOS:**
-  ```bash
-  python3 -m venv .venv
-  source .venv/bin/activate
-  ```
+### 2. Python через uv
+Команды выполняются из корня репозитория, где находятся `pyproject.toml` и `uv.lock`:
+```bash
+uv python install
+```
+uv использует Python 3.11 из `.python-version`, как и Docker. При установке зависимостей он создаст корневую `.venv` или использует уже существующую совместимую среду. Вручную создавать и активировать окружение не требуется ни в PowerShell, ни в Linux/macOS.
 
 ### 3. Установка всех зависимостей
 Установка всех пакетов (инструменты корня, Next.js фронтенд и FastAPI бэкенд) выполняется одной командой:
 ```bash
-npm run setup
+bun run setup
 ```
-*Под капотом запускается:* `npm install && npm --prefix frontend install && pip install -r backend/requirements.txt`.
+*Под капотом запускается:* `bun run setup:front && bun run setup:back`.
+
+Только Python-зависимости: `bun run setup:back` или `uv sync --locked`. Тестовые инструменты входят в группу `dev`, но не в production-образ. По умолчанию `uv sync` удаляет лишние пакеты из `.venv`; при переходе с существующего окружения используйте `uv sync --locked --inexact`, если нужно сохранить установленные отдельно утилиты.
+
+Если бэкенд уже настроен, установите только JavaScript-зависимости корня и фронтенда:
+```bash
+bun run setup:front
+```
+Эта команда устанавливает пакеты строго по `bun.lock` и `frontend/bun.lock` с флагом `--frozen-lockfile`, не меняя их версии. Для добавления зависимости используйте `bun add --cwd frontend <package>` (для dev-зависимости добавьте `--dev`) и сохраняйте обновленный `frontend/bun.lock` в Git. Не смешивайте `npm install` и `bun install`.
+
+Bun используется как менеджер пакетов и команд. Next.js и Vitest продолжают работать на Node.js; прикладной код бэкенда остается на Python. Команды бэкенда используют `uv run --locked` и корневую `.venv`, а не случайный системный Python. Конфигурация `bunfig.toml` отключает подмену Node.js и предварительную загрузку `.env`: окружение по-прежнему загружают сами Next.js и бэкенд.
+
+Python-зависимости добавляйте из корня через `uv add <package>` или `uv add --dev <package>`. Сохраняйте `pyproject.toml` вместе с `uv.lock` в Git. `uv lock` обновляет lock-файл после изменения манифеста, `uv lock --check` проверяет его актуальность, а `uv sync --locked` устанавливает зафиксированные версии. Не запускайте `uv lock --upgrade` без отдельной задачи на обновление библиотек; `chromadb==1.5.9` закреплен для совместимости существующих индексов.
 
 ### 4. Запуск приложения в режиме разработки
 Основная команда запускает параллельно фронтенд и бэкенд в режиме hot-reload:
 ```bash
-npm run dev
+bun run dev
 ```
+
+Прежняя команда `npm run dev` также работает, но теперь вызывает Bun. Для нового запуска используйте `bun run dev`.
 
 После успешного запуска приложение доступно по адресам:
 * **Веб-интерфейс (Next.js):** [http://localhost:3000](http://localhost:3000)
@@ -94,14 +103,21 @@ npm run dev
 
 | Команда | Назначение |
 | :--- | :--- |
-| `npm run dev:front` | Запуск только фронтенда (порт 3000) |
-| `npm run dev:back` | Запуск только бэкенда (порт 8000 c reload) |
-| `npm run dev:static-back` | Запуск фронтенда в hot-reload, бэкенда — в статичном режиме |
-| `npm run test` | Запуск полного набора из 80 автотестов (41 Vitest + 39 Pytest) |
-| `npm run test:front` | Запуск тестов фронтенда (Vitest) |
-| `npm run test:back` | Запуск тестов бэкенда (Pytest) |
-| `npm run lint` | Проверка линтерами (ESLint, FSD Boundaries, типы Python) |
-| `npm run build` | Продающая сборка фронтенда Next.js |
+| `bun run dev:front` | Запуск только фронтенда (порт 3000) |
+| `bun run dev:back` | Запуск только бэкенда (порт 8000 c reload) |
+| `bun run dev:static-back` | Запуск фронтенда в hot-reload, бэкенда — в статичном режиме |
+| `bun run setup:front` | Установка зависимостей корня и фронтенда без изменения Python-окружения |
+| `bun run setup:back` | Установка Python-зависимостей по `uv.lock` в корневую `.venv` |
+| `bun run test` | Запуск всех тестов Vitest и Pytest |
+| `bun run test:front` | Запуск тестов фронтенда (Vitest, не встроенный `bun test`) |
+| `bun run test:back` | Запуск тестов бэкенда (Pytest) |
+| `bun run test:deploy` | Проверка Docker Compose-конфигурации; нужен Docker CLI |
+| `bun run lint` | Проверка ESLint, FSD Boundaries и синтаксиса Python |
+| `bun run build` | Production-сборка фронтенда Next.js |
+
+В `frontend/Dockerfile` установка и сборка также используют Bun и frozen lockfile. Production-контейнер, standalone-сервер, healthcheck и маршрутизация API остаются на прежней конфигурации Node.js/Traefik.
+
+`backend/Dockerfile` устанавливает тот же `uv.lock` через `uv sync --locked --no-dev`. На Linux выбирается CPU-only PyTorch без CUDA. Контекст сборки бэкенда — корень репозитория (`docker build -f backend/Dockerfile .`); корневая `.dockerignore` пропускает только манифесты и исходники бэкенда, исключая секреты, датасеты и локальную `.venv`. CI использует те же lock-файлы.
 
 ---
 
@@ -113,4 +129,5 @@ npm run dev
   * `.agents/rules/backend.md` — модульность SRP, каскад моделей, детерминизм чека;
   * `.agents/rules/security-and-testing.md` — Secure by Design, TDD, запрет моков в рантайме;
   * `.agents/rules/git-workflow.md` — регламент Git и актуализация `.gitignore`.
+* [.agents/skills/bun-uv-workflow/SKILL.md](.agents/skills/bun-uv-workflow/SKILL.md) — установка, запуск, обновление зависимостей и проверки Bun/uv без смены среды исполнения приложения.
 

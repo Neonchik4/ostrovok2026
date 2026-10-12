@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button, Input } from "@/shared/ui";
+import { Button, Input, Logo } from "@/shared/ui";
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
 import { VoiceInputButton } from "@/features/voice-input";
 import { QuickChips } from "@/features/quick-chips";
-import { Send, Square, Sparkles } from "lucide-react";
+import { Send, Square } from "lucide-react";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 import { ChatMessagesList } from "./ChatMessagesList";
 
@@ -60,9 +60,7 @@ export function ChatConcierge({
       {/* Шапка чата */}
       <div className="flex items-center justify-between border-b border-border bg-card/90 p-4 px-5 backdrop-blur-md">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-primary/30 bg-primary/20 text-primary shadow-md">
-            <Sparkles className="h-6 w-6" />
-          </div>
+          <Logo variant="mark" size={40} className="rounded-xl shadow-md" />
           <div>
             <h2 className="text-base font-bold text-foreground">Агент Островка</h2>
           </div>

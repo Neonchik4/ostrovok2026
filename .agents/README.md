@@ -10,3 +10,4 @@
 * **`rules/backend.md`** — правила бэкенда: детерминизм, калькулятор чека, SRP-сервисы, каскад моделей, динамические локации.
 * **`rules/security-and-testing.md`** — правила безопасности: запрет моков в рантайме, Secure by Design, TDD, санитизация и клампинг.
 * **`rules/git-workflow.md`** — регламент Git: `.gitignore`, Conventional Commits, проверка `git status`, верификационный пайплайн.
+* **[`skills/bun-uv-workflow/SKILL.md`](skills/bun-uv-workflow/SKILL.md)** — skill для установки, запуска и проверки проекта через Bun и uv; правила работы с lock-файлами и сохранения Node.js/Python runtime.

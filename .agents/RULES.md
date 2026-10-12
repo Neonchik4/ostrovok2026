@@ -31,7 +31,12 @@
    * Проверка чистоты `git status` перед коммитом.
    * Своевременное пополнение `.gitignore` (кэши, дампы, динамические индексные файлы).
    * Формат Conventional Commits без эмодзи.
-   * Обязательный чек-лист: `npm run lint` (0 ошибок), `npm run test` (100% pass).
+   * Обязательный чек-лист: `bun run lint` (0 ошибок), `bun run test` (100% pass).
+
+5. [Bun/uv workflow skill](skills/bun-uv-workflow/SKILL.md)
+   * Bun управляет JavaScript-зависимостями и командами; Next.js и Vitest остаются на Node.js.
+   * uv управляет корневой `.venv` и Python 3.11 по `pyproject.toml` и `uv.lock`.
+   * Только frozen/locked установки; обновления библиотек и индексов не совмещаются с настройкой инструментов.
 
 ---
 

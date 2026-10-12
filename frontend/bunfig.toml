@@ -1,0 +1,6 @@
+# Let Next.js load .env files with its own precedence rules.
+env = false
+
+[run]
+# Preserve the Node.js runtime used by Next.js, Vitest and existing tooling.
+bun = false

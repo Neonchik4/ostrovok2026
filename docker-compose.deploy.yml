@@ -1,0 +1,18 @@
+# Deployment overlay: run prebuilt GHCR images instead of building on the host.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.deploy.yml up -d
+#
+# The base file keeps Traefik, routing, volumes, healthchecks and hardening.
+# Only the two application images are swapped here; `!reset` drops the local
+# build contexts so a pull-only host never compiles torch or Next.js.
+#
+# GHCR_OWNER defaults to the repository owner but can be overridden per host.
+services:
+  backend:
+    image: ghcr.io/${GHCR_OWNER:-neonchik4}/ostrovok2026-backend:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:-neonchik4}/ostrovok2026-frontend:${IMAGE_TAG:-latest}
+    build: !reset null

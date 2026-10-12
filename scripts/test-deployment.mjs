@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 
@@ -55,7 +56,8 @@ test("backend runs a single worker without embedding datasets or secrets", () =>
   assert.equal(cmd[cmd.indexOf("--port") + 1], "8000");
   assert.ok(!cmd.includes("--reload"));
   assert.doesNotMatch(dockerfile, /^COPY .*outputs|^COPY .*\.env/m);
-  assert.equal(services.backend.build.context.replaceAll("\\", "/").split("/").pop(), "backend");
+  assert.equal(resolve(services.backend.build.context), resolve(root));
+  assert.equal(services.backend.build.dockerfile, "backend/Dockerfile");
   const volumes = services.backend.volumes;
   assert.ok(volumes.some((v) => v.target === "/app/outputs" && v.read_only));
   for (const name of ["chroma_db_v2", "chroma_db_gemini"]) {
@@ -75,10 +77,53 @@ test("frontend uses standalone output and receives no Gemini keys", () => {
 });
 
 test("build contexts exclude secrets, local dependencies and caches", () => {
-  for (const dir of ["backend", "frontend"]) {
-    const ignore = read(`${dir}/.dockerignore`);
+  for (const path of [".dockerignore", "frontend/.dockerignore"]) {
+    const ignore = read(path);
     for (const entry of ["**/.git", "**/node_modules", "**/.venv", "**/.next", "**/.env", "**/__pycache__"]) {
-      assert.ok(ignore.split("\n").includes(entry), `${dir} must exclude ${entry}`);
+      assert.ok(ignore.split("\n").includes(entry), `${path} must exclude ${entry}`);
     }
   }
+});
+
+// Deployment overlay: a pull-only host must never fall back to a local build.
+const deployConfig = JSON.parse(execFileSync("docker", [
+  "compose", "--env-file", ".env.example",
+  "-f", "docker-compose.yml", "-f", "docker-compose.deploy.yml",
+  "config", "--format", "json",
+], { cwd: root, env: dockerEnv, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }));
+
+const deployServices = deployConfig.services;
+
+test("deploy overlay pulls prebuilt images and drops local build contexts", () => {
+  assert.deepEqual(Object.keys(deployServices).sort(), ["backend", "frontend", "traefik"]);
+  assert.equal(deployServices.backend.image, "ghcr.io/neonchik4/ostrovok2026-backend:latest");
+  assert.equal(deployServices.frontend.image, "ghcr.io/neonchik4/ostrovok2026-frontend:latest");
+  assert.equal(deployServices.backend.build, undefined);
+  assert.equal(deployServices.frontend.build, undefined);
+});
+
+test("deploy overlay keeps routing, hardening and single entrypoint intact", () => {
+  assert.deepEqual(deployServices.traefik.ports.map((p) => p.published).sort(), ["443", "80"]);
+  assert.equal(deployServices.backend.ports, undefined);
+  assert.equal(deployServices.frontend.ports, undefined);
+  assert.equal(deployServices.backend.environment.BACKEND_URL, undefined);
+  assert.equal(deployServices.frontend.environment.BACKEND_URL, "http://backend:8000");
+  assert.deepEqual(deployServices.backend.security_opt, ["no-new-privileges:true"]);
+  assert.deepEqual(deployServices.frontend.security_opt, ["no-new-privileges:true"]);
+  assert.equal(
+    deployServices.frontend.labels["traefik.http.services.ostrovok-web.loadbalancer.server.port"],
+    "3000"
+  );
+});
+
+test("release workflow publishes to GHCR with the built-in token", () => {
+  const release = read(".github/workflows/release.yml");
+  assert.match(release, /packages: write/);
+  assert.match(release, /secrets\.GITHUB_TOKEN/);
+  assert.match(release, /docker\/build-push-action@v6/);
+  assert.match(release, /image: backend\s+context: \.\s+dockerfile: backend\/Dockerfile/);
+  assert.match(release, /file: \$\{\{ matrix\.dockerfile \}\}/);
+  const ci = read(".github/workflows/ci.yml");
+  assert.match(ci, /permissions:\n\s+contents: read/);
+  assert.equal(/\bwrite\b/.test(ci), false, "CI must stay read-only");
 });

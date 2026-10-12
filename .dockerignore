@@ -1,0 +1,31 @@
+# The backend image uses the repository root to access the shared uv lock.
+# Only manifests and backend application sources belong in its build context.
+*
+!pyproject.toml
+!uv.lock
+!.python-version
+!backend/
+!backend/Dockerfile
+!backend/app/
+!backend/app/**
+
+**/.git
+**/node_modules
+**/.venv
+**/venv
+**/.next
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.cache
+**/.env
+**/.env.*
+**/*.local
+**/*.log
+**/.idea
+**/.vscode
+**/coverage
+**/outputs
+**/letsencrypt

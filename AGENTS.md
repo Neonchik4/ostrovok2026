@@ -160,23 +160,29 @@
 
 ## 6. Запуск, проверка качества и скрипты проекта
 
-В корневом `package.json` настроены команды:
+В корневом `package.json` настроены команды. Менеджер JavaScript-зависимостей — Bun (версия в `.bun-version`); Next.js и Vitest сохраняют среду исполнения Node.js. Используются `bun.lock` и `frontend/bun.lock`, не `package-lock.json`.
+
+Python-зависимости управляются через uv: корневые `pyproject.toml`, `uv.lock`, `.python-version` (Python 3.11) и `.venv`. Запуск бэкенда — через `uv run --project .. --locked` из `backend/`; активация окружения не нужна. Сохранять pin `chromadb==1.5.9` и CPU-only PyTorch на Linux. Не обновлять зависимости и не подменять Node.js флагом `--bun` без отдельной задачи. Рабочая памятка: [Bun/uv skill](.agents/skills/bun-uv-workflow/SKILL.md).
 
 | Команда                   | Что делает                                                    |
 | ------------------------- | ------------------------------------------------------------- |
-| `npm run dev`             | **Основная команда:** Запуск фронтенда и бэкенда в hot-reload |
-| `npm run dev:static-back` | Запуск фронтенда в hot-reload, бэкенда — в статичном режиме   |
-| `npm run dev:front`       | Запуск только фронтенда (Next.js на порту 3000)               |
-| `npm run dev:back`        | Запуск только бэкенда (FastAPI на порту 8000 с `--reload`)    |
-| `npm run lint`            | Проверка линтерами (ESLint + FSD Boundaries + типы бэкенда)   |
-| `npm run test`            | Запуск всех тестов: 41 Vitest (фронт) + 39 Pytest (бэк)       |
-| `npm run build`           | Проверка продакшн сборки фронтенда                            |
+| `bun run setup`            | Установка всех зависимостей по Bun/uv lock-файлам            |
+| `bun run setup:front`      | Установка зависимостей корня и фронтенда по frozen lockfile |
+| `bun run setup:back`       | `uv sync --locked` в корневую `.venv`                        |
+| `bun run dev`             | **Основная команда:** Запуск фронтенда и бэкенда в hot-reload |
+| `bun run dev:static-back` | Запуск фронтенда в hot-reload, бэкенда — в статичном режиме   |
+| `bun run dev:front`       | Запуск только фронтенда (Next.js на порту 3000)               |
+| `bun run dev:back`        | Запуск только бэкенда (FastAPI на порту 8000 с `--reload`)    |
+| `bun run lint`            | ESLint, FSD Boundaries и проверка синтаксиса Python           |
+| `bun run test`            | Запуск всех тестов Vitest и Pytest (не встроенный `bun test`) |
+| `bun run test:deploy`     | Проверка Docker Compose-конфигурации                        |
+| `bun run build`           | Проверка продакшн сборки фронтенда                            |
 
 ---
 
 ## 7. Памятка для будущих сессий и агентов
 
-- **Тестовый барьер:** в проекте развернуто **80 автоматических тестов** (41 Vitest + 39 Pytest). Ни один коммит не может быть принят с падающими тестами (требуется 100% Pass Rate).
+- **Тестовый барьер:** обязательны все автоматические тесты Vitest и Pytest. Ни один коммит не может быть принят с падающими тестами (требуется 100% Pass Rate).
 - **Соблюдение архитектуры SRP:**
   - При модификации поиска изменяются целевые сервисы: `vector_store.py` (ChromaDB), `hotel_filters.py` (фильтрация и скоринг), `location_registry.py` (города). Модуль `hotel_search_adapter.py` используется только как фасад.
   - При модификации работы с LLM изменяются: `llm_client.py` (вызовы API), `slot_extractor.py` (парсинг слотов), `thought_generator.py` (мысли) или `response_generator.py` (ответ агента). Модуль `llm_cascade.py` сохраняется как фасад.
