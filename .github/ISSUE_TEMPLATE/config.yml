@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Архитектурные правила проекта
+    url: https://github.com/Neonchik4/ostrovok2026/blob/master/AGENTS.md
+    about: Перед крупной задачей сверьтесь с манифестом и правилами в AGENTS.md
+  - name: Правила команды
+    url: https://github.com/Neonchik4/ostrovok2026/tree/master/.agents/rules
+    about: Frontend, backend, безопасность, тестирование и git-workflow

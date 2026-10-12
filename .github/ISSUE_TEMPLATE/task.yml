@@ -1,0 +1,74 @@
+name: Task
+description: "Задача бэклога: фича, инфраструктура, данные или документация"
+title: "[Task] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Опишите задачу так, чтобы её можно было взять в работу без дополнительных вопросов.
+        Эмодзи не используем: только текст и метки.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Область
+      description: Какая часть проекта затрагивается
+      options:
+        - backend
+        - frontend
+        - agent
+        - data
+        - infra
+        - docs
+    validations:
+      required: true
+  - type: dropdown
+    id: type
+    attributes:
+      label: Тип задачи
+      options:
+        - Feature
+        - Bug
+        - Chore
+        - Deploy
+        - Docs
+    validations:
+      required: true
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Приоритет
+      options:
+        - Critical
+        - High
+        - Medium
+        - Low
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Цель
+      description: Что должно измениться и зачем это нужно проекту
+      placeholder: Например, добавить каскадный fallback, чтобы демо не падало при 429
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Критерии готовности
+      description: Проверяемые пункты, по которым задачу можно закрыть
+      value: |
+        - [ ] 
+        - [ ] Написаны или обновлены автотесты
+        - [ ] `bun run lint` и `bun run test` проходят
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Дополнительный контекст
+      description: Ссылки на файлы, логи, скриншоты, связанные задачи
+    validations:
+      required: false
