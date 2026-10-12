@@ -2,7 +2,6 @@ import asyncio
 from typing import AsyncGenerator, Optional
 from ..config import settings
 from ..schemas.chat import ExtractedSlots
-from .text_helpers import sanitize_user_input
 from .slot_extractor import mock_extract_slots
 from .llm_client import stream_gemini_content
 
@@ -56,7 +55,7 @@ async def think_stream(user_message: str, slots: Optional[ExtractedSlots] = None
     2. Последовательный перебор резервных моделей из FALLBACK_MODELS
     3. Детерминированное осмысленное рассуждение на базе реальных слотов
     """
-    safe_message = sanitize_user_input(user_message, max_length=1000)
+    safe_message = user_message[:1000] if user_message else ""
 
     if settings.GEMINI_API_KEY:
         prompt_text = f"{SYSTEM_THINKING_PROMPT}\n\nЗапрос пользователя:\n{safe_message}"

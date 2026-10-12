@@ -10,7 +10,7 @@ LLM Cascade Facade Service.
 - text_helpers.py (санитизация и склонение числительных)
 """
 
-from .llm_client import get_cascade_models, call_gemini_content, stream_gemini_content
+from .llm_client import get_cascade_models
 from .slot_extractor import (
     SYSTEM_EXTRACTOR_PROMPT,
     extract_slots_cascade,

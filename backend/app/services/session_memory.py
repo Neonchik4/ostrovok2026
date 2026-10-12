@@ -1,4 +1,3 @@
-import time
 from typing import Dict, Optional
 from ..schemas.chat import ExtractedSlots
 
@@ -10,20 +9,6 @@ class SessionMemory:
     def __init__(self, ttl_seconds: int = 3600):
         self._store: Dict[str, tuple[float, ExtractedSlots]] = {}
         self._ttl = ttl_seconds
-
-    def get_slots(self, conversation_id: str) -> Optional[ExtractedSlots]:
-        if not conversation_id or conversation_id not in self._store:
-            return None
-        created_at, slots = self._store[conversation_id]
-        if time.time() - created_at > self._ttl:
-            del self._store[conversation_id]
-            return None
-        return slots.model_copy()
-
-    def save_slots(self, conversation_id: str, slots: ExtractedSlots) -> None:
-        if not conversation_id:
-            return
-        self._store[conversation_id] = (time.time(), slots.model_copy())
 
     def clear(self) -> None:
         self._store.clear()

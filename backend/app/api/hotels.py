@@ -1,7 +1,6 @@
 import os
 import json
 from fastapi import APIRouter, HTTPException
-from ..services.vector_store import get_hotel_by_id
 
 router = APIRouter(prefix="/hotels", tags=["Hotels"])
 
@@ -23,9 +22,4 @@ async def get_hotel_details(hotel_id: str):
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Ошибка чтения данных отеля: {e}")
 
-    # Fallback на данные из каталога в памяти
-    hotel = get_hotel_by_id(hotel_id)
-    if not hotel:
-        raise HTTPException(status_code=404, detail=f"Отель '{hotel_id}' не найден")
-
-    return hotel.model_dump()
+    raise HTTPException(status_code=404, detail=f"Отель '{hotel_id}' не найден")

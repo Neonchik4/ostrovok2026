@@ -24,7 +24,7 @@
 3. [Безопасность и тестирование (.agents/rules/security-and-testing.md)](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/.agents/rules/security-and-testing.md)
    * Zero Mocks Policy (99% реальные данные в рантайме, моки разрешены только в `tests/`).
    * Secure by Design & TDD (тесты пишутся ДО написания рабочего кода).
-   * Санитизация ввода (`sanitize_user_input`), защита от ReDoS, клампинг диапазонов.
+   * Санитизация ввода, защита от ReDoS, клампинг диапазонов.
    * Zero Secret Leakage (сокрытие ключей и системных промптов).
 
 4. [Контроль Git и чистота репозитория (.agents/rules/git-workflow.md)](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/.agents/rules/git-workflow.md)

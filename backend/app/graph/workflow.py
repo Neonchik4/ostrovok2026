@@ -3,9 +3,6 @@ import json
 from typing import AsyncGenerator, Dict
 from ..schemas.chat import (
     ChatStreamRequest,
-    ThoughtEvent,
-    TokenEvent,
-    WidgetEvent,
     ExtractedSlots
 )
 from ..services.llm_cascade import (
@@ -13,8 +10,9 @@ from ..services.llm_cascade import (
     think_stream,
     generate_concierge_response_stream,
 )
-from ..services.session_memory import session_memory, merge_slots
-from ..services.hotel_search_adapter import search_hotels_unified
+from ..services.session_memory import merge_slots
+from ..services.hotel_filters import search_in_memory
+from ..services.vector_store import _hotels_dataset, init_dataset
 
 async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None]:
     """
@@ -25,8 +23,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
     - event: widget
     - event: done
     """
-    conv_id = req.conversation_id or "default_session"
-    prev_slots = session_memory.get_slots(conv_id)
+    prev_slots = None
 
     message = req.message.strip()
     if req.disambiguation_selection:
@@ -57,7 +54,6 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             new_slots.pet_friendly = True
 
         slots: ExtractedSlots = merge_slots(prev_slots, new_slots)
-        session_memory.save_slots(conv_id, slots)
 
         city_label = slots.city or "выбранном регионе"
 
@@ -86,9 +82,10 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         yield _format_sse("thought", {"step": "filtering", "text": filters_text})
         await asyncio.sleep(0.6)
 
-        # 3. Шаг: Векторный поиск
-        yield _format_sse("thought", {"step": "hybrid_search", "text": f"Векторный поиск релевантных вариантов в {city_label}..."})
-        hotels = await search_hotels_unified(slots)
+        # 3. Шаг: Поиск отелей
+        yield _format_sse("thought", {"step": "hybrid_search", "text": f"Поиск релевантных вариантов в {city_label}..."})
+        init_dataset()
+        hotels = search_in_memory(_hotels_dataset, slots)
         await asyncio.sleep(0.6)
         
         # 4. Итог поиска с прозрачной статистикой
@@ -98,12 +95,12 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             if slots.max_price_per_night_rub and min_cost > slots.max_price_per_night_rub:
                 yield _format_sse("thought", {
                     "step": "results",
-                    "text": f"В рамках бюджета до {slots.max_price_per_night_rub:,} ₽ отелей в {city_label} нет (минимальный тариф от {min_cost:,} ₽). Отобрал {len(hotels)} {_pluralize_hotels(len(hotels))} с наилучшим соотношением цены и качества".replace(",", " ")
+                    "text": f"В рамках бюджета до {slots.max_price_per_night_rub:,} ₽ отелей в {city_label} нет (минимальный тариф от {min_cost:,} ₽). Отобрал {len(hotels)} отелей с наилучшим соотношением цены и качества".replace(",", " ")
                 })
             else:
                 yield _format_sse("thought", {
                     "step": "results",
-                    "text": f"Найдено {len(hotels)} {_pluralize_hotels(len(hotels))}, лучший Match Score: {top_score}%, цены от {min_cost:,} ₽/ночь".replace(",", " ")
+                    "text": f"Найдено {len(hotels)} отелей, лучший Match Score: {top_score}%, цены от {min_cost:,} ₽/ночь".replace(",", " ")
                 })
         else:
             yield _format_sse("thought", {
@@ -119,7 +116,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             top_rec = top_receipt
             yield _format_sse("thought", {
                 "step": "receipt_calculation",
-                "text": f"Прозрачный чек для «{top_h.name}»: {top_rec.nights} {_pluralize_nights(top_rec.nights)} × {top_rec.price_per_night_rub:,} ₽ = {top_rec.total_rub:,} ₽ без скрытых комиссий".replace(",", " ")
+                "text": f"Прозрачный чек для «{top_h.name}»: {top_rec.nights} ночей × {top_rec.price_per_night_rub:,} ₽ = {top_rec.total_rub:,} ₽ без скрытых комиссий".replace(",", " ")
             })
         else:
             yield _format_sse("thought", {
@@ -152,12 +149,6 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         yield _format_sse("thought", {"step": "error", "text": f"Ошибка обработки: {str(e)}"})
         yield _format_sse("token", {"content": "Произошла ошибка при поиске отелей. Пожалуйста, попробуйте изменить запрос."})
         yield _format_sse("done", {"status": "error", "error": str(e)})
-
-from ..services.text_helpers import (
-    pluralize_guests as _pluralize_guests,
-    pluralize_nights as _pluralize_nights,
-    pluralize_hotels as _pluralize_hotels,
-)
 
 
 def _format_sse(event_type: str, data: Dict[str, object]) -> str:

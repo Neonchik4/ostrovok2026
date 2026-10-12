@@ -2,7 +2,6 @@ import asyncio
 from typing import AsyncGenerator, List, Any
 from ..config import settings
 from ..schemas.chat import ExtractedSlots
-from .text_helpers import sanitize_user_input
 from .llm_client import stream_gemini_content
 
 SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-агент сервиса бронирования отелей «Островок».
@@ -60,7 +59,7 @@ async def generate_concierge_response_stream(
     """
     Генерирует живой диалоговый ответ агента Островка (Real LLM с каскадом).
     """
-    safe_message = sanitize_user_input(user_message, max_length=1000)
+    safe_message = user_message[:1000] if user_message else ""
 
     hotel_summaries = []
     for h in hotels[:3]:

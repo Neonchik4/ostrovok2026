@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Query
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from ..schemas.chat import ChatStreamRequest
 from ..graph.workflow import run_agent_workflow

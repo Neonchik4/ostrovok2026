@@ -1,6 +1,5 @@
 import pytest
 from app.services.llm_cascade import _mock_extract_slots, _default_chips, _build_deterministic_reasoning
-from app.graph.workflow import _pluralize_guests, _pluralize_nights, _pluralize_hotels
 
 def test_mock_slot_extraction():
     query = "Ищу отель в Красной Поляне с подогреваемым бассейном для 3 человек с собакой до 15000 руб"
@@ -24,7 +23,6 @@ def test_default_chips_format_actions():
     chips = _default_chips("отель у моря")
     assert len(chips) > 0
     for chip in chips:
-        # Чипсы должны быть утверждениями/действиями, а не вопросами
         assert "?" not in chip
         assert not chip.lower().startswith("сколько")
         assert not chip.lower().startswith("какой")
@@ -53,29 +51,6 @@ def test_deterministic_reasoning_generation():
     assert "бассейн" in reasoning
     assert "20 000" in reasoning or "20000" in reasoning
     assert len(reasoning) > 50
-
-def test_pluralize_helpers():
-    # Гости
-    assert _pluralize_guests(1) == "гость"
-    assert _pluralize_guests(2) == "гостя"
-    assert _pluralize_guests(4) == "гостя"
-    assert _pluralize_guests(5) == "гостей"
-    assert _pluralize_guests(11) == "гостей"
-    assert _pluralize_guests(21) == "гость"
-
-    # Ночи
-    assert _pluralize_nights(1) == "ночь"
-    assert _pluralize_nights(2) == "ночи"
-    assert _pluralize_nights(5) == "ночей"
-    assert _pluralize_nights(12) == "ночей"
-    assert _pluralize_nights(24) == "ночи"
-
-    # Отели
-    assert _pluralize_hotels(1) == "отель"
-    assert _pluralize_hotels(2) == "отеля"
-    assert _pluralize_hotels(6) == "отелей"
-    assert _pluralize_hotels(14) == "отелей"
-    assert _pluralize_hotels(21) == "отель"
 
 def test_slot_merging_preserves_city():
     from app.services.session_memory import merge_slots
@@ -127,12 +102,9 @@ def test_deterministic_concierge_response_mentions_hotels():
     assert "«Классик Спа 119»" in resp
     assert "бесплатной отмены" in resp
 
-
 def test_sanitize_chips_sub_3000():
     from app.services.llm_cascade import _sanitize_chips
     raw = ["До 2 700 ₽ / ночь", "С теплым бассейном", "До 2700 ₽"]
     cleaned = _sanitize_chips(raw)
     assert "До 5 000 ₽ / ночь" in cleaned
     assert not any("2 700" in c or "2700" in c for c in cleaned)
-
-

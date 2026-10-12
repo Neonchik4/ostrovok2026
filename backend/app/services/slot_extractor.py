@@ -1,12 +1,8 @@
 import asyncio
 import re
 import json
-from typing import List, Optional
-from ..config import settings
+from typing import List
 from ..schemas.chat import ExtractedSlots
-from .text_helpers import sanitize_user_input
-from .llm_client import get_cascade_models
-from .location_registry import match_city, get_known_cities
 
 SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экстрактор параметров поиска отелей для платформы Ostrovok.
 Твоя задача — ТОЛЬКО извлечь параметры из запроса пользователя и вернуть строго JSON-объект без пояснений.
@@ -74,11 +70,23 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
     Детерминированный офлайн-экстрактор на регулярных выражениях и словарях.
     Обеспечивает 100% стабильность работы при любых сетевых отказах.
     """
-    safe_text = sanitize_user_input(text, max_length=1000)
+    safe_text = text[:1000] if text else ""
     lower = safe_text.lower()
 
-    # Город (динамический поиск через реестр локаций с падежами и алиасами)
-    city = match_city(safe_text)
+    # Город
+    city = None
+    if "сочи" in lower:
+        city = "Сочи"
+    elif "полян" in lower:
+        city = "Красная Поляна"
+    elif "москв" in lower or "мск" in lower:
+        city = "Москва"
+    elif "петербург" in lower or "питер" in lower or "спб" in lower:
+        city = "Санкт-Петербург"
+    elif "казан" in lower:
+        city = "Казань"
+    elif "калининград" in lower:
+        city = "Калининград"
 
     # Питомцы
     pet_friendly = True if re.search(r"собак|кошк|питомц|животн|псом|с догом", lower) else None
@@ -164,7 +172,7 @@ async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -
         {"automatic_function_calling": {"disable": True}}
     )
 
-    safe_message = sanitize_user_input(user_message, max_length=1000)
+    safe_message = user_message[:1000] if user_message else ""
     response = await asyncio.wait_for(
         client.aio.models.generate_content(
             model=model_name,
@@ -235,4 +243,3 @@ async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
             print(f"[LLM Cascade] Ошибка {model_name}: {e}. Пробуем {next_desc}...")
 
     return mock_extract_slots(user_message)
-

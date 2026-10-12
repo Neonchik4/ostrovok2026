@@ -34,3 +34,20 @@ torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
 name = "pytorch-cpu"
 url = "https://download.pytorch.org/whl/cpu"
 explicit = true
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # Pyflakes (F401 unused imports, F841 unused variables)
+    "ARG",  # flake8-unused-arguments
+    "UP",   # pyupgrade
+]
+ignore = []
+
+[tool.ruff.lint.per-file-ignores]
+"backend/tests/*" = ["ARG001", "F841"]
