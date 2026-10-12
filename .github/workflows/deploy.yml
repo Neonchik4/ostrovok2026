@@ -1,0 +1,144 @@
+name: Deploy (VM over SSH)
+
+# Automated delivery of the private GHCR images to the production host.
+#
+# Flow:
+#   1. Release (GHCR) builds and pushes `ghcr.io/<owner>/ostrovok2026-{backend,frontend}`
+#      tagged with the short commit SHA, semver tags and `latest`.
+#   2. This workflow waits for that run to finish, then SSHes into the VM and
+#      rolls the stack onto the exact image tag that was just published.
+#
+# One-time host preparation (see docs below):
+#   - `docker login ghcr.io -u <owner> --password-stdin` once with a PAT that has
+#     `read:packages`, so private images can be pulled without a stored plaintext secret.
+#   - the production Doppler service token is already wired into the host environment,
+#     so `doppler run --config prd` injects application secrets at deploy time.
+#
+# Required repository secrets (Settings -> Secrets and variables -> Actions):
+#   VM_HOST           public IP or DNS name of the production host
+#   VM_USER           SSH user (e.g. `deploy` or `root`)
+#   VM_SSH_KEY        private key authorized for that user (PEM contents)
+#   VM_SSH_PORT       optional, defaults to 22
+#   VM_APP_DIR        absolute path of the checkout on the host (e.g. /opt/ostrovok2026)
+#   GHCR_READ_TOKEN   classic PAT with the `read:packages` scope (used for the pull login)
+#
+# The deploy is a no-op until these secrets exist, so the workflow can be merged
+# and left dormant while there is no VPS.
+
+on:
+  workflow_run:
+    workflows: ["Release (GHCR)"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Image tag to deploy (e.g. sha-3544c01, 1.2.3 or latest)"
+        required: true
+        default: "latest"
+
+permissions:
+  contents: read
+  packages: read
+
+concurrency:
+  group: deploy-vm
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Roll production stack onto the published images
+    runs-on: ubuntu-latest
+    # Never run a failed release. Manual dispatch is always allowed.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
+    environment:
+      name: production
+    env:
+      REGISTRY: ghcr.io
+      # Prefer the exact SHA that Release just built; fall back to manual input.
+      IMAGE_TAG: >-
+        ${{ github.event_name == 'workflow_dispatch'
+            && github.event.inputs.image_tag
+            || '' }}
+      # `docker/metadata-action` publishes the short (7-char) SHA with a `sha-`
+      # prefix (e.g. `sha-3544c01`), so the full 40-char head_sha from
+      # workflow_run must be truncated and prefixed to match the pushed tag.
+      SHA_TAG: ${{ github.event.workflow_run.head_sha }}
+      IMAGE_OWNER: ${{ github.repository_owner }}
+
+    steps:
+      - name: Guard required configuration
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+          VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+        run: |
+          missing=""
+          for name in VM_HOST VM_USER VM_SSH_KEY GHCR_READ_TOKEN; do
+            if [ -z "${!name}" ]; then missing="$missing $name"; fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::warning::Deploy skipped, missing repository secrets:$missing"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+        id: guard
+
+      - name: Normalize owner and tag
+        if: steps.guard.outputs.skip != 'true'
+        id: vars
+        run: |
+          owner="$(echo "${IMAGE_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          if [ -n "${IMAGE_TAG}" ]; then
+            tag="${IMAGE_TAG}"
+          else
+            tag="sha-$(echo "${SHA_TAG}" | cut -c1-7)"
+          fi
+          echo "owner=${owner}" >> "$GITHUB_OUTPUT"
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "Deploying ghcr.io/${owner}/ostrovok2026-{backend,frontend}:${tag}"
+
+      - name: Pull and restart over SSH
+        if: steps.guard.outputs.skip != 'true'
+        uses: appleboy/ssh-action@v1
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          GHCR_OWNER: ${{ steps.vars.outputs.owner }}
+          IMAGE_TAG: ${{ steps.vars.outputs.tag }}
+          GHCR_USER: ${{ github.actor }}
+          APP_DIR: ${{ secrets.VM_APP_DIR }}
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          port: ${{ secrets.VM_SSH_PORT || '22' }}
+          envs: REGISTRY,GHCR_READ_TOKEN,GHCR_OWNER,IMAGE_TAG,GHCR_USER,APP_DIR
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="${APP_DIR:-/opt/ostrovok2026}"
+            cd "$APP_DIR"
+
+            # Authenticate to the private registry for this pull only.
+            echo "$GHCR_READ_TOKEN" | docker login "$REGISTRY" -u "$GHCR_USER" --password-stdin
+
+            export GHCR_OWNER IMAGE_TAG
+            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.deploy.yml"
+
+            # Production application secrets come from the host's Doppler `prd`
+            # service token; the compose file only references ${VAR} placeholders.
+            if command -v doppler >/dev/null 2>&1; then
+              doppler run --project ostrovok2026 --config prd -- $COMPOSE pull
+              doppler run --project ostrovok2026 --config prd -- $COMPOSE up -d --remove-orphans
+            else
+              $COMPOSE pull
+              $COMPOSE up -d --remove-orphans
+            fi
+
+            docker image prune -f
+            $COMPOSE ps
