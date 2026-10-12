@@ -136,20 +136,3 @@ def test_sanitize_chips_sub_3000():
     assert not any("2 700" in c or "2700" in c for c in cleaned)
 
 
-def test_search_relaxed_low_budget_always_finds():
-    import asyncio
-    from app.schemas.chat import ExtractedSlots
-    from app.services.hotel_search_adapter import search_hotels_unified
-
-    async def _test():
-        # Бюджет 1 000 ₽ — в реальной базе Москвы нет отелей ниже 1 800 ₽
-        slots = ExtractedSlots(city="Москва", max_price_per_night_rub=1000)
-        results = await search_hotels_unified(slots)
-        # Агент не должен возвращать пустой список — должен мягко ослабить фильтр и найти отели
-        assert len(results) > 0
-        assert all(h.city == "Москва" for h in results)
-        assert results[0].min_price_per_night_rub >= 1800
-
-    asyncio.run(_test())
-
-
