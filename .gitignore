@@ -73,3 +73,4 @@ outputs/*.gz
 outputs/hotels.json
 !outputs/hotels_stats.json
 
+.kilo/

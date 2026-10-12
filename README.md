@@ -18,7 +18,7 @@ Ostrovok AI Concierge — интеллектуальный ассистент д
 * **Строгий детерминизм бизнес-логики:** математика чека (ночи, базовая стоимость, доплата за питомцев, курортный сбор) считается строго детерминированным кодом, исключая галлюцинации LLM.
 * **Каскадный отказоустойчивый контур LLM:** `gemini-3.5-flash-lite` -> `gemini-3.5-flash` -> `gemini-flash-lite-latest` -> детерминированный локальный генератор.
 * **Прозрачный ход мыслей (Thinking Stream):** трансляция каждого этапа анализа и поиска в реальном времени через Server-Sent Events (SSE).
-* **Современный интерфейс:** Dark Swiss Minimalist дизайн на Next.js 14 (Feature-Sliced Design) со сплит-экраном (чат-консьерж 480px + канвас отелей).
+* **Современный интерфейс:** Dark Swiss Minimalist дизайн на Next.js 14 (Feature-Sliced Design) со сплит-экраном (чат-агент 480px + канвас отелей).
 
 ---
 
@@ -113,3 +113,4 @@ npm run dev
   * `.agents/rules/backend.md` — модульность SRP, каскад моделей, детерминизм чека;
   * `.agents/rules/security-and-testing.md` — Secure by Design, TDD, запрет моков в рантайме;
   * `.agents/rules/git-workflow.md` — регламент Git и актуализация `.gitignore`.
+

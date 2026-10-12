@@ -11,7 +11,7 @@ export default function HomePage() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background">
-      {/* Левая колонка (420px): Чат-консьерж */}
+      {/* Левая колонка (420px): Чат-агент */}
       <ChatConcierge
         messages={messages}
         thoughts={thoughts}

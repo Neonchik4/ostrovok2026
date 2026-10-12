@@ -6,7 +6,7 @@ from .text_helpers import sanitize_user_input
 from .slot_extractor import mock_extract_slots
 from .llm_client import stream_gemini_content
 
-SYSTEM_THINKING_PROMPT = """Ты — интеллектуальный AI-агент консьерж-сервиса Островок.
+SYSTEM_THINKING_PROMPT = """Ты — интеллектуальный AI-агент сервиса Островок.
 Пользователь отправил запрос на поиск отеля или уточнение параметров.
 Твоя задача — рассуждать вслух по-русски в стиле мыслительного процесса LLM (Thinking Process):
 - Живо и емко проанализируй, что хочет пользователь (город/курорт, атмосфера, состав гостей, особые удобства: питомцы, спа, бассейн, бюджет).

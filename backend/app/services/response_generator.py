@@ -5,7 +5,7 @@ from ..schemas.chat import ExtractedSlots
 from .text_helpers import sanitize_user_input
 from .llm_client import stream_gemini_content
 
-SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-консьерж сервиса бронирования отелей «Островок».
+SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-агент сервиса бронирования отелей «Островок».
 Твоя задача — дать живой, тёплый, профессиональный ответ пользователю по найденным отелям.
 
 Правила:
@@ -17,7 +17,7 @@ SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-консьер
 
 def build_deterministic_concierge_response(user_message: str, slots: ExtractedSlots, hotels: List[Any]) -> str:
     """
-    Формирует качественный детерминированный диалоговый ответ консьержа.
+    Формирует качественный детерминированный диалоговый ответ агента.
     """
     if not hotels:
         city = slots.city or "выбранном направлении"
@@ -58,7 +58,7 @@ async def generate_concierge_response_stream(
     hotels: List[Any]
 ) -> AsyncGenerator[str, None]:
     """
-    Генерирует живой диалоговый ответ консьержа Островка (Real LLM с каскадом).
+    Генерирует живой диалоговый ответ агента Островка (Real LLM с каскадом).
     """
     safe_message = sanitize_user_input(user_message, max_length=1000)
 
@@ -84,7 +84,7 @@ async def generate_concierge_response_stream(
         f"Запрос пользователя: «{safe_message}»\n"
         f"Параметры: город {slots.city or 'не указан'}, {slots.guests_count or 2} гостей, {slots.nights or 2} ночей.{budget_note}\n"
         f"Найденные отели (всего {len(hotels)} шт.):\n{hotels_context}\n\n"
-        f"Ответ консьержа:"
+        f"Ответ агента:"
     )
 
     if settings.GEMINI_API_KEY and hotels:

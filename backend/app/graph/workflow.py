@@ -128,7 +128,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             })
         await asyncio.sleep(0.6)
 
-        # 6. Стриминг текста ответа консьержа (Real LLM, без шаблонных повторов)
+        # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов)
         async for chunk in generate_concierge_response_stream(message, slots, hotels):
             yield _format_sse("token", {"content": chunk})
             
