@@ -94,6 +94,10 @@ doppler secrets set DOMAIN=app.example.com --config prd
 * Бэкенд при старте вызывает `runtime_guard`: в контейнере допускается только `APP_ENV=production`.
 * Frontend `environment-guard.mjs` запрещает production-сборку с dev-профилем и dev-сервер с production-профилем.
 
+### Деплой на VPS (GHCR + GitHub Actions)
+
+Production-образы собираются в CI и публикуются как **приватные** пакеты в GitHub Container Registry (`release.yml`), а на сервер их раскатывает workflow `deploy.yml` по SSH — без ручной подтяжки и без сборки на самой VM. Пошаговый рунбук (создание VPS, статический IP, SSH, GHCR-логин, Doppler `prd`, GitHub-секреты, проверка и откат) — в [DEPLOY.md](DEPLOY.md).
+
 ---
 
 ## Что нужно для старта
