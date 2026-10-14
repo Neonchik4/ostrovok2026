@@ -18,7 +18,7 @@
    # или с Doppler:
    bun run dev:dop
    ```
-3. Проверка готовности тестов (207 тестов, 100% pass rate):
+3. Проверка готовности тестов (209 тестов, 100% pass rate: 109 frontend + 100 backend):
    ```bash
    bun run test
    ```
