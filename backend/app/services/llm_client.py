@@ -63,8 +63,14 @@ def _get_client(key: str):
         from google.genai import types
         http_opts = None
         base_url = getattr(settings, "GEMINI_BASE_URL", "")
+        cf_token = getattr(settings, "CLOUDFLARE_AI_GATEWAY_TOKEN", "")
+        headers = {}
+        if cf_token:
+            headers["cf-aig-authorization"] = f"Bearer {cf_token}"
         if base_url:
-            http_opts = types.HttpOptions(base_url=base_url)
+            http_opts = types.HttpOptions(base_url=base_url, headers=headers if headers else None)
+        elif headers:
+            http_opts = types.HttpOptions(headers=headers)
         client = genai.Client(api_key=key, http_options=http_opts)
         _clients_cache[key] = client
     return client

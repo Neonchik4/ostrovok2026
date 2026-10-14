@@ -73,4 +73,10 @@ outputs/*.gz
 outputs/hotels.json
 !outputs/hotels_stats.json
 
+# Local backups and runtime dumps
+**/outputs/backups/
+**/backend/outputs/
+outputs/backups/
+backend/outputs/
+
 .kilo/

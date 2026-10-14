@@ -46,6 +46,15 @@ def init_dataset() -> None:
                 except Exception as e:
                     print(f"[Dataset Warning] Ошибка чтения {p}: {e}")
 
+        if not _hotels_dataset:
+            try:
+                from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
+                _hotels_dataset = get_synthetic_test_hotels()
+                _hotels_by_id = {h.id: h for h in _hotels_dataset}
+                print(f"[Dataset In-Memory] Загружено {len(_hotels_dataset)} синтетических отелей для автономных тестов.")
+            except Exception:
+                pass
+
 
 def get_hotels_dataset() -> List[HotelFullSchema]:
     if not _hotels_dataset:

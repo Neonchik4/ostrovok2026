@@ -47,6 +47,11 @@ class Settings(BaseModel):
         "gemini-2.5-flash-lite",
     ]
     GEMINI_BASE_URL: str = Field(default_factory=lambda: os.getenv("GEMINI_BASE_URL", ""))
+    CLOUDFLARE_ACCOUNT_ID: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_ACCOUNT_ID", ""))
+    CLOUDFLARE_AI_GATEWAY_TOKEN: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_AI_GATEWAY_TOKEN", ""))
+    CLOUDFLARE_WORKER_URL: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_WORKER_URL", ""))
+    STUDIO_TEAM_TOKEN: str = Field(default_factory=lambda: os.getenv("STUDIO_TEAM_TOKEN", ""))
+    DATABASE_URL: str = Field(default_factory=lambda: os.getenv("DATABASE_URL", ""))
     
     # Dataset & Vector DB Paths
     BASE_DIR: Path = BASE_DIR

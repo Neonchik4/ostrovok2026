@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { Button, Input, Logo } from "@/shared/ui";
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
 import { VoiceInputButton } from "@/features/voice-input";
 import { QuickChips } from "@/features/quick-chips";
-import { Send, Square } from "lucide-react";
+import { Send, Square, Database } from "lucide-react";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 import { ChatMessagesList } from "./ChatMessagesList";
 
@@ -65,6 +66,11 @@ export function ChatConcierge({
             <h2 className="text-base font-bold text-foreground">Агент Островка</h2>
           </div>
         </div>
+        <Link href="/studio">
+          <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
+            <Database className="h-3.5 w-3.5 mr-1.5 text-primary" /> Studio
+          </Button>
+        </Link>
       </div>
 
       {/* Список сообщений и мыслей */}
