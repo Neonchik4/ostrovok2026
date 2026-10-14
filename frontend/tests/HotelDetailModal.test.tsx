@@ -106,4 +106,39 @@ describe("HotelDetailModal", () => {
 
     expect(screen.queryByRole("button", { name: /Забронировать/i })).not.toBeInTheDocument();
   });
+
+  it("renders compromise note banner when present in detailed hotel", async () => {
+    const hotelWithCompromise: Hotel = {
+      ...mockHotel,
+      compromise_note: "Бюджет превышен на 1 500 ₽",
+    };
+    await act(async () => {
+      render(<HotelDetailModal hotel={hotelWithCompromise} onClose={vi.fn()} />);
+    });
+
+    expect(screen.getByText(/Компромисс: Бюджет превышен на 1 500 ₽/)).toBeInTheDocument();
+  });
+
+  it("allows opening criteria breakdown from the score badge in modal", async () => {
+    const hotelWithBreakdown: Hotel = {
+      ...mockHotel,
+      criteria_breakdown: [
+        {
+          criterion: "Бассейн",
+          status: "code_verified",
+          evidence: "Подогреваемый бассейн в наличии",
+          is_positive: true,
+        },
+      ],
+    };
+    await act(async () => {
+      render(<HotelDetailModal hotel={hotelWithBreakdown} onClose={vi.fn()} />);
+    });
+
+    const badgeBtn = screen.getByRole("button", { name: /Оценка соответствия/i });
+    fireEvent.click(badgeBtn);
+
+    expect(screen.getByRole("dialog", { name: /Обоснование соответствия отеля/i })).toBeInTheDocument();
+    expect(screen.getByText("Подогреваемый бассейн в наличии")).toBeInTheDocument();
+  });
 });

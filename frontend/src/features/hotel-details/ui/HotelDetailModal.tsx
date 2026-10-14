@@ -17,6 +17,7 @@ import {
   Waves,
   Dog,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 
 interface HotelDetailModalProps {
@@ -108,8 +109,18 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
                 <span className="mx-1">•</span>
                 <span className="font-semibold text-foreground">{currentHotel.stars} ★</span>
               </div>
-              <HotelScoreBadge scorePct={currentHotel.match_score_pct} />
+              <HotelScoreBadge
+                scorePct={currentHotel.match_score_pct}
+                criteriaBreakdown={currentHotel.criteria_breakdown}
+              />
             </div>
+
+            {currentHotel.compromise_note && (
+              <div className="mb-2 flex items-center gap-2 rounded-xl border border-warning/40 bg-warning-bg/40 p-2.5 text-xs font-semibold text-warning">
+                <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
+                <span>Компромисс: {currentHotel.compromise_note}</span>
+              </div>
+            )}
 
             <h2 id="hotel-modal-title" className="text-2xl font-black tracking-tight text-foreground md:text-3xl">
               {currentHotel.name}
