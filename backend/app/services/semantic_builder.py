@@ -1,9 +1,10 @@
 """Semantic text representation builder for rich 768-dim hotel embeddings."""
-from typing import Dict, Any, Union
+from typing import Any
+
 from ..schemas.hotel_models import HotelFullSchema
 
 
-def build_hotel_semantic_document(hotel: Union[HotelFullSchema, Dict[str, Any]]) -> str:
+def build_hotel_semantic_document(hotel: HotelFullSchema | dict[str, Any]) -> str:
     """
     Формирует структурированное глубокое текстовое представление отеля
     для семантического поиска через paraphrase-multilingual-mpnet-base-v2 (768d).

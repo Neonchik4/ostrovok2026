@@ -1,8 +1,7 @@
-import pytest
-from app.services.thought_generator import build_deterministic_reasoning
 from app.services.response_generator import build_deterministic_concierge_response
 from app.services.slot_extractor import mock_extract_slots
-from app.schemas.chat import HotelCardWidget
+from app.services.thought_generator import build_deterministic_reasoning
+
 
 def test_thought_reasoning_richness():
     slots = mock_extract_slots("Отель в Санкт-Петербурге с кошкой и спа до 12000 р")

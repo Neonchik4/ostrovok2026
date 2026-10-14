@@ -1,9 +1,9 @@
-import pytest
 from app.services.slot_extractor import (
+    default_chips,
     mock_extract_slots,
     sanitize_chips,
-    default_chips,
 )
+
 
 def test_mock_extract_slots_bounds():
     # Проверка клампинга гостей и ночей

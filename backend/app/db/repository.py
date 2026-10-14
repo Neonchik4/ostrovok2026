@@ -1,18 +1,15 @@
 """Database repository for hotel queries, hybrid pgvector search and proposal audits."""
 from datetime import datetime
-from typing import List, Dict, Any, Optional, Tuple
-from sqlalchemy import select, func, and_, or_, desc
+from typing import Any
+
+from sqlalchemy import and_, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from .models import (
-    HotelModel,
-    RoomTypeModel,
-    AmenityModel,
-    PolicyModel,
-    PoiDistanceModel,
-    ReviewModel,
-    EnrichmentProposalModel,
     AuditHotelSnapshotModel,
+    EnrichmentProposalModel,
+    HotelModel,
 )
 
 
@@ -22,9 +19,9 @@ class HotelRepository:
         session: AsyncSession,
         offset: int = 0,
         limit: int = 20,
-        city: Optional[str] = None,
-        search_query: Optional[str] = None,
-    ) -> Tuple[List[HotelModel], int]:
+        city: str | None = None,
+        search_query: str | None = None,
+    ) -> tuple[list[HotelModel], int]:
         """Возвращает пагинированный список отелей и общее количество."""
         conditions = []
         if city:
@@ -47,7 +44,7 @@ class HotelRepository:
         return list(res.scalars().all()), total_res.scalar() or 0
 
     @staticmethod
-    async def get_hotel_full(session: AsyncSession, hotel_id: str) -> Optional[HotelModel]:
+    async def get_hotel_full(session: AsyncSession, hotel_id: str) -> HotelModel | None:
         stmt = (
             select(HotelModel)
             .where(HotelModel.id == hotel_id)
@@ -65,12 +62,12 @@ class HotelRepository:
     @staticmethod
     async def search_hybrid(
         session: AsyncSession,
-        query_vector: List[float],
-        city: Optional[str] = None,
-        max_price: Optional[int] = None,
+        query_vector: list[float],
+        city: str | None = None,
+        max_price: int | None = None,
         pet_friendly: bool = False,
         limit: int = 20,
-    ) -> List[HotelModel]:
+    ) -> list[HotelModel]:
         """Гибридный векторный поиск через pgvector (HNSW <=> cosine distance)."""
         conditions = [HotelModel.embedding.isnot(None)]
         if city:
@@ -91,7 +88,7 @@ class HotelRepository:
         return list(res.scalars().all())
 
     @staticmethod
-    def get_schema_metadata() -> Dict[str, Any]:
+    def get_schema_metadata() -> dict[str, Any]:
         """Интроспекция метаданных схемы для интерактивной ER-диаграммы фронтенда."""
         tables = [
             {
@@ -198,10 +195,10 @@ class HotelRepository:
     async def create_proposal(
         session: AsyncSession,
         proposal_id: str,
-        hotel_id: Optional[str],
-        diff_patch: Dict[str, Any],
+        hotel_id: str | None,
+        diff_patch: dict[str, Any],
         rationale: str,
-        source_url: Optional[str] = None,
+        source_url: str | None = None,
         target_type: str = "enrichment",
     ) -> EnrichmentProposalModel:
         proposal = EnrichmentProposalModel(
@@ -222,9 +219,9 @@ class HotelRepository:
     @staticmethod
     async def get_proposals(
         session: AsyncSession,
-        status: Optional[str] = None,
+        status: str | None = None,
         limit: int = 50,
-    ) -> List[EnrichmentProposalModel]:
+    ) -> list[EnrichmentProposalModel]:
         stmt = select(EnrichmentProposalModel).order_by(desc(EnrichmentProposalModel.created_at)).limit(limit)
         if status:
             stmt = stmt.where(EnrichmentProposalModel.status == status)
@@ -235,7 +232,7 @@ class HotelRepository:
     async def approve_proposal(
         session: AsyncSession,
         proposal_id: str,
-    ) -> Optional[EnrichmentProposalModel]:
+    ) -> EnrichmentProposalModel | None:
         """Применяет предложение: фиксирует снимок до изменения, обновляет данные и статус."""
         stmt = select(EnrichmentProposalModel).where(EnrichmentProposalModel.id == proposal_id)
         res = await session.execute(stmt)

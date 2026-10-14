@@ -1,9 +1,9 @@
 import gzip
 import json
 from pathlib import Path
-from unittest.mock import patch, MagicMock
-import pytest
-from app.services.dataset_loader import ensure_dataset_available, _build_sigv4_headers
+from unittest.mock import MagicMock, patch
+
+from app.services.dataset_loader import _build_sigv4_headers, ensure_dataset_available
 
 
 def test_build_sigv4_headers():

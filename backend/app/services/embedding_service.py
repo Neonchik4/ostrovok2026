@@ -1,14 +1,11 @@
-import time
-from typing import List, Optional, Dict
-from ..config import settings
 from .llm_client import _get_api_keys, _get_client, _mask_key
 
 EMBED_MODEL = "gemini-embedding-2-preview"
-_query_cache: Dict[str, List[float]] = {}
+_query_cache: dict[str, list[float]] = {}
 _MAX_CACHE_SIZE = 500
 
 
-async def embed_text_gemini(text: str) -> Optional[List[float]]:
+async def embed_text_gemini(text: str) -> list[float] | None:
     """
     Генерирует вектор текста через Gemini Embeddings API (gemini-embedding-2-preview).
     Использует пул ключей GEMINI_API_KEYS и in-memory кэш запросов.

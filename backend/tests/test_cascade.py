@@ -1,6 +1,10 @@
-import pytest
-from app.services.llm_cascade import _mock_extract_slots, _default_chips, _build_deterministic_reasoning
-from app.graph.workflow import _pluralize_guests, _pluralize_nights, _pluralize_hotels
+from app.graph.workflow import _pluralize_guests, _pluralize_hotels, _pluralize_nights
+from app.services.llm_cascade import (
+    _build_deterministic_reasoning,
+    _default_chips,
+    _mock_extract_slots,
+)
+
 
 def test_mock_slot_extraction():
     query = "Ищу отель в Красной Поляне с подогреваемым бассейном для 3 человек с собакой до 15000 руб"
@@ -78,8 +82,8 @@ def test_pluralize_helpers():
     assert _pluralize_hotels(21) == "отель"
 
 def test_slot_merging_preserves_city():
-    from app.services.session_memory import merge_slots
     from app.schemas.chat import ExtractedSlots
+    from app.services.session_memory import merge_slots
 
     prev = ExtractedSlots(city="Москва", max_price_per_night_rub=1000000)
     current = ExtractedSlots(city=None, stars=5)
@@ -90,8 +94,8 @@ def test_slot_merging_preserves_city():
     assert merged.max_price_per_night_rub == 1000000
 
 def test_slot_merging_accumulates_filters():
-    from app.services.session_memory import merge_slots
     from app.schemas.chat import ExtractedSlots
+    from app.services.session_memory import merge_slots
 
     s1 = ExtractedSlots(city="Москва", stars=5)
     s2 = ExtractedSlots(city=None, free_cancellation=True)
@@ -102,8 +106,8 @@ def test_slot_merging_accumulates_filters():
     assert merged.free_cancellation is True
 
 def test_slot_merging_resets_on_explicit_city_switch():
-    from app.services.session_memory import merge_slots
     from app.schemas.chat import ExtractedSlots
+    from app.services.session_memory import merge_slots
 
     prev = ExtractedSlots(city="Москва", stars=5, free_cancellation=True)
     current = ExtractedSlots(city="Казань", stars=None)
@@ -114,8 +118,8 @@ def test_slot_merging_resets_on_explicit_city_switch():
     assert merged.free_cancellation is None
 
 def test_deterministic_concierge_response_mentions_hotels():
-    from app.services.llm_cascade import _build_deterministic_concierge_response
     from app.schemas.chat import ExtractedSlots
+    from app.services.llm_cascade import _build_deterministic_concierge_response
 
     slots = ExtractedSlots(city="Москва", stars=5, free_cancellation=True)
     hotels = [

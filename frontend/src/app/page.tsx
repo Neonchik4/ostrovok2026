@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+
 import { useChatStream } from "@/shared/api";
 import { ChatConcierge } from "@/widgets/ChatConcierge";
 import { HotelCanvas } from "@/widgets/HotelCanvas";

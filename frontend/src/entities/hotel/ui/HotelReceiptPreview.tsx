@@ -1,6 +1,7 @@
+import { Info,ShieldCheck } from "lucide-react";
 import React from "react";
+
 import { formatPrice } from "@/shared/lib";
-import { ShieldCheck, Info } from "lucide-react";
 
 interface ReceiptProps {
   receipt?: {

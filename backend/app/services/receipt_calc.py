@@ -1,10 +1,13 @@
-from typing import Union, Mapping, Any
+from collections.abc import Mapping
+from typing import Any
+
 from ..schemas.chat import ReceiptBreakdown
-from ..schemas.hotel_models import RoomType, Policies
+from ..schemas.hotel_models import Policies, RoomType
+
 
 def calculate_receipt(
-    room: Union[RoomType, Mapping[str, Any]],
-    policies: Union[Policies, Mapping[str, Any]],
+    room: RoomType | Mapping[str, Any],
+    policies: Policies | Mapping[str, Any],
     nights: int = 2,
     guests: int = 2,
     pets: int = 0

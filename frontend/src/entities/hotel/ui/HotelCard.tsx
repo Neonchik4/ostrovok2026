@@ -1,10 +1,12 @@
+import { AlertCircle,CheckCircle2, MapPin, Star } from "lucide-react";
 import React from "react";
-import { Card, Button, Badge } from "@/shared/ui";
+
 import { formatPrice } from "@/shared/lib";
+import { Badge,Button, Card } from "@/shared/ui";
+
 import { Hotel } from "../model/types";
-import { HotelScoreBadge } from "./HotelScoreBadge";
 import { HotelReceiptPreview } from "./HotelReceiptPreview";
-import { Star, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
+import { HotelScoreBadge } from "./HotelScoreBadge";
 
 interface HotelCardProps {
   hotel: Hotel;

@@ -1,6 +1,7 @@
 import React from "react";
+
 import { ChatMessageItem, Message } from "@/entities/message";
-import { ThoughtStream, Thought } from "@/entities/thought";
+import { Thought,ThoughtStream } from "@/entities/thought";
 import { Logo } from "@/shared/ui";
 
 interface ChatMessagesListProps {

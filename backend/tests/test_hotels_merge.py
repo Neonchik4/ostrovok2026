@@ -5,6 +5,7 @@ _repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 sys.path.insert(0, os.path.join(_repo_root, "scripts"))
 
 from build_hotels_json import merge_hotel, strip_slop
+
 from app.schemas.hotel_models import HotelFullSchema
 
 

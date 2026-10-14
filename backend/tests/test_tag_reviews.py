@@ -1,6 +1,5 @@
 import os
 import sys
-import pytest
 
 # Ensure scripts dir is accessible for import
 SCRIPTS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "scripts"))
@@ -8,9 +7,9 @@ if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
 from tag_reviews import (
-    split_into_sentences,
     detect_sentence_aspect,
     extract_deterministic_highlights,
+    split_into_sentences,
     tag_hotel_reviews,
 )
 

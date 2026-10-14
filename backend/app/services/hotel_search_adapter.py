@@ -7,28 +7,28 @@ Hotel Search Adapter Facade.
 - hotel_filters.py (скалярная фильтрация, калибровка скора, relaxation, чеки)
 """
 
-from typing import List, Tuple
+
 from ..schemas.chat import ExtractedSlots, HotelCardWidget, SearchTelemetry
-from ..schemas.hotel_models import HotelFullSchema
-from .vector_store import (
-    init_dataset,
-    warmup_models,
-    get_hotels_dataset,
-    get_hotel_by_id,
-    is_vector_ready,
-    query_chroma_raw,
-)
 from .hotel_filters import (
-    compute_calibrated_match_score,
-    matches_scalar_filters,
     build_hotel_card,
+    compute_calibrated_match_score,
     evaluate_criteria_breakdown,
+    matches_scalar_filters,
     search_in_memory,
     search_in_memory_with_telemetry,
     search_relaxed,
 )
+from .vector_store import (
+    get_hotel_by_id,
+    get_hotels_dataset,
+    init_dataset,
+    is_vector_ready,
+    query_chroma_raw,
+    warmup_models,
+)
 
-async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> Tuple[List[HotelCardWidget], SearchTelemetry]:
+
+async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> tuple[list[HotelCardWidget], SearchTelemetry]:
     """Векторный поиск по ChromaDB с последующей жесткой фильтрацией и телеметрией."""
     dataset = get_hotels_dataset()
     total_in_region = sum(1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower()))
@@ -81,9 +81,7 @@ async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> Tuple[List[Hot
 
     scored_candidates.sort(key=lambda x: x[0], reverse=True)
 
-    cards: List[HotelCardWidget] = []
-    for score_pct, hotel in scored_candidates[:6]:
-        cards.append(build_hotel_card(hotel, float(score_pct), slots))
+    cards = [build_hotel_card(hotel, float(score_pct), slots) for score_pct, hotel in scored_candidates[:6]]
 
     is_relaxed = False
     if not cards:
@@ -104,11 +102,11 @@ async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> Tuple[List[Hot
     )
     return cards, telemetry
 
-async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
+async def _search_chroma(slots: ExtractedSlots) -> list[HotelCardWidget]:
     cards, _ = await _search_chroma_with_telemetry(slots)
     return cards
 
-async def search_hotels_with_telemetry(slots: ExtractedSlots) -> Tuple[List[HotelCardWidget], SearchTelemetry]:
+async def search_hotels_with_telemetry(slots: ExtractedSlots) -> tuple[list[HotelCardWidget], SearchTelemetry]:
     """
     Гибридный отказоустойчивый поиск с детальной телеметрией:
     1. Если доступна ChromaDB + SentenceTransformer -> Векторный + метаданные
@@ -129,7 +127,7 @@ async def search_hotels_with_telemetry(slots: ExtractedSlots) -> Tuple[List[Hote
     # 2. In-Memory фильтрация и скоринг
     return search_in_memory_with_telemetry(dataset, slots)
 
-async def search_hotels_unified(slots: ExtractedSlots) -> List[HotelCardWidget]:
+async def search_hotels_unified(slots: ExtractedSlots) -> list[HotelCardWidget]:
     cards, _ = await search_hotels_with_telemetry(slots)
     return cards
 

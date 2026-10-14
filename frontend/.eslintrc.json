@@ -1,13 +1,19 @@
 {
   "extends": ["next/core-web-vitals", "plugin:tailwindcss/recommended"],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": ["./tsconfig.json"]
+  },
   "ignorePatterns": [
     ".next/",
     "node_modules/",
     "next.config.mjs",
     "postcss.config.mjs",
-    "tailwind.config.ts"
+    "tailwind.config.ts",
+    "vitest.config.ts",
+    "environment-guard.mjs"
   ],
-  "plugins": ["boundaries"],
+  "plugins": ["boundaries", "simple-import-sort", "@typescript-eslint"],
   "settings": {
     "next": {
       "rootDir": ["./", "frontend/"]
@@ -73,6 +79,23 @@
     ],
     "tailwindcss/no-custom-classname": "off",
     "tailwindcss/enforces-shorthand": "off",
-    "tailwindcss/classnames-order": "off"
+    "tailwindcss/classnames-order": "off",
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/no-misused-promises": [
+      "error",
+      {
+        "checksVoidReturn": false
+      }
+    ],
+    "@typescript-eslint/await-thenable": "error",
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "simple-import-sort/imports": "error",
+    "simple-import-sort/exports": "error"
   }
 }

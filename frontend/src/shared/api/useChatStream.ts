@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useCallback,useRef, useState } from "react";
+
 import { readSSEStream } from "./sseReader";
 import {
-  ThoughtItem,
-  updateThought,
   markThoughtCancelled,
   markThoughtError,
+  ThoughtItem,
+  updateThought,
 } from "./thoughtReducer";
 
 export type { ThoughtItem };

@@ -1,6 +1,7 @@
 import time
-from typing import Dict, Optional
+
 from ..schemas.chat import ExtractedSlots
+
 
 class SessionMemory:
     """
@@ -8,10 +9,10 @@ class SessionMemory:
     Позволяет агенту помнить город, даты, состав гостей и фильтры между репликами.
     """
     def __init__(self, ttl_seconds: int = 3600):
-        self._store: Dict[str, tuple[float, ExtractedSlots]] = {}
+        self._store: dict[str, tuple[float, ExtractedSlots]] = {}
         self._ttl = ttl_seconds
 
-    def get_slots(self, conversation_id: str) -> Optional[ExtractedSlots]:
+    def get_slots(self, conversation_id: str) -> ExtractedSlots | None:
         if not conversation_id or conversation_id not in self._store:
             return None
         created_at, slots = self._store[conversation_id]
@@ -30,7 +31,7 @@ class SessionMemory:
 
 session_memory = SessionMemory()
 
-def merge_slots(prev: Optional[ExtractedSlots], current: ExtractedSlots) -> ExtractedSlots:
+def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> ExtractedSlots:
     """
     Слияние слотов предыдущего контекста с новыми параметрами:
     - Если пользователь явно сменил город (например, был в Москве, написал 'хочу в Сочи') -> сброс слотов на новый город.

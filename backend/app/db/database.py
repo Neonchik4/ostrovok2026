@@ -1,16 +1,18 @@
 """Database connection, async engine and session management."""
 import ssl
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import (
-    AsyncSession,
     AsyncEngine,
+    AsyncSession,
     async_sessionmaker,
     create_async_engine,
 )
+
 from ..config import settings
 
-_engine: Optional[AsyncEngine] = None
-_session_factory: Optional[async_sessionmaker[AsyncSession]] = None
+_engine: AsyncEngine | None = None
+_session_factory: async_sessionmaker[AsyncSession] | None = None
 
 
 def is_db_configured() -> bool:
@@ -18,7 +20,7 @@ def is_db_configured() -> bool:
     return bool(settings.DATABASE_URL and settings.DATABASE_URL.startswith("postgresql"))
 
 
-def get_engine() -> Optional[AsyncEngine]:
+def get_engine() -> AsyncEngine | None:
     """Возвращает singleton асинхронного движка SQLAlchemy."""
     global _engine, _session_factory
     if _engine is not None:
@@ -85,7 +87,7 @@ async def init_db() -> bool:
         return False
 
 
-async def get_db() -> AsyncGenerator[Optional[AsyncSession], None]:
+async def get_db() -> AsyncGenerator[AsyncSession | None, None]:
     """FastAPI зависимость для сессии БД."""
     global _session_factory
     if _session_factory is None:

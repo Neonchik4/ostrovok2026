@@ -1,25 +1,18 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { ArrowLeft, Database, Network, Table2 } from "lucide-react";
 import Link from "next/link";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-  Button,
-} from "@/shared/ui";
-import { StudioErDiagram } from "@/widgets/StudioErDiagram";
+import React, { useEffect, useState } from "react";
+
+import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui";
 import { StudioDataBrowser } from "@/widgets/StudioDataBrowser";
-import {
-  Database,
-  ArrowLeft,
-  Network,
-  Table2,
-} from "lucide-react";
+import { StudioErDiagram } from "@/widgets/StudioErDiagram";
 
 export default function StudioPage() {
-  const [schema, setSchema] = useState<{ tables: []; relations: [] }>({ tables: [], relations: [] });
+  const [schema, setSchema] = useState<{ tables: []; relations: [] }>({
+    tables: [],
+    relations: [],
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,37 +32,38 @@ export default function StudioPage() {
       }
     };
 
-    loadSchema();
+    void loadSchema();
     return () => {
       active = false;
     };
   }, []);
 
   return (
-    <div className="min-h-screen w-full bg-background text-foreground flex flex-col overflow-y-auto">
+    <div className="flex min-h-screen w-full flex-col overflow-y-auto bg-background text-foreground">
       {/* Шапка студии */}
-      <header className="border-b border-border bg-card/80 sticky top-0 z-40 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 border-b border-border bg-card/80 backdrop-blur-md">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button variant="ghost" size="sm" className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground">
-                <ArrowLeft className="h-4 w-4 mr-1.5" /> К поиску
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="mr-1.5 h-4 w-4" /> К поиску
               </Button>
             </Link>
 
             <div className="h-5 w-px bg-border" />
 
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-semibold">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary font-semibold text-primary-foreground">
                 <Database className="h-4 w-4" />
               </div>
               <div>
-                <h1 className="text-sm font-semibold text-foreground tracking-tight">
+                <h1 className="text-sm font-semibold tracking-tight text-foreground">
                   Database Studio
                 </h1>
-                <p className="text-[10px] text-muted-foreground font-mono">
-                  PostgreSQL + pgvector(768)
-                </p>
               </div>
             </div>
           </div>
@@ -77,19 +71,19 @@ export default function StudioPage() {
       </header>
 
       {/* Основной контент */}
-      <main className="flex-1 max-w-7xl mx-auto px-4 sm:px-6 py-6 w-full">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6">
         {loading ? (
-          <div className="flex items-center justify-center h-64 text-xs text-muted-foreground">
+          <div className="flex h-64 items-center justify-center text-xs text-muted-foreground">
             Загрузка структуры базы данных...
           </div>
         ) : (
           <Tabs defaultValue="schema" className="w-full">
             <TabsList className="mb-6">
               <TabsTrigger value="schema" className="text-xs">
-                <Network className="h-3.5 w-3.5 mr-1.5" /> ER-схема связей
+                <Network className="mr-1.5 h-3.5 w-3.5" /> ER-схема связей
               </TabsTrigger>
               <TabsTrigger value="data" className="text-xs">
-                <Table2 className="h-3.5 w-3.5 mr-1.5" /> Таблицы данных
+                <Table2 className="mr-1.5 h-3.5 w-3.5" /> Таблицы данных
               </TabsTrigger>
             </TabsList>
 

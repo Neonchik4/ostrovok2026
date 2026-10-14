@@ -10,23 +10,23 @@ LLM Cascade Facade Service.
 - text_helpers.py (санитизация и склонение числительных)
 """
 
-from .llm_client import get_cascade_models, call_gemini_content, stream_gemini_content
+from .llm_client import get_cascade_models
+from .response_generator import (
+    SYSTEM_CONCIERGE_PROMPT,
+    build_deterministic_concierge_response,
+    generate_concierge_response_stream,
+)
 from .slot_extractor import (
     SYSTEM_EXTRACTOR_PROMPT,
+    default_chips,
     extract_slots_cascade,
     mock_extract_slots,
     sanitize_chips,
-    default_chips,
 )
 from .thought_generator import (
     SYSTEM_THINKING_PROMPT,
-    think_stream,
     build_deterministic_reasoning,
-)
-from .response_generator import (
-    SYSTEM_CONCIERGE_PROMPT,
-    generate_concierge_response_stream,
-    build_deterministic_concierge_response,
+    think_stream,
 )
 
 # Сохранение обратной совместимости с существующими тестами и модулями

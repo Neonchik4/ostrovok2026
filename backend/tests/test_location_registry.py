@@ -1,5 +1,5 @@
-import pytest
-from app.services.location_registry import match_city, get_known_cities
+from app.services.location_registry import get_known_cities, match_city
+
 
 def test_get_known_cities_coverage():
     cities = get_known_cities()

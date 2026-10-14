@@ -1,7 +1,8 @@
-from typing import List, Tuple, Optional
-from ..schemas.chat import ExtractedSlots, HotelCardWidget, SearchTelemetry, CriterionMatch
+
+from ..schemas.chat import CriterionMatch, ExtractedSlots, HotelCardWidget, SearchTelemetry
 from ..schemas.hotel_models import HotelFullSchema, RoomType
 from .receipt_calc import calculate_receipt
+
 
 def compute_calibrated_match_score(raw_similarity: float, hotel: HotelFullSchema, slots: ExtractedSlots) -> int:
     """
@@ -64,15 +65,15 @@ def evaluate_criteria_breakdown(
     hotel: HotelFullSchema,
     slots: ExtractedSlots,
     is_relaxed: bool = False
-) -> Tuple[List[CriterionMatch], Optional[str]]:
+) -> tuple[list[CriterionMatch], str | None]:
     """
     Разбивает Match Score на конкретные подтверждённые критерии:
     - code_verified: жесткие факты из карточки отеля (цена, удобства, звёзды)
     - semantic_match: векторное соответствие контексту, атмосфере и отзывам
     - relaxed_compromise: вынужденное ослабление критерия при Smart Relaxation
     """
-    breakdown: List[CriterionMatch] = []
-    compromises: List[str] = []
+    breakdown: list[CriterionMatch] = []
+    compromises: list[str] = []
 
     # 1. Город / Локация
     if slots.city:
@@ -263,7 +264,7 @@ def build_hotel_card(
     score: float,
     slots: ExtractedSlots,
     is_relaxed: bool = False,
-    override_compromise: Optional[str] = None
+    override_compromise: str | None = None
 ) -> HotelCardWidget:
     """Формирует карточку отеля с честным расчетом чека и разложением соответствия."""
     rooms = hotel.room_types
@@ -313,10 +314,10 @@ def build_hotel_card(
         compromise_note=comp_note,
     )
 
-def search_in_memory_with_telemetry(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> Tuple[List[HotelCardWidget], SearchTelemetry]:
+def search_in_memory_with_telemetry(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> tuple[list[HotelCardWidget], SearchTelemetry]:
     """Детерминированный in-memory поиск и ранжирование отелей с подробной телеметрией."""
     total_in_region = sum(1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower()))
-    scored_hotels: List[Tuple[int, HotelFullSchema]] = []
+    scored_hotels: list[tuple[int, HotelFullSchema]] = []
     scalar_matched = 0
 
     for h in dataset:
@@ -333,7 +334,7 @@ def search_in_memory_with_telemetry(dataset: List[HotelFullSchema], slots: Extra
 
     scored_hotels.sort(key=lambda x: x[0], reverse=True)
 
-    cards: List[HotelCardWidget] = []
+    cards: list[HotelCardWidget] = []
     for score_pct, h in scored_hotels[:6]:
         cards.append(build_hotel_card(h, float(score_pct), slots))
 
@@ -356,11 +357,11 @@ def search_in_memory_with_telemetry(dataset: List[HotelFullSchema], slots: Extra
     )
     return cards, telemetry
 
-def search_in_memory(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> List[HotelCardWidget]:
+def search_in_memory(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> list[HotelCardWidget]:
     cards, _ = search_in_memory_with_telemetry(dataset, slots)
     return cards
 
-def search_relaxed(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> List[HotelCardWidget]:
+def search_relaxed(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> list[HotelCardWidget]:
     """
     Умное ослабление ограничений (Smart Relaxation):
     Если строгие фильтры не дали результатов, подбирает наилучшие альтернативы
@@ -400,7 +401,7 @@ def search_relaxed(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> Lis
 
     candidates.sort(key=lambda x: (-x[0], x[1], x[2]))
 
-    cards: List[HotelCardWidget] = []
+    cards: list[HotelCardWidget] = []
     for score_pct, _, _, h in candidates[:6]:
         cards.append(build_hotel_card(h, float(score_pct), slots, is_relaxed=True))
     return cards

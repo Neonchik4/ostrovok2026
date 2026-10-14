@@ -1,10 +1,10 @@
-import pytest
 from app.services.text_helpers import (
     pluralize_guests,
-    pluralize_nights,
     pluralize_hotels,
+    pluralize_nights,
     sanitize_user_input,
 )
+
 
 def test_pluralize_guests_rules():
     assert pluralize_guests(1) == "гость"

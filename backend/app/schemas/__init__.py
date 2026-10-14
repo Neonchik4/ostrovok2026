@@ -1,11 +1,11 @@
 from .chat import (
     ChatStreamRequest,
+    ExtractedSlots,
+    HotelCardWidget,
+    ReceiptBreakdown,
     ThoughtEvent,
     TokenEvent,
-    ReceiptBreakdown,
-    HotelCardWidget,
     WidgetEvent,
-    ExtractedSlots
 )
 
 __all__ = [

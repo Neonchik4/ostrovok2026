@@ -1,20 +1,20 @@
 """Synthetic in-memory hotels dataset for unit testing without local 57MB files."""
-from typing import List
+
 from app.schemas.hotel_models import (
+    Amenities,
+    CancellationPolicy,
+    Coordinates,
     HotelFullSchema,
     LocationDetails,
-    Amenities,
-    Policies,
-    CancellationPolicy,
     PetPolicy,
+    PoiDistance,
+    Policies,
     ReviewsSummary,
     RoomType,
-    Coordinates,
-    PoiDistance,
 )
 
 
-def get_synthetic_test_hotels() -> List[HotelFullSchema]:
+def get_synthetic_test_hotels() -> list[HotelFullSchema]:
     """Генерирует детерминированный список тестовых отелей."""
     return [
         HotelFullSchema(

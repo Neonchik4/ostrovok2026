@@ -1,11 +1,11 @@
-import pytest
+from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
+
 from app.schemas.chat import ExtractedSlots, HotelCardWidget
 from app.services.hotel_filters import (
-    evaluate_criteria_breakdown,
     build_hotel_card,
+    evaluate_criteria_breakdown,
     search_relaxed,
 )
-from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
 
 
 def test_evaluate_criteria_breakdown_strict_match():

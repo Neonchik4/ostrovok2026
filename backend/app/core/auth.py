@@ -1,12 +1,13 @@
 """Studio authentication dependencies for team access."""
-from typing import Optional
-from fastapi import Header, Query, HTTPException, status
+
+from fastapi import Header, HTTPException, Query, status
+
 from ..config import settings
 
 
 async def verify_team_token(
-    x_studio_token: Optional[str] = Header(None, alias="X-Studio-Token"),
-    token: Optional[str] = Query(None),
+    x_studio_token: str | None = Header(None, alias="X-Studio-Token"),
+    token: str | None = Query(None),
 ) -> str:
     """
     Проверяет валидность командного токена STUDIO_TEAM_TOKEN.

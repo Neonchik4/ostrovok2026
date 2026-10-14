@@ -1,13 +1,15 @@
-from typing import TypedDict, List, Optional
+from typing import TypedDict
+
 from ..schemas.chat import ExtractedSlots, HotelCardWidget
+
 
 class AgentState(TypedDict, total=False):
     user_message: str
-    disambiguation_selection: Optional[str]
-    conversation_id: Optional[str]
+    disambiguation_selection: str | None
+    conversation_id: str | None
     slots: ExtractedSlots
-    hotels: List[HotelCardWidget]
-    answer_tokens: List[str]
-    disambiguation_chips: List[str]
+    hotels: list[HotelCardWidget]
+    answer_tokens: list[str]
+    disambiguation_chips: list[str]
     current_thought: str
-    errors: List[str]
+    errors: list[str]

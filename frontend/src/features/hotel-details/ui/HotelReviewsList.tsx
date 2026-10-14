@@ -1,8 +1,9 @@
 "use client";
 
+import { MessageSquare,Star } from "lucide-react";
 import React, { useState } from "react";
+
 import { ReviewItem } from "@/entities/hotel";
-import { Star, MessageSquare } from "lucide-react";
 import { Button } from "@/shared/ui";
 
 interface HotelReviewsListProps {

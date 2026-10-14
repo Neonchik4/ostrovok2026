@@ -1,5 +1,7 @@
-from typing import Optional, List, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
+
 
 class Coordinates(BaseModel):
     lat: float
@@ -8,7 +10,7 @@ class Coordinates(BaseModel):
 class PoiDistance(BaseModel):
     name: str
     distance_m: int
-    category: Optional[str] = None
+    category: str | None = None
 
 class RoomCapacity(BaseModel):
     max_adults: int = 2
@@ -16,30 +18,30 @@ class RoomCapacity(BaseModel):
     max_total_guests: int = 2
 
 class RoomType(BaseModel):
-    room_id: Optional[str] = None
+    room_id: str | None = None
     name: str
     price_per_night_rub: int
     derived: bool = False
-    capacity: Optional[RoomCapacity] = None
-    bed_setup: Optional[str] = None
-    area_sqm: Optional[int] = None
-    has_balcony: Optional[bool] = None
-    has_kitchen: Optional[bool] = None
-    view: Optional[str] = None
-    breakfast_included: Optional[bool] = None
-    available_rooms_count: Optional[int] = None
-    cancellation_rule: Optional[str] = None
-    images: List[str] = Field(default_factory=list)
+    capacity: RoomCapacity | None = None
+    bed_setup: str | None = None
+    area_sqm: int | None = None
+    has_balcony: bool | None = None
+    has_kitchen: bool | None = None
+    view: str | None = None
+    breakfast_included: bool | None = None
+    available_rooms_count: int | None = None
+    cancellation_rule: str | None = None
+    images: list[str] = Field(default_factory=list)
 
 class LocationDetails(BaseModel):
-    distance_to_center_km: Optional[float] = None
-    distance_to_beach_m: Optional[int] = None
-    distance_to_ski_lift_m: Optional[int] = None
-    nearest_metro_or_station: Optional[str] = None
-    distance_to_transport_m: Optional[int] = None
-    nearest_beaches: List[PoiDistance] = Field(default_factory=list)
-    nearest_ski_lifts: List[PoiDistance] = Field(default_factory=list)
-    nearest_subways: List[PoiDistance] = Field(default_factory=list)
+    distance_to_center_km: float | None = None
+    distance_to_beach_m: int | None = None
+    distance_to_ski_lift_m: int | None = None
+    nearest_metro_or_station: str | None = None
+    distance_to_transport_m: int | None = None
+    nearest_beaches: list[PoiDistance] = Field(default_factory=list)
+    nearest_ski_lifts: list[PoiDistance] = Field(default_factory=list)
+    nearest_subways: list[PoiDistance] = Field(default_factory=list)
 
 class Amenities(BaseModel):
     pet_friendly: bool = False
@@ -79,8 +81,8 @@ class PetPolicy(BaseModel):
     max_weight_kg: int = 0
     deposit_rub: int = 0
     daily_fee_rub: int = 0
-    allowed_types: List[str] = Field(default_factory=list)
-    restrictions_note: Optional[str] = None
+    allowed_types: list[str] = Field(default_factory=list)
+    restrictions_note: str | None = None
 
 class Policies(BaseModel):
     check_in_time: str = "14:00"
@@ -97,15 +99,15 @@ class ReviewsSummary(BaseModel):
     score_service: float = 0.0
     score_value_for_money: float = 0.0
     score_wifi: float = 0.0
-    positive_highlights: List[str] = Field(default_factory=list)
-    negative_highlights: List[str] = Field(default_factory=list)
+    positive_highlights: list[str] = Field(default_factory=list)
+    negative_highlights: list[str] = Field(default_factory=list)
     valid_reviews_count: int = 0
-    traveller_distribution: Dict[str, float] = Field(default_factory=dict)
+    traveller_distribution: dict[str, float] = Field(default_factory=dict)
 
 class TopReview(BaseModel):
     author: str = ""
     date: str = ""
-    rating: Optional[float] = None
+    rating: float | None = None
     plus: str = ""
     minus: str = ""
     room: str = ""
@@ -131,28 +133,28 @@ class HotelFullSchema(BaseModel):
     reviews_count: int
     location_details: LocationDetails
     amenities: Amenities
-    room_types: List[RoomType] = Field(default_factory=list)
+    room_types: list[RoomType] = Field(default_factory=list)
     policies: Policies
-    tags: List[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
     reviews_summary: ReviewsSummary
-    description: Optional[str] = None
-    image_urls: List[str] = Field(default_factory=list)
-    coordinates: Optional[Coordinates] = None
-    top_reviews: List[TopReview] = Field(default_factory=list)
+    description: str | None = None
+    image_urls: list[str] = Field(default_factory=list)
+    coordinates: Coordinates | None = None
+    top_reviews: list[TopReview] = Field(default_factory=list)
     total_ostrovok_reviews: int = 0
     data_quality: DataQuality = Field(default_factory=DataQuality)
 
     # Полнофункциональные поля Островка для боевой готовности
-    master_id: Optional[int] = None
-    slug: Optional[str] = None
-    hotel_kind: Optional[str] = "HOTEL"
+    master_id: int | None = None
+    slug: str | None = None
+    hotel_kind: str | None = "HOTEL"
     is_apart_like: bool = False
     is_guru_hotel: bool = False
-    promo_cashback: Optional[Any] = None
-    ta_rating: Optional[float] = None
-    ta_num_reviews: Optional[int] = None
-    region_id: Optional[int] = None
-    region_name: Optional[str] = None
+    promo_cashback: Any | None = None
+    ta_rating: float | None = None
+    ta_num_reviews: int | None = None
+    region_id: int | None = None
+    region_name: str | None = None
     country_name: str = "Россия"
     country_code: str = "RU"
-    search_region_center_distance_m: Optional[int] = None
+    search_region_center_distance_m: int | None = None

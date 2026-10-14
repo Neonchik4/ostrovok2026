@@ -1,2 +1,2 @@
-export * from "./ui/ThoughtStream";
 export * from "./model/types";
+export * from "./ui/ThoughtStream";

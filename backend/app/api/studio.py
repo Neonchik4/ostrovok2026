@@ -1,14 +1,14 @@
 """Studio API router: schema metadata, data browser, and backup."""
-import os
 import json
+import os
 from datetime import datetime
-from typing import Optional
-from fastapi import APIRouter, Depends, Query, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.database import get_db, is_db_configured
 from ..db.repository import HotelRepository
-from ..services.vector_store import get_hotels_dataset, get_hotel_by_id
+from ..services.vector_store import get_hotel_by_id, get_hotels_dataset
 
 router = APIRouter(prefix="/api/studio", tags=["studio"])
 
@@ -23,9 +23,9 @@ async def get_schema():
 async def get_hotels(
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
-    city: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
-    session: Optional[AsyncSession] = Depends(get_db),
+    city: str | None = Query(None),
+    search: str | None = Query(None),
+    session: AsyncSession | None = Depends(get_db),
 ):
     """Табличный инспектор отелей с пагинацией и поиском."""
     if session is not None and is_db_configured():
@@ -81,7 +81,7 @@ async def get_hotels(
 @router.get("/hotels/{hotel_id}")
 async def get_hotel_details(
     hotel_id: str,
-    session: Optional[AsyncSession] = Depends(get_db),
+    session: AsyncSession | None = Depends(get_db),
 ):
     """Детальная информация об отеле, комнатах и правилах."""
     if session is not None and is_db_configured():

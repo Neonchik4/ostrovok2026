@@ -24,7 +24,7 @@ describe("Next.js environment guard", () => {
   });
 
   it("allows legacy runs without an explicit APP_ENV", () => {
-    expect(findNextEnvironmentViolations({})).toEqual([]);
+    expect(findNextEnvironmentViolations({} as NodeJS.ProcessEnv)).toEqual([]);
     expect(findNextEnvironmentViolations({ NODE_ENV: "production" })).toEqual([]);
     expect(findNextEnvironmentViolations({ NODE_ENV: "development" })).toEqual([]);
   });

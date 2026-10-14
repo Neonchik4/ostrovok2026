@@ -12,10 +12,11 @@ import hashlib
 import hmac
 import logging
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
+
 import httpx
+
 from ..config import settings
 
 logger = logging.getLogger("dataset_loader")
@@ -31,7 +32,7 @@ def _build_sigv4_headers(
     secret_key: str,
 ) -> dict[str, str]:
     """Формирует заголовки AWS SigV4 для авторизованного GET-запроса к S3."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     amz_date = now.strftime("%Y%m%dT%H%M%SZ")
     date_stamp = now.strftime("%Y%m%d")
 
@@ -78,9 +79,9 @@ def _build_sigv4_headers(
 
 
 def ensure_dataset_available(
-    target_path: Optional[str] = None,
+    target_path: str | None = None,
     force: bool = False,
-    version: Optional[str] = None,
+    version: str | None = None,
 ) -> Path:
     """
     Проверяет наличие локального датасета. Если файл отсутствует или force=True,

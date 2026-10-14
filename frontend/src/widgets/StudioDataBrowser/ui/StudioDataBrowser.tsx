@@ -1,23 +1,24 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight, Eye, RefreshCw, Search, Star } from "lucide-react";
+import React, { useCallback,useEffect, useState } from "react";
+
 import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableHead,
-  TableRow,
-  TableCell,
-  Input,
-  Button,
   Badge,
+  Button,
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
+  Input,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/shared/ui";
-import { Search, ChevronLeft, ChevronRight, Eye, RefreshCw, Star } from "lucide-react";
 
 interface HotelItem {
   id: string;
@@ -67,7 +68,7 @@ export const StudioDataBrowser: React.FC = () => {
   }, [offset, search, city]);
 
   useEffect(() => {
-    fetchHotels();
+    void fetchHotels();
   }, [fetchHotels]);
 
   const viewDetails = async (id: string) => {
@@ -86,7 +87,7 @@ export const StudioDataBrowser: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     setOffset(0);
-    fetchHotels();
+    void fetchHotels();
   };
 
   return (

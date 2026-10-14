@@ -1,23 +1,19 @@
 "use client";
 
+import {
+  AlertCircle,
+  Loader2,
+  MapPin,
+  Star,
+} from "lucide-react";
 import React, { useEffect, useState } from "react";
+
 import { Hotel, HotelScoreBadge } from "@/entities/hotel";
 import { formatPrice } from "@/shared/lib";
-import { Button, Card, Badge, ModalCloseButton } from "@/shared/ui";
+import { Button, Card, ModalCloseButton } from "@/shared/ui";
+
 import { HotelAspectsSummary } from "./HotelAspectsSummary";
 import { HotelReviewsList } from "./HotelReviewsList";
-import {
-  Star,
-  MapPin,
-  CheckCircle2,
-  Sparkles,
-  Wifi,
-  Coffee,
-  Waves,
-  Dog,
-  Loader2,
-  AlertCircle,
-} from "lucide-react";
 
 interface HotelDetailModalProps {
   hotel: Hotel | null;

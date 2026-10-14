@@ -1,16 +1,18 @@
 import asyncio
 import time
-from typing import Any, AsyncGenerator, List, Optional, Tuple
+from collections.abc import AsyncGenerator
+from typing import Any
+
 from ..config import settings
 
 # (ключ, модель), недавно словившие 429 (rate limit), и время, когда с ними можно снова пробовать.
 # Общий для call_gemini_content/stream_gemini_content процесс-локальный кэш.
-_cooldowns: dict[Tuple[str, str], float] = {}
+_cooldowns: dict[tuple[str, str], float] = {}
 _COOLDOWN_SEC = 60.0
 
 _clients_cache: dict[str, Any] = {}
 
-def get_cascade_models() -> List[str]:
+def get_cascade_models() -> list[str]:
     """Возвращает приоритетный список моделей для каскада."""
     models = [settings.PRIMARY_MODEL]
     fallback_list = getattr(settings, "FALLBACK_MODELS", [settings.FALLBACK_MODEL])
@@ -19,7 +21,7 @@ def get_cascade_models() -> List[str]:
             models.append(m)
     return models
 
-def _get_api_keys() -> List[str]:
+def _get_api_keys() -> list[str]:
     keys = getattr(settings, "GEMINI_API_KEYS", None) or []
     if keys:
         return keys
@@ -32,7 +34,7 @@ def _is_rate_limit_error(err: Exception) -> bool:
     text = str(err)
     return "429" in text or "RESOURCE_EXHAUSTED" in text.upper()
 
-def _build_attempts() -> List[Tuple[str, str]]:
+def _build_attempts() -> list[tuple[str, str]]:
     """
     Строит очередь попыток (ключ, модель): сначала PRIMARY_MODEL на всех доступных
     ключах/проектах (максимально использует самую быструю/дешёвую модель на разных
@@ -42,8 +44,8 @@ def _build_attempts() -> List[Tuple[str, str]]:
     keys = _get_api_keys()
     models = get_cascade_models()
     now = time.monotonic()
-    available: List[Tuple[str, str]] = []
-    cooling_down: List[Tuple[str, str]] = []
+    available: list[tuple[str, str]] = []
+    cooling_down: list[tuple[str, str]] = []
     for model_name in models:
         for key in keys:
             pair = (key, model_name)
@@ -78,7 +80,7 @@ def _get_client(key: str):
 get_gemini_client = _get_client
 
 
-async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> Optional[str]:
+async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str | None:
     """
     Secure by Design:
     - Каскадный обход (ключ проекта AI Studio x модель): PRIMARY -> FALLBACK, на каждом ключе.

@@ -1,20 +1,17 @@
 import asyncio
 import json
-from typing import AsyncGenerator, Dict
-from ..schemas.chat import (
-    ChatStreamRequest,
-    ThoughtEvent,
-    TokenEvent,
-    WidgetEvent,
-    ExtractedSlots
-)
+from collections.abc import AsyncGenerator
+from typing import Any
+
+from ..schemas.chat import ChatStreamRequest, ExtractedSlots
+from ..services.hotel_search_adapter import search_hotels_with_telemetry
 from ..services.llm_cascade import (
-    extract_slots_cascade,
     build_deterministic_reasoning,
+    extract_slots_cascade,
     generate_concierge_response_stream,
 )
-from ..services.session_memory import session_memory, merge_slots
-from ..services.hotel_search_adapter import search_hotels_with_telemetry
+from ..services.session_memory import merge_slots, session_memory
+
 
 async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None]:
     """
@@ -162,10 +159,24 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
 
 from ..services.text_helpers import (
     pluralize_guests as _pluralize_guests,
-    pluralize_nights as _pluralize_nights,
+)
+from ..services.text_helpers import (
     pluralize_hotels as _pluralize_hotels,
+)
+from ..services.text_helpers import (
+    pluralize_nights as _pluralize_nights,
 )
 
 
-def _format_sse(event_type: str, data: Dict[str, object]) -> str:
+def _format_sse(event_type: str, data: dict[str, Any]) -> str:
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+__all__ = [
+    "run_agent_workflow",
+    "_format_sse",
+    "_pluralize_guests",
+    "_pluralize_hotels",
+    "_pluralize_nights",
+]
+

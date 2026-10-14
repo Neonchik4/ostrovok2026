@@ -1,9 +1,11 @@
 import asyncio
-from typing import AsyncGenerator, List, Any
+from collections.abc import AsyncGenerator
+from typing import Any
+
 from ..config import settings
 from ..schemas.chat import ExtractedSlots
-from .text_helpers import sanitize_user_input
 from .llm_client import stream_gemini_content
+from .text_helpers import sanitize_user_input
 
 SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-агент сервиса бронирования отелей «Островок».
 Твоя задача — дать живой, тёплый, профессиональный ответ пользователю по найденным отелям.
@@ -15,7 +17,7 @@ SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-агент с�
 4. Ответ должен быть ёмким: 2-3 связных предложения. Не выдумывай отели, которых нет в списке.
 """
 
-def build_deterministic_concierge_response(user_message: str, slots: ExtractedSlots, hotels: List[Any]) -> str:
+def build_deterministic_concierge_response(user_message: str, slots: ExtractedSlots, hotels: list[Any]) -> str:
     """
     Формирует качественный детерминированный диалоговый ответ агента.
     """
@@ -23,7 +25,7 @@ def build_deterministic_concierge_response(user_message: str, slots: ExtractedSl
         city = slots.city or "выбранном направлении"
         return f"По вашему запросу отели в {city} не найдены. Попробуйте скорректировать фильтры или расширить ценовой диапазон."
 
-    city = slots.city or getattr(hotels[0], "city", "выбранном регионе")
+    city = str(slots.city or getattr(hotels[0], "city", "выбранном регионе"))
     count = len(hotels)
     min_cost = min((getattr(h, "min_price_per_night_rub", 0) for h in hotels), default=0)
     top_names = [f"«{getattr(h, 'name', '')}»" for h in hotels[:2] if getattr(h, "name", None)]
@@ -55,7 +57,7 @@ def build_deterministic_concierge_response(user_message: str, slots: ExtractedSl
 async def generate_concierge_response_stream(
     user_message: str,
     slots: ExtractedSlots,
-    hotels: List[Any]
+    hotels: list[Any]
 ) -> AsyncGenerator[str, None]:
     """
     Генерирует живой диалоговый ответ агента Островка (Real LLM с каскадом).

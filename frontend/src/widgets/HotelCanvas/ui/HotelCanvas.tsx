@@ -1,10 +1,11 @@
 "use client";
 
+import { Building2,Hotel as HotelIcon, SlidersHorizontal, Sparkles } from "lucide-react";
 import React, { useState } from "react";
-import { HotelCard, Hotel } from "@/entities/hotel";
+
+import { Hotel,HotelCard } from "@/entities/hotel";
 import { HotelDetailModal } from "@/features/hotel-details";
 import { Badge, Button } from "@/shared/ui";
-import { Hotel as HotelIcon, SlidersHorizontal, Sparkles, Building2 } from "lucide-react";
 
 interface HotelCanvasProps {
   hotels: Hotel[];
@@ -12,7 +13,7 @@ interface HotelCanvasProps {
   onSelectPrompt?: (prompt: string) => void;
 }
 
-export function HotelCanvas({ hotels, isStreaming, onSelectPrompt }: HotelCanvasProps) {
+export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt }: HotelCanvasProps) {
   const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<Hotel | null>(null);
 
   return (

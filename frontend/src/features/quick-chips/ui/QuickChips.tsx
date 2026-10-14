@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
-import { Button } from "@/shared/ui";
 import { Filter } from "lucide-react";
+import React, { useCallback, useEffect,useState } from "react";
+
+import { Button } from "@/shared/ui";
 
 interface QuickChipsProps {
   chips: string[];

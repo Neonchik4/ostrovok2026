@@ -1,20 +1,19 @@
 """Normalized SQLAlchemy ORM models with pgvector(768) and FK relations."""
 from datetime import datetime
-from typing import Optional
+
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
-    Column,
-    String,
-    Integer,
-    Float,
-    Boolean,
-    Text,
-    DateTime,
-    ForeignKey,
     JSON,
-    Index,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.orm import declarative_base, relationship
-from pgvector.sqlalchemy import Vector
 
 Base = declarative_base()
 

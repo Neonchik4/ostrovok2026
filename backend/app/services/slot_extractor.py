@@ -1,12 +1,10 @@
 import asyncio
-import re
 import json
-from typing import List, Optional
-from ..config import settings
+import re
+
 from ..schemas.chat import ExtractedSlots
+from .location_registry import match_city
 from .text_helpers import sanitize_user_input
-from .llm_client import get_cascade_models
-from .location_registry import match_city, get_known_cities
 
 SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экстрактор параметров поиска отелей для платформы Ostrovok.
 Твоя задача — ТОЛЬКО извлечь параметры из запроса пользователя и вернуть строго JSON-объект без пояснений.
@@ -33,14 +31,14 @@ SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экст�
 Генерируй 3-4 релевантных чипса, которых ещё нет в запросе пользователя.
 """
 
-def sanitize_chips(chips: List[str]) -> List[str]:
+def sanitize_chips(chips: list[str]) -> list[str]:
     """
     Secure by Design:
     - Проверка аномалий в чипсах (нереалистично низкая цена <3000 руб.).
     - Устранение дубликатов с сохранением порядка.
     - Ограничение длины строки чипса.
     """
-    sanitized: List[str] = []
+    sanitized: list[str] = []
     for c in chips:
         c_clean = c.strip()
         if not c_clean or len(c_clean) > 80:
@@ -54,9 +52,9 @@ def sanitize_chips(chips: List[str]) -> List[str]:
             sanitized.append(c_clean)
     return sanitized
 
-def default_chips(lower: str) -> List[str]:
+def default_chips(lower: str) -> list[str]:
     """Генерация базовых чипсов-действий на основе отсутствующих параметров."""
-    chips: List[str] = []
+    chips: list[str] = []
     if "завтрак" not in lower:
         chips.append("Только с завтраком")
     if "бассейн" not in lower:
@@ -157,6 +155,7 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
 
 async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -> ExtractedSlots:
     from google.genai import types
+
     from .llm_client import get_gemini_client
 
     client = get_gemini_client(key)

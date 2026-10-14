@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Sparkles, ShieldCheck, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronUp,ShieldCheck, Sparkles } from "lucide-react";
+import React, { useEffect,useRef, useState } from "react";
+
 import { CriterionMatch } from "../model/types";
 
 interface HotelScoreBadgeProps {

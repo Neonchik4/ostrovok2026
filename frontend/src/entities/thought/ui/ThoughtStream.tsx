@@ -1,16 +1,18 @@
 "use client";
 
+import { Check, ChevronDown, Loader2, Sparkles, X } from "lucide-react";
 import React, { useState } from "react";
-import { Thought } from "../model/types";
+
 import {
-  Card,
   Badge,
-  Progress,
+  Card,
   Collapsible,
-  CollapsibleTrigger,
   CollapsibleContent,
+  CollapsibleTrigger,
+  Progress,
 } from "@/shared/ui";
-import { Sparkles, Check, Loader2, ChevronDown, X } from "lucide-react";
+
+import { Thought } from "../model/types";
 
 interface ThoughtStreamProps {
   thoughts: Thought[];

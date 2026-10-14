@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef,useState } from "react";
 
 interface UseAudioVisualizerOptions {
   numBars?: number;
@@ -167,7 +167,7 @@ export function useAudioVisualizer(isListening: boolean, options?: UseAudioVisua
       }
     };
 
-    startAudio();
+    void startAudio();
 
     return () => {
       isCancelled = true;

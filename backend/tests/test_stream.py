@@ -1,8 +1,11 @@
 import asyncio
+
 import pytest
-from httpx import AsyncClient, ASGITransport
-from app.main import app
+from httpx import ASGITransport, AsyncClient
+
 from app.config import settings
+from app.main import app
+
 
 @pytest.fixture(autouse=True)
 def fast_test_stream_env(monkeypatch):

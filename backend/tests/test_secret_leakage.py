@@ -1,8 +1,9 @@
 """Unit tests verifying zero secret leakage in git commit history and tracked repository files."""
 import pytest
+
 from app.services.secret_scanner import (
-    scan_text,
     scan_git_history,
+    scan_text,
     scan_tracked_files,
 )
 

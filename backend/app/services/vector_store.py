@@ -1,7 +1,8 @@
+import asyncio
 import json
 import os
-import asyncio
-from typing import List, Dict, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
+
 from ..config import settings
 from ..schemas.hotel_models import HotelFullSchema
 from .embedding_service import embed_text_gemini
@@ -10,8 +11,8 @@ if TYPE_CHECKING:
     from chromadb.api.models.Collection import Collection
     from sentence_transformers import SentenceTransformer
 
-_hotels_dataset: List[HotelFullSchema] = []
-_hotels_by_id: Dict[str, HotelFullSchema] = {}
+_hotels_dataset: list[HotelFullSchema] = []
+_hotels_by_id: dict[str, HotelFullSchema] = {}
 _chroma_collection: Optional["Collection"] = None
 _embedding_model: Optional["SentenceTransformer"] = None
 _is_gemini_vector: bool = False
@@ -36,7 +37,7 @@ def init_dataset() -> None:
         for p in candidates:
             if os.path.exists(p):
                 try:
-                    with open(p, "r", encoding="utf-8") as f:
+                    with open(p, encoding="utf-8") as f:
                         raw_data = json.load(f)
                     if len(raw_data) >= 100:
                         _hotels_dataset = [HotelFullSchema.model_validate(h) for h in raw_data]
@@ -56,13 +57,13 @@ def init_dataset() -> None:
                 pass
 
 
-def get_hotels_dataset() -> List[HotelFullSchema]:
+def get_hotels_dataset() -> list[HotelFullSchema]:
     if not _hotels_dataset:
         init_dataset()
     return _hotels_dataset
 
 
-def get_hotel_by_id(hotel_id: str) -> Optional[HotelFullSchema]:
+def get_hotel_by_id(hotel_id: str) -> HotelFullSchema | None:
     if not _hotels_by_id:
         init_dataset()
     return _hotels_by_id.get(hotel_id)
@@ -129,7 +130,7 @@ def is_vector_ready() -> bool:
     return _chroma_collection is not None and _embedding_model is not None
 
 
-async def query_chroma_raw(query_text: str, n_results: int = 50) -> Optional[dict]:
+async def query_chroma_raw(query_text: str, n_results: int = 50) -> dict | None:
     """
     Выполняет векторный запрос к ChromaDB через Gemini Embedding или SentenceTransformers.
     """

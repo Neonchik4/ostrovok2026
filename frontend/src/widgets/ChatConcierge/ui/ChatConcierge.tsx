@@ -1,15 +1,17 @@
 "use client";
 
-import React, { useState } from "react";
+import { Database,Send, Square } from "lucide-react";
 import Link from "next/link";
-import { Button, Input, Logo } from "@/shared/ui";
+import React, { useState } from "react";
+
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
-import { VoiceInputButton } from "@/features/voice-input";
 import { QuickChips } from "@/features/quick-chips";
-import { Send, Square, Database } from "lucide-react";
-import { useChatAutoScroll } from "./useChatAutoScroll";
+import { VoiceInputButton } from "@/features/voice-input";
+import { Button, Input, Logo } from "@/shared/ui";
+
 import { ChatMessagesList } from "./ChatMessagesList";
+import { useChatAutoScroll } from "./useChatAutoScroll";
 
 interface ChatConciergeProps {
   messages: Message[];

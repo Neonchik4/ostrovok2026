@@ -1,12 +1,11 @@
 import json
 import os
 import re
-from typing import List, Dict, Optional, Tuple
 
-_LOCATIONS_CACHE: Optional[List[Dict[str, object]]] = None
-_COMPILED_PATTERNS: Optional[List[Tuple[str, List[re.Pattern]]]] = None
+_LOCATIONS_CACHE: list[dict[str, object]] | None = None
+_COMPILED_PATTERNS: list[tuple[str, list[re.Pattern]]] | None = None
 
-def _load_locations_data() -> List[Dict[str, object]]:
+def _load_locations_data() -> list[dict[str, object]]:
     """Загружает справочник локаций из locations.json с fallback на встроенный список."""
     candidate_paths = [
         os.path.join(os.path.dirname(__file__), "..", "data", "locations.json"),
@@ -20,7 +19,7 @@ def _load_locations_data() -> List[Dict[str, object]]:
         abs_p = os.path.abspath(p)
         if os.path.exists(abs_p):
             try:
-                with open(abs_p, "r", encoding="utf-8") as f:
+                with open(abs_p, encoding="utf-8") as f:
                     data = json.load(f)
                     if isinstance(data, list) and len(data) > 0:
                         return data
@@ -56,7 +55,7 @@ def _init_patterns() -> None:
         return
 
     _LOCATIONS_CACHE = _load_locations_data()
-    compiled: List[Tuple[str, List[re.Pattern]]] = []
+    compiled: list[tuple[str, list[re.Pattern]]] = []
 
     for item in _LOCATIONS_CACHE:
         canonical = str(item.get("canonical", ""))
@@ -64,7 +63,7 @@ def _init_patterns() -> None:
         if not canonical or not isinstance(patterns, list):
             continue
 
-        compiled_for_city: List[re.Pattern] = []
+        compiled_for_city: list[re.Pattern] = []
         for pat_str in patterns:
             try:
                 # Регистронезависимая компиляция с безопасным поиском
@@ -78,14 +77,14 @@ def _init_patterns() -> None:
 
     _COMPILED_PATTERNS = compiled
 
-def get_known_cities() -> List[str]:
+def get_known_cities() -> list[str]:
     """Возвращает список всех канонических городов из реестра."""
     _init_patterns()
     if not _LOCATIONS_CACHE:
         return []
     return [str(item["canonical"]) for item in _LOCATIONS_CACHE if "canonical" in item]
 
-def match_city(text: str) -> Optional[str]:
+def match_city(text: str) -> str | None:
     """
     Определяет город по тексту запроса с учетом падежей, склонений и сленговых алиасов.
     Secure by Design: защищен от ReDoS (простые и эффективные regex-шаблоны).

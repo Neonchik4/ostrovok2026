@@ -1,7 +1,8 @@
 """Tests for Studio API endpoints: schema, hotels, and backup."""
 import asyncio
-import pytest
-from httpx import AsyncClient, ASGITransport
+
+from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 

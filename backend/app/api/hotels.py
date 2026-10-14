@@ -1,6 +1,8 @@
-import os
 import json
+import os
+
 from fastapi import APIRouter, HTTPException
+
 from ..services.vector_store import get_hotel_by_id
 
 router = APIRouter(prefix="/hotels", tags=["Hotels"])
@@ -18,7 +20,7 @@ async def get_hotel_details(hotel_id: str):
     sharded_path = os.path.join(HOTELS_DIR, f"{hotel_id}.json")
     if os.path.exists(sharded_path):
         try:
-            with open(sharded_path, "r", encoding="utf-8") as f:
+            with open(sharded_path, encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Ошибка чтения данных отеля: {e}")

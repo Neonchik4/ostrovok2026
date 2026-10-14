@@ -2,13 +2,13 @@
 
 import json
 import os
-from pathlib import Path
 import shlex
 import subprocess
 import tomllib
+from pathlib import Path
 
-from packaging.specifiers import SpecifierSet
 import pytest
+from packaging.specifiers import SpecifierSet
 
 ROOT = Path(__file__).resolve().parents[2]
 CPU_INDEX = "https://download.pytorch.org/whl/cpu"
@@ -33,9 +33,8 @@ def test_python_test_dependencies_are_not_shipped_in_production():
     assert "uvicorn[standard]>=0.30.0" in runtime
     assert "sentence-transformers>=3.0.0" in runtime
     assert not any(dependency.startswith("pytest") for dependency in runtime)
-    assert config["dependency-groups"]["dev"] == [
-        "pytest>=8.0.0", "pytest-asyncio>=0.23.0",
-    ]
+    dev_deps = set(config["dependency-groups"]["dev"])
+    assert {"pytest>=8.0.0", "pytest-asyncio>=0.23.0", "mypy>=2.4.0", "ruff>=0.17.0"}.issubset(dev_deps)
     assert not (ROOT / "backend/requirements.txt").exists()
 
 
@@ -66,7 +65,7 @@ def test_lock_preserves_persistent_index_compatibility_without_cuda():
 
 
 @pytest.mark.parametrize("name,module", [
-    ("dev", "uvicorn"), ("start", "uvicorn"), ("test", "pytest"), ("lint", "compileall"),
+    ("dev", "uvicorn"), ("start", "uvicorn"), ("test", "pytest"), ("lint", "ruff"), ("typecheck", "mypy"),
 ])
 def test_backend_scripts_use_locked_root_environment(name, module):
     scripts = json.loads((ROOT / "backend/package.json").read_text())["scripts"]

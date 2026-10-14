@@ -1,8 +1,9 @@
 "use client";
 
+import { AlertTriangle, ThumbsUp, Users } from "lucide-react";
 import React from "react";
+
 import { ReviewsSummary } from "@/entities/hotel";
-import { ThumbsUp, AlertTriangle, Users } from "lucide-react";
 
 interface HotelAspectsSummaryProps {
   summary?: ReviewsSummary;

@@ -1,13 +1,16 @@
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+from .api.chat_stream import router as chat_router
+from .api.hotels import router as hotels_router
+from .api.studio import router as studio_router
 from .config import settings
 from .middleware.body_limit import RequestBodyLimitMiddleware
 from .services.hotel_search_adapter import warmup_models
 from .services.runtime_guard import assert_safe_runtime, is_containerized
-from .api.chat_stream import router as chat_router
-from .api.hotels import router as hotels_router
-from .api.studio import router as studio_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -24,7 +27,7 @@ async def lifespan(app: FastAPI):
         print(f"[Startup Warning] Ошибка при проверке датасета из S3: {e}")
     warmup_models()
     try:
-        from .db.database import is_db_configured, init_db
+        from .db.database import init_db, is_db_configured
         if is_db_configured():
             await init_db()
     except Exception as e:

@@ -6,6 +6,9 @@
     "dev": "uv run --project .. --locked python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000",
     "start": "uv run --project .. --locked python -m uvicorn app.main:app --host 127.0.0.1 --port 8000",
     "test": "uv run --project .. --locked python -m pytest tests -v",
-    "lint": "uv run --project .. --locked python -m compileall -q app"
+    "lint": "uv run --project .. --locked python -m ruff check app tests",
+    "lint:fix": "uv run --project .. --locked python -m ruff check --fix app tests",
+    "format": "uv run --project .. --locked python -m ruff format app tests",
+    "typecheck": "uv run --project .. --locked python -m mypy app"
   }
 }

@@ -1,4 +1,3 @@
-import re
 
 def sanitize_user_input(text: str, max_length: int = 1000) -> str:
     """

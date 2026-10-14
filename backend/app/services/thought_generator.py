@@ -1,10 +1,11 @@
 import asyncio
-from typing import AsyncGenerator, Optional
+from collections.abc import AsyncGenerator
+
 from ..config import settings
 from ..schemas.chat import ExtractedSlots
-from .text_helpers import sanitize_user_input
-from .slot_extractor import mock_extract_slots
 from .llm_client import stream_gemini_content
+from .slot_extractor import mock_extract_slots
+from .text_helpers import sanitize_user_input
 
 SYSTEM_THINKING_PROMPT = """Ты — интеллектуальный AI-агент сервиса Островок.
 Пользователь отправил запрос на поиск отеля или уточнение параметров.
@@ -48,7 +49,7 @@ def build_deterministic_reasoning(user_message: str, slots: ExtractedSlots) -> s
 
     return " ".join(parts)
 
-async def think_stream(user_message: str, slots: Optional[ExtractedSlots] = None) -> AsyncGenerator[str, None]:
+async def think_stream(user_message: str, slots: ExtractedSlots | None = None) -> AsyncGenerator[str, None]:
     """
     Потоковая генерация хода рассуждения агента (Thinking Process).
     Каскад:

@@ -1,8 +1,8 @@
 """Tests for database schema metadata and semantic document builder."""
-import pytest
+from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
+
 from app.db.repository import HotelRepository
 from app.services.semantic_builder import build_hotel_semantic_document
-from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
 
 
 def test_schema_metadata_structure():

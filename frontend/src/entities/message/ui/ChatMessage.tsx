@@ -1,7 +1,9 @@
-import React from "react";
-import { Message } from "../model/types";
-import { cn } from "@/shared/lib";
 import { Bot, User } from "lucide-react";
+import React from "react";
+
+import { cn } from "@/shared/lib";
+
+import { Message } from "../model/types";
 
 interface ChatMessageProps {
   message: Message;

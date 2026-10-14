@@ -1,10 +1,13 @@
 import asyncio
 import time
+
 import pytest
-from app.schemas.chat import ChatStreamRequest
-from app.graph.workflow import run_agent_workflow
-from app.services.llm_cascade import _mock_extract_slots
+
 from app.config import settings
+from app.graph.workflow import run_agent_workflow
+from app.schemas.chat import ChatStreamRequest
+from app.services.llm_cascade import _mock_extract_slots
+
 
 @pytest.fixture(autouse=True)
 def fast_timing_env(monkeypatch):

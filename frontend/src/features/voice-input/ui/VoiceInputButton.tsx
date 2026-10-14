@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { Button } from "@/shared/ui";
-import { useVoiceInput } from "../model/useVoiceInput";
-import { useAudioVisualizer } from "../model/useAudioVisualizer";
 import { Mic, MicOff } from "lucide-react";
+import React, { useEffect } from "react";
+
+import { Button } from "@/shared/ui";
+
+import { useAudioVisualizer } from "../model/useAudioVisualizer";
+import { useVoiceInput } from "../model/useVoiceInput";
 
 interface VoiceInputButtonProps {
   onTranscript: (text: string) => void;

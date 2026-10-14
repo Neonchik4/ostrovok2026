@@ -1,15 +1,15 @@
 """Database models, engine and repository package."""
 from .database import get_db, init_db, is_db_configured
 from .models import (
-    Base,
-    HotelModel,
-    RoomTypeModel,
     AmenityModel,
-    PolicyModel,
-    PoiDistanceModel,
-    ReviewModel,
-    EnrichmentProposalModel,
     AuditHotelSnapshotModel,
+    Base,
+    EnrichmentProposalModel,
+    HotelModel,
+    PoiDistanceModel,
+    PolicyModel,
+    ReviewModel,
+    RoomTypeModel,
 )
 from .repository import HotelRepository
 

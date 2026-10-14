@@ -1,5 +1,5 @@
-import pytest
 from app.services.receipt_calc import calculate_receipt
+
 
 def test_calculate_receipt_deterministic():
     room = {

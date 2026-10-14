@@ -1,7 +1,7 @@
 """High-performance secret scanner for Git history, tracked files, and staged changes."""
 import re
 import subprocess
-from typing import List, Dict, Any, Optional
+from typing import Any
 
 # Специфические регулярные выражения реальных секретов
 SECRET_PATTERNS = [
@@ -76,7 +76,7 @@ def mask_secret(secret: str) -> str:
     return f"{secret[:4]}...{secret[-4:]}"
 
 
-def scan_text(text: str, filename: str = "") -> List[Dict[str, Any]]:
+def scan_text(text: str, filename: str = "") -> list[dict[str, Any]]:
     """Сканирует текст на наличие секретов по скомпилированным регулярным выражениям."""
     findings = []
     for pattern_id, regex, desc in SECRET_PATTERNS:
@@ -100,7 +100,7 @@ def scan_text(text: str, filename: str = "") -> List[Dict[str, Any]]:
     return findings
 
 
-def scan_git_history(max_commits: Optional[int] = None) -> List[Dict[str, Any]]:
+def scan_git_history(max_commits: int | None = None) -> list[dict[str, Any]]:
     """
     Сканирует историю коммитов через git log -p.
     Возвращает список обнаруженных утечек с хэшами коммитов и описанием.
@@ -141,7 +141,7 @@ def scan_git_history(max_commits: Optional[int] = None) -> List[Dict[str, Any]]:
     return findings
 
 
-def scan_staged_changes() -> List[Dict[str, Any]]:
+def scan_staged_changes() -> list[dict[str, Any]]:
     """Сканирует только застейдженные файлы перед коммитом (git diff --cached)."""
     try:
         proc = subprocess.run(
@@ -168,7 +168,7 @@ def scan_staged_changes() -> List[Dict[str, Any]]:
     return findings
 
 
-def scan_tracked_files() -> List[Dict[str, Any]]:
+def scan_tracked_files() -> list[dict[str, Any]]:
     """Сканирует все отслеживаемые Git файлы в текущей рабочей директории."""
     try:
         proc = subprocess.run(
@@ -189,7 +189,7 @@ def scan_tracked_files() -> List[Dict[str, Any]]:
         if any(filepath.endswith(ext) for ext in [".png", ".jpg", ".ico", ".gz", ".zip", ".sqlite3", ".pyc"]):
             continue
         try:
-            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+            with open(filepath, encoding="utf-8", errors="ignore") as f:
                 content = f.read()
             matches = scan_text(content, filepath)
             findings.extend(matches)
