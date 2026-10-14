@@ -90,3 +90,7 @@ jobs:
 
       - name: Validate compose hardening and routing
         run: node --test scripts/test-deployment.mjs scripts/test-dev-guard.mjs
+
+      - name: Verify zero secret leaks in repository
+        run: python3 scripts/check_secret_leaks.py --all
+
