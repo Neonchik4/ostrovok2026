@@ -80,3 +80,5 @@ outputs/backups/
 backend/outputs/
 
 .kilo/
+.wrangler/
+**/.wrangler/
