@@ -4,7 +4,7 @@ import { formatPrice } from "@/shared/lib";
 import { Hotel } from "../model/types";
 import { HotelScoreBadge } from "./HotelScoreBadge";
 import { HotelReceiptPreview } from "./HotelReceiptPreview";
-import { Star, MapPin, CheckCircle2 } from "lucide-react";
+import { Star, MapPin, CheckCircle2, AlertCircle } from "lucide-react";
 
 interface HotelCardProps {
   hotel: Hotel;
@@ -45,7 +45,10 @@ export function HotelCard({ hotel, onSelect }: HotelCardProps) {
             loading="lazy"
           />
           <div className="absolute right-3.5 top-3.5">
-            <HotelScoreBadge scorePct={hotel.match_score_pct} />
+            <HotelScoreBadge
+              scorePct={hotel.match_score_pct}
+              criteriaBreakdown={hotel.criteria_breakdown}
+            />
           </div>
           <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/85 px-3 py-1.5 text-sm font-semibold shadow-md backdrop-blur-md">
             <Star className="h-4 w-4 fill-rating text-rating" />
@@ -56,6 +59,12 @@ export function HotelCard({ hotel, onSelect }: HotelCardProps) {
 
         {/* Контент карточки */}
         <div className="space-y-4 p-5">
+          {hotel.compromise_note && (
+            <div className="flex items-center gap-2 rounded-xl border border-warning/40 bg-warning-bg/40 p-2.5 text-xs font-semibold text-warning">
+              <AlertCircle className="h-4 w-4 shrink-0 text-warning" />
+              <span>Компромисс: {hotel.compromise_note}</span>
+            </div>
+          )}
           <div>
             <div className="mb-1 flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
               <MapPin className="h-4 w-4 shrink-0 text-primary" />

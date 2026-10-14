@@ -27,6 +27,12 @@ class ReceiptBreakdown(BaseModel):
     is_free_cancellation: bool
     cancellation_deadline: Optional[str] = None
 
+class CriterionMatch(BaseModel):
+    criterion: str
+    status: str = Field(..., description="code_verified | semantic_match | relaxed_compromise")
+    evidence: str
+    is_positive: bool = True
+
 class HotelCardWidget(BaseModel):
     id: str
     name: str
@@ -45,6 +51,8 @@ class HotelCardWidget(BaseModel):
     receipt: Optional[ReceiptBreakdown] = None
     distance_to_beach_m: Optional[int] = None
     distance_to_ski_lift_m: Optional[int] = None
+    criteria_breakdown: List[CriterionMatch] = Field(default_factory=list)
+    compromise_note: Optional[str] = None
 
 class WidgetEvent(BaseModel):
     type: str = "hotel_grid"

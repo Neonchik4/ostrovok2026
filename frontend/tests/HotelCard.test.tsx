@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { HotelCard, Hotel } from "@/entities/hotel";
 
 describe("HotelCard", () => {
@@ -55,5 +55,37 @@ describe("HotelCard", () => {
     render(<HotelCard hotel={mockHotel} />);
 
     expect(screen.queryByRole("button", { name: /Забронировать/i })).not.toBeInTheDocument();
+  });
+
+  it("renders smart relaxation compromise note when present", () => {
+    const relaxedHotel: Hotel = {
+      ...mockHotel,
+      compromise_note: "Бюджет превышен на 2 000 ₽",
+    };
+    render(<HotelCard hotel={relaxedHotel} />);
+
+    expect(screen.getByText(/Компромисс: Бюджет превышен на 2 000 ₽/)).toBeInTheDocument();
+  });
+
+  it("supports clicking score badge to view criteria breakdown", () => {
+    const hotelWithBreakdown: Hotel = {
+      ...mockHotel,
+      criteria_breakdown: [
+        {
+          criterion: "Питомцы",
+          status: "code_verified",
+          evidence: "Проживание с питомцами разрешено",
+          is_positive: true,
+        },
+      ],
+    };
+    render(<HotelCard hotel={hotelWithBreakdown} />);
+
+    const badgeBtn = screen.getByRole("button", { name: /Оценка соответствия/i });
+    expect(badgeBtn).toBeInTheDocument();
+
+    fireEvent.click(badgeBtn);
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    expect(screen.getByText("Проживание с питомцами разрешено")).toBeInTheDocument();
   });
 });

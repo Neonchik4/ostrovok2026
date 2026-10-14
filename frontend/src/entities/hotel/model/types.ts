@@ -1,5 +1,5 @@
-import { HotelData, ReviewItem, ReviewsSummary } from "@/shared/api";
+import { HotelData, ReviewItem, ReviewsSummary, CriterionMatch } from "@/shared/api";
 
 export type Hotel = HotelData;
-export type { ReviewItem, ReviewsSummary };
+export type { ReviewItem, ReviewsSummary, CriterionMatch };
 
