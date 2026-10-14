@@ -199,7 +199,7 @@ export function ThoughtStream({
 
                     {/* Дополнительная детализация шага (без простыни текста) */}
                     {detail && !isFailed && (
-                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground/80 hover:line-clamp-none transition-all">
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground hover:line-clamp-none transition-all">
                         {detail}
                       </p>
                     )}
