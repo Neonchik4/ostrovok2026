@@ -67,9 +67,9 @@ async def run_enrichment_task(
             err_str = str(e)
             if "11001" in err_str or "getaddrinfo" in err_str or "Name or service not known" in err_str:
                 last_failure_reason = "DNS: хост не зарегистрирован"
-            elif "ConnectRefused" in err_str or "actively refused" in err_str or "ConnectError" in err_str:
+            elif isinstance(e, httpx.ConnectError) or "ConnectRefused" in err_str or "actively refused" in err_str:
                 last_failure_reason = "локальный воркер не запущен (порт 8787)"
-            elif "Timeout" in err_str:
+            elif isinstance(e, httpx.TimeoutException):
                 last_failure_reason = "таймаут подключения к воркеру"
             else:
                 last_failure_reason = f"ошибка шлюза ({e.__class__.__name__})"
