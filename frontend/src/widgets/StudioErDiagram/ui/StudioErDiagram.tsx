@@ -73,7 +73,7 @@ export const StudioErDiagram: React.FC<Props> = ({ schema }) => {
               Реляционная схема базы данных
             </h3>
             <p className="text-xs text-muted-foreground">
-              Таблиц: {schema.tables.length} · Связей: {schema.relations.length} · Индекс: vector(768) HNSW
+              Таблиц: {schema.tables.length} · Связей: {schema.relations.length} · Индекс: vector(384) HNSW
             </p>
           </div>
         </div>

@@ -95,13 +95,13 @@ class HotelRepository:
                 "name": "hotels",
                 "label": "Отели (Hotels)",
                 "columns": [
-                    {"name": "id", "type": "VARCHAR(64)", "pk": True, "fk": None},
+                    {"name": "id", "type": "VARCHAR(255)", "pk": True, "fk": None},
                     {"name": "name", "type": "VARCHAR(255)", "pk": False, "fk": None},
                     {"name": "city", "type": "VARCHAR(128)", "pk": False, "fk": None},
                     {"name": "stars", "type": "INT", "pk": False, "fk": None},
                     {"name": "min_price_per_night_rub", "type": "INT", "pk": False, "fk": None},
                     {"name": "rating", "type": "FLOAT", "pk": False, "fk": None},
-                    {"name": "embedding", "type": "VECTOR(768)", "pk": False, "fk": None},
+                    {"name": "embedding", "type": "VECTOR(384)", "pk": False, "fk": None},
                 ],
             },
             {
@@ -109,7 +109,7 @@ class HotelRepository:
                 "label": "Номера (Room Types)",
                 "columns": [
                     {"name": "id", "type": "INT", "pk": True, "fk": None},
-                    {"name": "hotel_id", "type": "VARCHAR(64)", "pk": False, "fk": "hotels.id"},
+                    {"name": "hotel_id", "type": "VARCHAR(255)", "pk": False, "fk": "hotels.id"},
                     {"name": "name", "type": "VARCHAR(255)", "pk": False, "fk": None},
                     {"name": "price_per_night_rub", "type": "INT", "pk": False, "fk": None},
                     {"name": "max_total_guests", "type": "INT", "pk": False, "fk": None},
@@ -119,7 +119,7 @@ class HotelRepository:
                 "name": "hotel_amenities",
                 "label": "Удобства (Amenities)",
                 "columns": [
-                    {"name": "hotel_id", "type": "VARCHAR(64)", "pk": True, "fk": "hotels.id"},
+                    {"name": "hotel_id", "type": "VARCHAR(255)", "pk": True, "fk": "hotels.id"},
                     {"name": "pet_friendly", "type": "BOOLEAN", "pk": False, "fk": None},
                     {"name": "heated_pool", "type": "BOOLEAN", "pk": False, "fk": None},
                     {"name": "spa", "type": "BOOLEAN", "pk": False, "fk": None},

@@ -53,6 +53,7 @@ class Settings(BaseModel):
     CLOUDFLARE_WORKER_URL: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_WORKER_URL", ""))
     STUDIO_TEAM_TOKEN: str = Field(default_factory=lambda: os.getenv("STUDIO_TEAM_TOKEN", ""))
     DATABASE_URL: str = Field(default_factory=lambda: os.getenv("DATABASE_URL", ""))
+    DB_ADMIN_TOKEN: str = Field(default_factory=lambda: os.getenv("DB_ADMIN_TOKEN", ""))
     
     # Dataset & Vector DB Paths
     BASE_DIR: Path = BASE_DIR

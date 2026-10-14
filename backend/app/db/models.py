@@ -1,4 +1,4 @@
-"""Normalized SQLAlchemy ORM models with pgvector(768) and FK relations."""
+"""Normalized SQLAlchemy ORM models with pgvector(384) and FK relations."""
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
@@ -21,7 +21,7 @@ Base = declarative_base()
 class HotelModel(Base):
     __tablename__ = "hotels"
 
-    id = Column(String(64), primary_key=True)
+    id = Column(String(255), primary_key=True)
     name = Column(String(255), nullable=False, index=True)
     city = Column(String(128), nullable=False, index=True)
     stars = Column(Integer, default=0)
@@ -37,8 +37,8 @@ class HotelModel(Base):
     image_urls = Column(JSON, default=list)
     tags = Column(JSON, default=list)
 
-    # Векторное семантическое представление (768 dim для mpnet-base-v2)
-    embedding = Column(Vector(768), nullable=True)
+    # Векторное семантическое представление (384 dim для paraphrase-multilingual-MiniLM-L12-v2)
+    embedding = Column(Vector(384), nullable=True)
 
     # Отношения (1:N и 1:1)
     room_types = relationship("RoomTypeModel", back_populates="hotel", cascade="all, delete-orphan", lazy="selectin")
@@ -53,7 +53,7 @@ class RoomTypeModel(Base):
     __tablename__ = "room_types"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(255), nullable=False)
     price_per_night_rub = Column(Integer, nullable=False)
     max_adults = Column(Integer, default=2)
@@ -71,7 +71,7 @@ class RoomTypeModel(Base):
 class AmenityModel(Base):
     __tablename__ = "hotel_amenities"
 
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="CASCADE"), primary_key=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="CASCADE"), primary_key=True)
     pet_friendly = Column(Boolean, default=False, index=True)
     heated_pool = Column(Boolean, default=False)
     outdoor_pool = Column(Boolean, default=False)
@@ -89,7 +89,7 @@ class AmenityModel(Base):
 class PolicyModel(Base):
     __tablename__ = "hotel_policies"
 
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="CASCADE"), primary_key=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="CASCADE"), primary_key=True)
     check_in_time = Column(String(16), default="14:00")
     check_out_time = Column(String(16), default="12:00")
     min_stay_nights = Column(Integer, default=1)
@@ -106,7 +106,7 @@ class PoiDistanceModel(Base):
     __tablename__ = "poi_distances"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
     poi_name = Column(String(255), nullable=False)
     category = Column(String(64), default="poi")  # beach, ski_lift, subway, transport
     distance_m = Column(Integer, nullable=False)
@@ -118,13 +118,13 @@ class ReviewModel(Base):
     __tablename__ = "hotel_reviews"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
     author = Column(String(128), default="")
     date = Column(String(64), default="")
     rating = Column(Float, nullable=True)
     plus = Column(Text, default="")
     minus = Column(Text, default="")
-    room = Column(String(128), default="")
+    room = Column(Text, default="")
 
     hotel = relationship("HotelModel", back_populates="reviews")
 
@@ -133,7 +133,7 @@ class EnrichmentProposalModel(Base):
     __tablename__ = "enrichment_proposals"
 
     id = Column(String(64), primary_key=True)
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="SET NULL"), nullable=True, index=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="SET NULL"), nullable=True, index=True)
     status = Column(String(32), default="pending", index=True)  # pending, approved, rejected
     target_type = Column(String(32), default="enrichment")  # enrichment, new_hotel
     diff_patch = Column(JSON, nullable=False)
@@ -151,7 +151,7 @@ class AuditHotelSnapshotModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     proposal_id = Column(String(64), ForeignKey("enrichment_proposals.id", ondelete="CASCADE"), nullable=False)
-    hotel_id = Column(String(64), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
+    hotel_id = Column(String(255), ForeignKey("hotels.id", ondelete="CASCADE"), nullable=False, index=True)
     state_before = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
