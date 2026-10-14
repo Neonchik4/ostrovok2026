@@ -72,7 +72,7 @@
       sans-serif;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/30 selection:text-primary;
+    @apply bg-background text-foreground antialiased selection:bg-primary selection:text-primary-foreground;
   }
 
   *:focus,
