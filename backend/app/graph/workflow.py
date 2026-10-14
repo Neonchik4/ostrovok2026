@@ -100,9 +100,13 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             top_score = telemetry.top_score_pct or hotels[0].match_score_pct
             min_cost = telemetry.min_price_rub or min(h.min_price_per_night_rub for h in hotels)
             if telemetry.is_relaxed:
+                if slots.max_price_per_night_rub:
+                    budget_note = f"В рамках бюджета до {slots.max_price_per_night_rub:,} ₽ отелей в {city_label} нет (минимальный тариф от {min_cost:,} ₽). "
+                else:
+                    budget_note = f"Строгих совпадений в {city_label} не нашлось (минимальный тариф от {min_cost:,} ₽). "
                 yield _format_sse("thought", {
                     "step": "results",
-                    "text": f"В рамках бюджета до {slots.max_price_per_night_rub:,} ₽ отелей в {city_label} нет (минимальный тариф от {min_cost:,} ₽). Отобрал {len(hotels)} {_pluralize_hotels(len(hotels))} с наилучшим соотношением цены и качества".replace(",", " ")
+                    "text": f"{budget_note}Отобрал {len(hotels)} {_pluralize_hotels(len(hotels))} с наилучшим соотношением цены и качества".replace(",", " ")
                 })
             else:
                 yield _format_sse("thought", {
