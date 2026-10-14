@@ -24,7 +24,9 @@
     "build": "bun run --cwd frontend build",
     "setup:front": "bun install --frozen-lockfile && bun install --cwd frontend --frozen-lockfile",
     "setup:back": "uv sync --locked",
-    "setup": "bun run setup:front && bun run setup:back"
+    "setup": "bun run setup:front && bun run setup:back",
+    "db:backup": "ssh yc-user@158.160.228.85 \"sudo /opt/ostrovok/scripts/backup.sh\"",
+    "db:seed": "doppler run --project ostrovok2026 --config dev -- bun run --cwd backend python -m app.db.seed"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
