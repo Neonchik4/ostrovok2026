@@ -29,11 +29,7 @@ interface HotelItem {
   address: string;
 }
 
-interface Props {
-  token: string;
-}
-
-export const StudioDataBrowser: React.FC<Props> = ({ token }) => {
+export const StudioDataBrowser: React.FC = () => {
   const [items, setItems] = useState<HotelItem[]>([]);
   const [total, setTotal] = useState(0);
   const [source, setSource] = useState("memory");
@@ -56,9 +52,7 @@ export const StudioDataBrowser: React.FC<Props> = ({ token }) => {
       if (search.trim()) params.set("search", search.trim());
       if (city.trim()) params.set("city", city.trim());
 
-      const res = await fetch(`/api/studio/hotels?${params.toString()}`, {
-        headers: { "X-Studio-Token": token },
-      });
+      const res = await fetch(`/api/studio/hotels?${params.toString()}`);
       if (res.ok) {
         const data = await res.json();
         setItems(data.items || []);
@@ -70,7 +64,7 @@ export const StudioDataBrowser: React.FC<Props> = ({ token }) => {
     } finally {
       setLoading(false);
     }
-  }, [offset, search, city, token]);
+  }, [offset, search, city]);
 
   useEffect(() => {
     fetchHotels();
@@ -78,9 +72,7 @@ export const StudioDataBrowser: React.FC<Props> = ({ token }) => {
 
   const viewDetails = async (id: string) => {
     try {
-      const res = await fetch(`/api/studio/hotels/${id}`, {
-        headers: { "X-Studio-Token": token },
-      });
+      const res = await fetch(`/api/studio/hotels/${id}`);
       if (res.ok) {
         const data = await res.json();
         setSelectedHotel(data);

@@ -88,15 +88,6 @@ export const StudioErDiagram: React.FC<Props> = ({ schema }) => {
               className="h-8 pl-8 text-xs bg-background"
             />
           </div>
-
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs border-primary/30 text-primary bg-primary/5">
-              <KeyRound className="mr-1 h-3 w-3" /> PK
-            </Badge>
-            <Badge variant="secondary" className="text-xs text-secondary-foreground font-medium">
-              <Link2 className="mr-1 h-3 w-3" /> FK
-            </Badge>
-          </div>
         </div>
       </div>
 
