@@ -74,7 +74,7 @@ jobs:
           VM_HOST: ${{ secrets.VM_HOST }}
           VM_USER: ${{ secrets.VM_USER }}
           VM_SSH_KEY: ${{ secrets.VM_SSH_KEY }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN || secrets.GHCR_PULL_TOKEN }}
         run: |
           missing=""
           for name in VM_HOST VM_USER VM_SSH_KEY GHCR_READ_TOKEN; do
@@ -107,7 +107,7 @@ jobs:
         uses: appleboy/ssh-action@v1
         env:
           REGISTRY: ${{ env.REGISTRY }}
-          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN }}
+          GHCR_READ_TOKEN: ${{ secrets.GHCR_READ_TOKEN || secrets.GHCR_PULL_TOKEN }}
           GHCR_OWNER: ${{ steps.vars.outputs.owner }}
           IMAGE_TAG: ${{ steps.vars.outputs.tag }}
           GHCR_USER: ${{ github.actor }}
