@@ -254,12 +254,46 @@ def process_all_shards(shards_dir: str = SHARDS_DIR, limit: Optional[int] = None
     }
 
 
+def update_catalog(catalog_path: str = CATALOG_PATH, shards_dir: str = SHARDS_DIR) -> int:
+    """Обновляет итоговый каталог hotels.json свежими тегированными цитатами из шардов."""
+    if not os.path.exists(catalog_path):
+        logger.error(f"Каталог {catalog_path} не найден!")
+        return 0
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        hotels = json.load(f)
+    updated = 0
+    for h in hotels:
+        hid = h.get("id")
+        shard_path = os.path.join(shards_dir, f"{hid}.json")
+        if os.path.exists(shard_path):
+            try:
+                with open(shard_path, "r", encoding="utf-8") as sf:
+                    sdata = json.load(sf)
+                ssummary = sdata.get("reviews_summary") or {}
+                hsummary = dict(h.get("reviews_summary") or {})
+                if ssummary.get("positive_highlights"):
+                    hsummary["positive_highlights"] = ssummary["positive_highlights"]
+                if ssummary.get("negative_highlights"):
+                    hsummary["negative_highlights"] = ssummary["negative_highlights"]
+                if ssummary.get("aspect_mentions"):
+                    hsummary["aspect_mentions"] = ssummary["aspect_mentions"]
+                h["reviews_summary"] = hsummary
+                updated += 1
+            except Exception as e:
+                logger.warning(f"Ошибка чтения шарда {hid}: {e}")
+    with open(catalog_path, "w", encoding="utf-8") as f:
+        json.dump(hotels, f, ensure_ascii=False, indent=2)
+    logger.info(f"Каталог {catalog_path} обновлен: {updated} отелей обогащено новыми цитатами")
+    return updated
+
+
 def main():
     parser = argparse.ArgumentParser(description="Batch offline review quote extractor and aspect tagger")
     parser.add_argument("--limit", type=int, default=None, help="Ограничить количество обрабатываемых отелей")
     parser.add_argument("--hotel-id", type=str, default=None, help="Идентификатор конкретного отеля")
     parser.add_argument("--dry-run", action="store_true", help="Не перезаписывать файлы на диске")
     parser.add_argument("--shards-dir", type=str, default=SHARDS_DIR, help="Каталог шардов отелей")
+    parser.add_argument("--update-catalog", action="store_true", help="Обновить итоговый каталог outputs/hotels.json из шардов")
     args = parser.parse_args()
 
     if args.hotel_id:
@@ -282,6 +316,8 @@ def main():
         sys.exit(0)
 
     process_all_shards(shards_dir=args.shards_dir, limit=args.limit, dry_run=args.dry_run)
+    if args.update_catalog and not args.dry_run:
+        update_catalog(shards_dir=args.shards_dir)
 
 
 if __name__ == "__main__":

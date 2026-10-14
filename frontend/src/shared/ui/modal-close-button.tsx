@@ -17,7 +17,7 @@ export const ModalCloseButton = React.forwardRef<
       type="button"
       aria-label="Закрыть"
       className={cn(
-        "absolute right-4 top-4 z-10 rounded-full border border-border/60 bg-background/80 p-2 text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none",
+        "absolute right-4 top-4 z-10 rounded-full border border-border/60 bg-background/80 p-2 text-muted-foreground transition-colors hover:bg-background hover:text-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none",
         className
       )}
       {...props}
