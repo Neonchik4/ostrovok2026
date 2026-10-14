@@ -34,7 +34,7 @@ export default function StudioPage() {
   const [schema, setSchema] = useState<{ tables: []; relations: [] }>({ tables: [], relations: [] });
   const [loading, setLoading] = useState(true);
 
-  // Инициализация токена из localStorage или URL
+  // Инициализация токена из localStorage, URL или автоподстановка в dev
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const queryToken = params.get("token");
@@ -44,7 +44,20 @@ export default function StudioPage() {
       setToken(savedToken);
       if (queryToken) localStorage.setItem("ostrovok_studio_token", queryToken);
     } else {
-      setAuthOpen(true);
+      // Проверяем статус режима разработки (автоматическая авторизация в dev/dev:dop)
+      fetch("/api/studio/auth-status")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (data?.auto_token) {
+            setToken(data.auto_token);
+            localStorage.setItem("ostrovok_studio_token", data.auto_token);
+          } else {
+            setAuthOpen(true);
+          }
+        })
+        .catch(() => {
+          setAuthOpen(true);
+        });
     }
   }, []);
 
@@ -116,12 +129,13 @@ export default function StudioPage() {
               variant="outline"
               size="sm"
               onClick={() => {
-                setInputToken(token);
+                setInputToken(token || "");
                 setAuthOpen(true);
               }}
-              className="h-8 text-xs px-3 border-border"
+              className="h-8 text-xs px-3 border-border hover:border-primary/50"
             >
-              <KeyRound className="h-3.5 w-3.5 mr-1.5 text-primary" /> Ключ доступа
+              <KeyRound className="h-3.5 w-3.5 mr-1.5 text-primary" />
+              <span>Ключ доступа</span>
             </Button>
           </div>
         </div>

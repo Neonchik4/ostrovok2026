@@ -30,27 +30,55 @@ async def run_enrichment_task(
     }
 
     scraped_context = ""
-    worker_url = getattr(settings, "CLOUDFLARE_WORKER_URL", "").rstrip("/")
-    if worker_url and "example" not in worker_url:
+    candidate_urls: list[str] = []
+    configured_url = getattr(settings, "CLOUDFLARE_WORKER_URL", "").rstrip("/")
+    if configured_url and "example" not in configured_url:
+        candidate_urls.append(configured_url)
+    if "http://127.0.0.1:8787" not in candidate_urls:
+        candidate_urls.append("http://127.0.0.1:8787")
+
+    worker_connected = False
+    last_failure_reason = "воркер не настроен"
+
+    for target_url in candidate_urls:
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            headers = {}
+            if settings.CLOUDFLARE_AI_GATEWAY_TOKEN:
+                headers["Authorization"] = f"Bearer {settings.CLOUDFLARE_AI_GATEWAY_TOKEN}"
+
+            async with httpx.AsyncClient(timeout=4.0) as client:
                 resp = await client.post(
-                    f"{worker_url}/api/search",
+                    f"{target_url}/api/search",
                     json={"query": f"отели {city} {prompt}"},
-                    headers={"Authorization": f"Bearer {settings.CLOUDFLARE_AI_GATEWAY_TOKEN}"},
+                    headers=headers,
                 )
                 if resp.status_code == 200:
                     data = resp.json()
-                    scraped_context = json.dumps(data.get("hotels", [])[:5], ensure_ascii=False)
+                    hotels = data.get("hotels", [])
+                    if hotels:
+                        scraped_context = json.dumps(hotels[:5], ensure_ascii=False)
                     yield {
                         "step": "worker_data",
-                        "text": f"Cloudflare Worker вернул {data.get('count', 0)} объектов с Островка.",
+                        "text": f"Cloudflare Worker ({target_url}) вернул {len(hotels)} объектов с Островка.",
                     }
+                    worker_connected = True
+                    break
         except Exception as e:
-            yield {
-                "step": "worker_fallback",
-                "text": f"Воркер недоступен ({e}). Переключаюсь на Google Search Grounding через AI Gateway...",
-            }
+            err_str = str(e)
+            if "11001" in err_str or "getaddrinfo" in err_str or "Name or service not known" in err_str:
+                last_failure_reason = "DNS: хост не зарегистрирован"
+            elif "ConnectRefused" in err_str or "actively refused" in err_str or "ConnectError" in err_str:
+                last_failure_reason = "локальный воркер не запущен (порт 8787)"
+            elif "Timeout" in err_str:
+                last_failure_reason = "таймаут подключения к воркеру"
+            else:
+                last_failure_reason = f"ошибка шлюза ({e.__class__.__name__})"
+
+    if not worker_connected:
+        yield {
+            "step": "worker_fallback",
+            "text": f"Воркер недоступен ({last_failure_reason}). Переключаюсь на поиск через Gemini AI Gateway...",
+        }
 
     # Шаг 2: Обращение к Gemini для формирования валидного diff
     yield {

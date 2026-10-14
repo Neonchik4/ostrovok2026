@@ -10,4 +10,5 @@ export * from "./table";
 export * from "./tooltip";
 export * from "./collapsible";
 export * from "./progress";
+export * from "./modal-close-button";
 

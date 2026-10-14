@@ -20,18 +20,27 @@ export function ChatMessagesList({
   scrollRef,
   messagesEndRef,
 }: ChatMessagesListProps) {
+  const isEmpty = messages.length === 0 && thoughts.length === 0;
+
+  if (isEmpty) {
+    return (
+      <div
+        ref={scrollRef}
+        className="flex flex-1 flex-col items-center justify-center p-6 text-center overflow-hidden"
+      >
+        <Logo variant="mark" size={48} className="rounded-2xl mb-3" />
+        <h3 className="text-lg font-bold text-foreground">О!дин запрос — и отель найден</h3>
+        <p className="mt-2 max-w-[280px] text-sm text-muted-foreground">
+          Назовите город, даты, компанию или пожелания (например: «Красная Поляна с собакой и
+          спа до 15 000 ₽»).
+        </p>
+        <div ref={messagesEndRef} className="sr-only" aria-hidden="true" />
+      </div>
+    );
+  }
+
   return (
     <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4 px-5">
-      {messages.length === 0 && (
-        <div className="flex h-full flex-col items-center justify-center space-y-3 p-6 text-center">
-          <Logo variant="mark" size={48} className="rounded-2xl" />
-          <h3 className="text-lg font-bold text-foreground">О!дин запрос — и отель найден</h3>
-          <p className="max-w-[280px] text-sm text-muted-foreground">
-            Назовите город, даты, компанию или пожелания (например: «Красная Поляна с собакой и
-            спа до 15 000 ₽»).
-          </p>
-        </div>
-      )}
 
       {/* История сообщений до текущего ответа */}
       {(messages[messages.length - 1]?.role === "assistant"

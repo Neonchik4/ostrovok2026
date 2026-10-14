@@ -3,11 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { Hotel, HotelScoreBadge } from "@/entities/hotel";
 import { formatPrice } from "@/shared/lib";
-import { Button, Card, Badge } from "@/shared/ui";
+import { Button, Card, Badge, ModalCloseButton } from "@/shared/ui";
 import { HotelAspectsSummary } from "./HotelAspectsSummary";
 import { HotelReviewsList } from "./HotelReviewsList";
 import {
-  X,
   Star,
   MapPin,
   CheckCircle2,
@@ -87,13 +86,7 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
     >
       <Card className="relative flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden border-border bg-card shadow-2xl">
         {/* Кнопка закрытия */}
-        <button
-          onClick={onClose}
-          aria-label="Закрыть"
-          className="absolute right-4 top-4 z-10 rounded-full border border-border/60 bg-background/80 p-2 text-muted-foreground transition-colors hover:bg-background hover:text-foreground"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <ModalCloseButton onClick={onClose} iconClassName="h-5 w-5" />
 
         {/* Скроллируемая область контента */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">

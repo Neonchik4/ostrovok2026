@@ -10,7 +10,7 @@ describe("ChatMessagesList (Single Responsibility Component)", () => {
     const scrollRef = { current: null };
     const messagesEndRef = { current: null };
 
-    render(
+    const { container } = render(
       <ChatMessagesList
         messages={[]}
         thoughts={[]}
@@ -21,6 +21,7 @@ describe("ChatMessagesList (Single Responsibility Component)", () => {
     );
 
     expect(screen.getByText("О!дин запрос — и отель найден")).toBeInTheDocument();
+    expect(container.firstElementChild).toHaveClass("overflow-hidden");
   });
 
   it("renders user and assistant messages in correct order", () => {
