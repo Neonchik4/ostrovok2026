@@ -68,3 +68,12 @@ class ExtractedSlots(BaseModel):
     nights: Optional[int] = 2
     semantic_query: str = ""
     disambiguation_suggestions: List[str] = Field(default_factory=list)
+
+class SearchTelemetry(BaseModel):
+    engine: str = "ChromaDB (HNSW)"
+    total_evaluated: int = 0
+    total_in_region: int = 0
+    scalar_matched: int = 0
+    is_relaxed: bool = False
+    top_score_pct: int = 0
+    min_price_rub: int = 0

@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, it, expect } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { ChatMessagesList } from "@/widgets/ChatConcierge";
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
@@ -69,6 +69,9 @@ describe("ChatMessagesList (Single Responsibility Component)", () => {
       />
     );
 
+    const toggleButton = screen.getByRole("button", { name: /Ход рассуждений агента/i });
+    expect(toggleButton).toBeInTheDocument();
+    fireEvent.click(toggleButton);
     expect(screen.getByText("Выполняю семантический поиск по спа-отелям...")).toBeInTheDocument();
   });
 });

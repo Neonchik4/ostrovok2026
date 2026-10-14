@@ -10,17 +10,17 @@ from ..schemas.chat import (
 )
 from ..services.llm_cascade import (
     extract_slots_cascade,
-    think_stream,
+    build_deterministic_reasoning,
     generate_concierge_response_stream,
 )
 from ..services.session_memory import session_memory, merge_slots
-from ..services.hotel_search_adapter import search_hotels_unified
+from ..services.hotel_search_adapter import search_hotels_with_telemetry
 
 async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None]:
     """
     Потоковый генератор Server-Sent Events (SSE).
-    Генерирует события:
-    - event: thought
+    Генерирует детерминированную телеметрию пайплайна:
+    - event: thought (reasoning -> filtering -> hybrid_search -> results -> receipt_calculation)
     - event: token
     - event: widget
     - event: done
@@ -37,18 +37,11 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             message = f"{message}. Уточнение: {sel}"
         
     try:
-        # Мгновенно отдаем первый шаг мыслей агента
-        yield _format_sse("thought", {"step": "reasoning", "text": "Оцениваю параметры запроса и формирую критерии поиска... "})
+        # 1. Мгновенная индикация начала обработки (< 50 мс для исключения зависаний)
+        yield _format_sse("thought", {"step": "reasoning", "text": "Оцениваю параметры запроса и формирую критерии поиска..."})
 
-        # Запускаем извлечение слотов параллельно в фоновой задаче
-        slots_task = asyncio.create_task(extract_slots_cascade(message))
-
-        # Потоковый ход рассуждений агента (Thinking Process)
-        async for chunk in think_stream(message):
-            yield _format_sse("thought", {"step": "reasoning", "text": chunk})
-
-        # Дожидаемся результатов извлечения слотов и объединяем с контекстом диалога (Multi-turn Slot Merging)
-        new_slots: ExtractedSlots = await slots_task
+        # Извлечение интентов и слотов через каскад (Gemini 2.5 Flash / Flash Lite -> локальный экстрактор)
+        new_slots: ExtractedSlots = await extract_slots_cascade(message)
         if req.nights and req.nights != 2:
             new_slots.nights = req.nights
         if req.guests and req.guests != 2:
@@ -61,7 +54,15 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
 
         city_label = slots.city or "выбранном регионе"
 
-        # 2. Шаг рассуждения: Применение фильтров
+        # Детерминированное рассуждение на базе реального запроса и извлеченных слотов
+        reasoning_text = build_deterministic_reasoning(message, slots)
+        yield _format_sse("thought", {"step": "reasoning", "text": reasoning_text})
+        await asyncio.sleep(0.2)
+
+        # 2. Выполняем поиск отелей с получением реальной телеметрии базы
+        hotels, telemetry = await search_hotels_with_telemetry(slots)
+
+        # 3. Шаг рассуждения: Применение фильтров и скалярная статистика
         active_filters = []
         if slots.stars:
             active_filters.append(f"от {slots.stars}★")
@@ -78,24 +79,30 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         if slots.pet_friendly:
             active_filters.append("с питомцем")
         
-        filters_text = (
-            f"Применяю фильтры: {', '.join(active_filters)}"
-            if active_filters else
-            "Дополнительные фильтры не заданы — ранжирую по рейтингу и популярности"
-        )
-        yield _format_sse("thought", {"step": "filtering", "text": filters_text})
-        await asyncio.sleep(0.6)
+        if active_filters:
+            filters_text = (
+                f"Скалярная фильтрация: проверено {telemetry.total_evaluated} отелей "
+                f"({telemetry.total_in_region} в {city_label}) -> "
+                f"{telemetry.scalar_matched} строго соответствуют критериям ({', '.join(active_filters)})"
+            )
+        else:
+            filters_text = f"Каталог {city_label}: доступно {telemetry.total_in_region} отелей, ранжирую по рейтингу и отзывам"
 
-        # 3. Шаг: Векторный поиск
-        yield _format_sse("thought", {"step": "hybrid_search", "text": f"Векторный поиск релевантных вариантов в {city_label}..."})
-        hotels = await search_hotels_unified(slots)
-        await asyncio.sleep(0.6)
+        yield _format_sse("thought", {"step": "filtering", "text": filters_text})
+        await asyncio.sleep(0.2)
+
+        # 4. Шаг: Векторный гибридный поиск
+        yield _format_sse("thought", {
+            "step": "hybrid_search",
+            "text": f"Векторный поиск ({telemetry.engine}): ранжирование кандидатов по косинусному сходству и отзывам гостей..."
+        })
+        await asyncio.sleep(0.2)
         
-        # 4. Итог поиска с прозрачной статистикой
+        # 5. Итог поиска с прозрачной статистикой
         if hotels:
-            top_score = hotels[0].match_score_pct
-            min_cost = min(h.min_price_per_night_rub for h in hotels)
-            if slots.max_price_per_night_rub and min_cost > slots.max_price_per_night_rub:
+            top_score = telemetry.top_score_pct or hotels[0].match_score_pct
+            min_cost = telemetry.min_price_rub or min(h.min_price_per_night_rub for h in hotels)
+            if telemetry.is_relaxed:
                 yield _format_sse("thought", {
                     "step": "results",
                     "text": f"В рамках бюджета до {slots.max_price_per_night_rub:,} ₽ отелей в {city_label} нет (минимальный тариф от {min_cost:,} ₽). Отобрал {len(hotels)} {_pluralize_hotels(len(hotels))} с наилучшим соотношением цены и качества".replace(",", " ")
@@ -110,9 +117,9 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
                 "step": "results",
                 "text": f"Отели по строгому запросу не найдены в {city_label}, предлагаю скорректировать фильтры"
             })
-        await asyncio.sleep(0.6)
+        await asyncio.sleep(0.2)
 
-        # 5. Шаг рассуждения: Детерминированный расчет чека
+        # 6. Шаг рассуждения: Детерминированный расчет чека
         top_receipt = hotels[0].receipt if hotels else None
         if hotels and top_receipt is not None:
             top_h = hotels[0]
@@ -124,9 +131,9 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         else:
             yield _format_sse("thought", {
                 "step": "receipt_calculation",
-                "text": f"Рассчитываю прозрачные чеки и проверяю правила отмены..."
+                "text": "Рассчитываю прозрачные чеки и проверяю правила отмены..."
             })
-        await asyncio.sleep(0.6)
+        await asyncio.sleep(0.2)
 
         # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов)
         async for chunk in generate_concierge_response_stream(message, slots, hotels):

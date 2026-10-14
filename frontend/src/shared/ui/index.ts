@@ -8,3 +8,6 @@ export * from "./tabs";
 export * from "./dialog";
 export * from "./table";
 export * from "./tooltip";
+export * from "./collapsible";
+export * from "./progress";
+

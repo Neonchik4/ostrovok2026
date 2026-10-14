@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from ..schemas.chat import ExtractedSlots, HotelCardWidget
+from ..schemas.chat import ExtractedSlots, HotelCardWidget, SearchTelemetry
 from ..schemas.hotel_models import HotelFullSchema, RoomType
 from .receipt_calc import calculate_receipt
 
@@ -103,13 +103,16 @@ def build_hotel_card(hotel: HotelFullSchema, score: float, slots: ExtractedSlots
         distance_to_ski_lift_m=hotel.location_details.distance_to_ski_lift_m
     )
 
-def search_in_memory(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> List[HotelCardWidget]:
-    """Детерминированный in-memory поиск и ранжирование отелей."""
+def search_in_memory_with_telemetry(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> Tuple[List[HotelCardWidget], SearchTelemetry]:
+    """Детерминированный in-memory поиск и ранжирование отелей с подробной телеметрией."""
+    total_in_region = sum(1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower()))
     scored_hotels: List[Tuple[int, HotelFullSchema]] = []
+    scalar_matched = 0
 
     for h in dataset:
         if not matches_scalar_filters(h, slots):
             continue
+        scalar_matched += 1
 
         q_words = (slots.semantic_query or "").lower().split()
         tag_match = sum(1 for w in q_words if any(w in t.lower() for t in h.tags))
@@ -124,9 +127,27 @@ def search_in_memory(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> L
     for score_pct, h in scored_hotels[:6]:
         cards.append(build_hotel_card(h, float(score_pct), slots))
 
+    is_relaxed = False
     if not cards and dataset:
         cards = search_relaxed(dataset, slots)
+        is_relaxed = True
 
+    top_score = cards[0].match_score_pct if cards else 0
+    min_price = min((c.min_price_per_night_rub for c in cards), default=0)
+
+    telemetry = SearchTelemetry(
+        engine="In-Memory Dataset",
+        total_evaluated=len(dataset),
+        total_in_region=total_in_region,
+        scalar_matched=scalar_matched,
+        is_relaxed=is_relaxed,
+        top_score_pct=top_score,
+        min_price_rub=min_price,
+    )
+    return cards, telemetry
+
+def search_in_memory(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> List[HotelCardWidget]:
+    cards, _ = search_in_memory_with_telemetry(dataset, slots)
     return cards
 
 def search_relaxed(dataset: List[HotelFullSchema], slots: ExtractedSlots) -> List[HotelCardWidget]:

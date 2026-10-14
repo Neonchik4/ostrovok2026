@@ -11,7 +11,7 @@ describe("ThoughtStream component", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders thoughts with clean text without emoji in count", () => {
+  it("renders thoughts with clean text without emoji in count, collapsed by default and expandable", () => {
     const thoughts = [
       { step: "reasoning", text: "Оцениваю параметры поездки в Красную Поляну" },
       { step: "filtering", text: "Применяю фильтр: теплый бассейн" },
@@ -20,12 +20,19 @@ describe("ThoughtStream component", () => {
 
     render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
 
+    // Заголовок и счетчик шагов видны сразу
     expect(screen.getByText("Ход рассуждений агента")).toBeInTheDocument();
-    // Проверяем, что в заголовке нет эмодзи галочки ✅ перед шагами
     expect(screen.getByText("3 шагов")).toBeInTheDocument();
     expect(screen.queryByText(/✅/)).toBeNull();
 
-    // Проверяем текст мыслей
+    // По умолчанию свернуто — шагов нет на экране (нет перегрузки чата)
+    expect(screen.queryByText("Оцениваю параметры поездки в Красную Поляну")).toBeNull();
+
+    // Разворачиваем кликом
+    const toggleButton = screen.getByRole("button", { name: /Ход рассуждений агента/i });
+    fireEvent.click(toggleButton);
+
+    // Проверяем текст мыслей после раскрытия
     expect(screen.getByText("Оцениваю параметры поездки в Красную Поляну")).toBeInTheDocument();
     expect(screen.getByText("Применяю фильтр: теплый бассейн")).toBeInTheDocument();
     expect(screen.getByText("Найдено 4 отеля")).toBeInTheDocument();
@@ -37,13 +44,13 @@ describe("ThoughtStream component", () => {
       { step: "results", text: "Готово" },
     ];
 
-    render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+    render(<ThoughtStream thoughts={thoughts} isStreaming={false} defaultCollapsed={false} />);
 
     const itemText = screen.getByText("Анализирую запрошенные даты");
     expect(itemText.className).not.toContain("line-through");
   });
 
-  it("collapses and expands thoughts when header is clicked", () => {
+  it("is collapsed by default and expands/collapses when header is clicked", () => {
     const thoughts = [
       { step: "reasoning", text: "Тестовое рассуждение" },
     ];
@@ -51,18 +58,20 @@ describe("ThoughtStream component", () => {
     render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
 
     const toggleButton = screen.getByRole("button", { name: /Ход рассуждений агента/i });
-    expect(screen.getByText("Тестовое рассуждение")).toBeInTheDocument();
-
-    // Сворачиваем
-    fireEvent.click(toggleButton);
+    
+    // Свернуто по умолчанию
     expect(screen.queryByText("Тестовое рассуждение")).toBeNull();
 
-    // Разворачиваем обратно
+    // Разворачиваем кликом
     fireEvent.click(toggleButton);
     expect(screen.getByText("Тестовое рассуждение")).toBeInTheDocument();
+
+    // Сворачиваем обратно
+    fireEvent.click(toggleButton);
+    expect(screen.queryByText("Тестовое рассуждение")).toBeNull();
   });
 
-  it("shows live step progress when isThinking is true", () => {
+  it("shows live step progress in header ticker when isThinking is true", () => {
     const thoughts = [
       { step: "reasoning", text: "Анализирую параметры..." },
       { step: "filtering", text: "Применяю фильтры..." },
@@ -71,6 +80,7 @@ describe("ThoughtStream component", () => {
     render(<ThoughtStream thoughts={thoughts} isStreaming={true} isThinking={true} />);
 
     expect(screen.getByText("Шаг 2 из 5")).toBeInTheDocument();
+    // Актуальное действие отображается в компактном бегущем превью
     expect(screen.getByText("Применяю фильтры...")).toBeInTheDocument();
   });
 
@@ -81,7 +91,9 @@ describe("ThoughtStream component", () => {
       { step: "error", text: "Ошибка: Failed to fetch. Попробуйте повторить запрос." },
     ];
 
-    const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+    const { container } = render(
+      <ThoughtStream thoughts={thoughts} isStreaming={false} defaultCollapsed={false} />
+    );
 
     expect(screen.getByText("Сбой")).toBeInTheDocument();
     const errorText = screen.getByText("Ошибка: Failed to fetch. Попробуйте повторить запрос.");
@@ -107,7 +119,9 @@ describe("ThoughtStream component", () => {
       { step: "cancelled", text: "Ищу подходящие варианты (остановлено пользователем)" },
     ];
 
-    const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+    const { container } = render(
+      <ThoughtStream thoughts={thoughts} isStreaming={false} defaultCollapsed={false} />
+    );
 
     // В шапке должен быть бейдж остановки
     expect(screen.getByText("Остановлено")).toBeInTheDocument();
@@ -126,10 +140,32 @@ describe("ThoughtStream component", () => {
       { step: "cancelled", text: "Анализирую параметры запроса (остановлено пользователем)" },
     ];
 
-    const { container } = render(<ThoughtStream thoughts={thoughts} isStreaming={false} />);
+    const { container } = render(
+      <ThoughtStream thoughts={thoughts} isStreaming={false} defaultCollapsed={false} />
+    );
 
     expect(screen.getByText("Остановлено")).toBeInTheDocument();
     const checkmarks = container.querySelectorAll(".text-success");
     expect(checkmarks.length).toBe(0);
+  });
+
+  it("handles long detailed thoughts by clamping elaboration without exploding the screen", () => {
+    const thoughts = [
+      {
+        step: "reasoning",
+        text: "Оцениваю параметры запроса и формирую критерии поиска... Оцениваю запрос пользователя на поездку в Красную Поляну: едут вдвоем, берут с собой собаку и обязательно хотят отель с теплым бассейном. Учитывая горную специфику курорта, мне нужно сразу отсечь варианты, где действуют строгие ограничения на размещение с животным.",
+      },
+    ];
+
+    render(<ThoughtStream thoughts={thoughts} isStreaming={false} defaultCollapsed={false} />);
+
+    // Заголовок шага выделен аккуратно
+    expect(
+      screen.getByText("Оцениваю параметры запроса и формирую критерии поиска...")
+    ).toBeInTheDocument();
+    // Длинное пояснение аккуратно скомпоновано с line-clamp
+    const detailEl = screen.getByText(/Оцениваю запрос пользователя на поездку в Красную Поляну/i);
+    expect(detailEl).toBeInTheDocument();
+    expect(detailEl.className).toContain("line-clamp-2");
   });
 });

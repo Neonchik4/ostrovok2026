@@ -2,16 +2,40 @@
 
 import React, { useState } from "react";
 import { Thought } from "../model/types";
-import { Sparkles, Check, Loader2, ChevronDown, ChevronUp, X } from "lucide-react";
+import {
+  Card,
+  Badge,
+  Progress,
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/shared/ui";
+import { Sparkles, Check, Loader2, ChevronDown, X } from "lucide-react";
 
 interface ThoughtStreamProps {
   thoughts: Thought[];
   isStreaming: boolean;
   isThinking?: boolean;
+  defaultCollapsed?: boolean;
 }
 
-export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStreamProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+function parseThoughtText(text: string): { summary: string; detail: string } {
+  const dotsIdx = text.indexOf("...");
+  if (dotsIdx !== -1 && dotsIdx <= 80 && dotsIdx + 3 < text.length) {
+    const summary = text.slice(0, dotsIdx + 3).trim();
+    const detail = text.slice(dotsIdx + 3).trim();
+    if (detail.length > 0) return { summary, detail };
+  }
+  return { summary: text, detail: "" };
+}
+
+export function ThoughtStream({
+  thoughts,
+  isStreaming,
+  isThinking,
+  defaultCollapsed = true,
+}: ThoughtStreamProps) {
+  const [isOpen, setIsOpen] = useState(!defaultCollapsed);
 
   if (thoughts.length === 0) return null;
 
@@ -32,146 +56,160 @@ export function ThoughtStream({ thoughts, isStreaming, isThinking }: ThoughtStre
   );
 
   const isFailedOrStopped = hasError || isCancelled;
-  // Если передан isThinking — используем его, иначе опираемся на isStreaming (при ошибке/остановке процесс прекращается)
-  const activeThinking = !isFailedOrStopped && (isThinking !== undefined ? isThinking : isStreaming);
-  // Прогресс: при активном рассуждении последний шаг ещё в процессе
+  const activeThinking =
+    !isFailedOrStopped && (isThinking !== undefined ? isThinking : isStreaming);
   const completedSteps = activeThinking ? Math.max(0, totalSteps - 1) : totalSteps;
   const expectedSteps = 5;
   const progressPct = Math.min(100, Math.round((completedSteps / expectedSteps) * 100));
 
+  const latestThought = thoughts[thoughts.length - 1];
+  const { summary: latestSummary } = parseThoughtText(latestThought?.text ?? "");
+
   return (
-    <div
-      className="mb-4 overflow-hidden rounded-2xl border border-border bg-card/80 text-sm shadow-sm backdrop-blur-md"
+    <Card
+      className="mb-4 overflow-hidden border-border/80 bg-card/75 text-sm shadow-sm backdrop-blur-md transition-all duration-200"
       aria-live="polite"
       aria-label="Ход рассуждений агента"
     >
-      {/* Заголовок — кликабелен для collapse/expand */}
-      <button
-        type="button"
-        onClick={() => setIsCollapsed((c) => !c)}
-        className="flex w-full select-none items-center justify-between gap-2 px-4 py-3 text-sm font-bold text-primary transition-colors hover:bg-primary/5"
-        aria-expanded={!isCollapsed}
-      >
-        <span className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          {activeThinking ? (
-            <span className="thinking-shimmer">Рассуждаю...</span>
-          ) : (
-            <span>Ход рассуждений агента</span>
-          )}
-          {hasError ? (
-            <span className="ml-1.5 rounded-md border border-destructive/40 bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive shadow-sm">
-              Сбой
-            </span>
-          ) : isCancelled ? (
-            <span className="ml-1.5 rounded-md border border-destructive/40 bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive shadow-sm">
-              Остановлено
-            </span>
-          ) : !activeThinking ? (
-            <span className="ml-1.5 rounded-md border border-primary/25 bg-primary/10 px-2 py-0.5 text-xs font-semibold text-primary shadow-sm">
-              {totalSteps} шагов
-            </span>
-          ) : (
-            <span className="ml-1.5 rounded-md border border-primary/30 bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary shadow-sm">
-              Шаг {Math.min(totalSteps, expectedSteps)} из {expectedSteps}
-            </span>
-          )}
-        </span>
-        {isCollapsed ? (
-          <ChevronDown className="h-4 w-4 text-muted-foreground" />
-        ) : (
-          <ChevronUp className="h-4 w-4 text-muted-foreground" />
-        )}
-      </button>
-
-      {/* Прогресс-бар */}
-      {!isCollapsed && (
-        <div className="mx-0 h-0.5 w-full bg-border">
-          <div
-            className={`h-full transition-all duration-300 ease-out ${
-              isFailedOrStopped ? "bg-destructive" : "bg-primary"
-            }`}
-            style={{ width: `${progressPct}%` }}
-            aria-valuenow={progressPct}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            role="progressbar"
-          />
-        </div>
-      )}
-
-      {/* Список шагов */}
-      {!isCollapsed && (
-        <div className="space-y-2.5 px-4 py-3 pl-3">
-          {thoughts.map((item, idx) => {
-            const isStepError =
-              item.step === "error" ||
-              item.text.startsWith("Ошибка:") ||
-              item.text.includes("(сбой)") ||
-              item.text.toLowerCase().includes("ошибка");
-
-            const isStepCancelled =
-              item.step === "cancelled" ||
-              item.step === "stopped" ||
-              item.text.toLowerCase().includes("остановлен") ||
-              item.text.toLowerCase().includes("прерван");
-
-            // Шаг считается прерванным сбоем только если следующим элементом идёт системное сообщение об ошибке
-            const nextItem = thoughts[idx + 1];
-            const isInterruptedByError = Boolean(
-              nextItem &&
-                (nextItem.step === "error" || nextItem.text.startsWith("Ошибка:")) &&
-                !item.text.startsWith("Ошибка:")
-            );
-
-            // Если стрим был остановлен пользователем и это последний шаг, он не завершён
-            const isUnfinishedCancelledLast =
-              idx === thoughts.length - 1 && isCancelled;
-
-            const isFailed =
-              isStepError ||
-              isStepCancelled ||
-              isInterruptedByError ||
-              isUnfinishedCancelledLast;
-
-            const isLatest = idx === thoughts.length - 1 && activeThinking && !isFailed;
-
-            return (
-              <div
-                key={`${item.step}-${idx}`}
-                className="flex animate-fade-in items-start gap-2.5 transition-all duration-200"
-              >
-                {/* Статус-иконка: сбой/остановка (красный крестик), спиннер (активный шаг) или галочка (завершенный шаг) */}
-                <div className="mt-0.5 shrink-0">
-                  {isFailed ? (
-                    <div className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive/20 text-destructive">
-                      <X className="h-3 w-3 stroke-[2.5]" />
-                    </div>
-                  ) : isLatest ? (
-                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                  ) : (
-                    <Check className="h-4 w-4 text-success" />
-                  )}
-                </div>
-
-                {/* Текст шага мыслей */}
-                <span
-                  className={
-                    isFailed
-                      ? "font-medium leading-relaxed text-destructive"
-                      : isLatest
-                        ? "font-medium leading-relaxed text-foreground"
-                        : "leading-relaxed text-muted-foreground"
-                  }
-                >
-                  {item.text}
-                </span>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full select-none items-center justify-between gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/40 focus:outline-none"
+            aria-expanded={isOpen}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2.5">
+              <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <Sparkles
+                  className={`h-3.5 w-3.5 ${
+                    activeThinking ? "animate-pulse text-primary" : "text-primary/80"
+                  }`}
+                />
               </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="shrink-0 font-medium text-foreground">
+                  {activeThinking ? "Рассуждаю..." : "Ход рассуждений агента"}
+                </span>
+
+                {!isOpen && activeThinking && (
+                  <span className="hidden truncate text-xs text-muted-foreground sm:inline-block">
+                    {latestSummary}
+                  </span>
+                )}
+              </div>
+
+              <div className="ml-auto flex shrink-0 items-center gap-1.5">
+                {hasError ? (
+                  <Badge variant="destructive">Сбой</Badge>
+                ) : isCancelled ? (
+                  <Badge variant="destructive">Остановлено</Badge>
+                ) : activeThinking ? (
+                  <Badge variant="accent">
+                    Шаг {Math.min(totalSteps, expectedSteps)} из {expectedSteps}
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">{totalSteps} шагов</Badge>
+                )}
+              </div>
+            </div>
+
+            <ChevronDown
+              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200 ${
+                isOpen ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        </CollapsibleTrigger>
+
+        {/* Прогресс-бар рассуждений shadcn/ui */}
+        <Progress
+          value={isFailedOrStopped ? 100 : progressPct}
+          className={`h-0.5 rounded-none ${
+            isFailedOrStopped ? "[&>div]:bg-destructive" : "[&>div]:bg-primary"
+          }`}
+        />
+
+        {/* Список шагов рассуждений */}
+        <CollapsibleContent>
+          <div className="max-h-64 space-y-3 overflow-y-auto p-4 pt-3.5">
+            {thoughts.map((item, idx) => {
+              const isStepError =
+                item.step === "error" ||
+                item.text.startsWith("Ошибка:") ||
+                item.text.includes("(сбой)") ||
+                item.text.toLowerCase().includes("ошибка");
+
+              const isStepCancelled =
+                item.step === "cancelled" ||
+                item.step === "stopped" ||
+                item.text.toLowerCase().includes("остановлен") ||
+                item.text.toLowerCase().includes("прерван");
+
+              const nextItem = thoughts[idx + 1];
+              const isInterruptedByError = Boolean(
+                nextItem &&
+                  (nextItem.step === "error" || nextItem.text.startsWith("Ошибка:")) &&
+                  !item.text.startsWith("Ошибка:")
+              );
+
+              const isUnfinishedCancelledLast =
+                idx === thoughts.length - 1 && isCancelled;
+
+              const isFailed =
+                isStepError ||
+                isStepCancelled ||
+                isInterruptedByError ||
+                isUnfinishedCancelledLast;
+
+              const isLatest = idx === thoughts.length - 1 && activeThinking && !isFailed;
+              const { summary, detail } = parseThoughtText(item.text);
+
+              return (
+                <div
+                  key={`${item.step}-${idx}`}
+                  className="flex items-start gap-2.5 text-xs transition-opacity duration-200"
+                >
+                  <div className="mt-0.5 shrink-0">
+                    {isFailed ? (
+                      <div className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive/15 text-destructive">
+                        <X className="h-3 w-3 stroke-[2.5]" />
+                      </div>
+                    ) : isLatest ? (
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    ) : (
+                      <div className="flex h-4 w-4 items-center justify-center rounded-full bg-success-bg text-success">
+                        <Check className="h-3 w-3 stroke-[2.5]" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1 leading-relaxed">
+                    <span
+                      className={
+                        isFailed
+                          ? "font-medium text-destructive"
+                          : isLatest
+                            ? "font-medium text-foreground"
+                            : "text-muted-foreground"
+                      }
+                    >
+                      {detail && !isFailed ? summary : item.text}
+                    </span>
+
+                    {/* Дополнительная детализация шага (без простыни текста) */}
+                    {detail && !isFailed && (
+                      <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-muted-foreground hover:line-clamp-none transition-all">
+                        {detail}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
-

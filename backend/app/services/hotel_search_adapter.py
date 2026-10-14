@@ -7,8 +7,8 @@ Hotel Search Adapter Facade.
 - hotel_filters.py (скалярная фильтрация, калибровка скора, relaxation, чеки)
 """
 
-from typing import List
-from ..schemas.chat import ExtractedSlots, HotelCardWidget
+from typing import List, Tuple
+from ..schemas.chat import ExtractedSlots, HotelCardWidget, SearchTelemetry
 from ..schemas.hotel_models import HotelFullSchema
 from .vector_store import (
     init_dataset,
@@ -23,13 +23,17 @@ from .hotel_filters import (
     matches_scalar_filters,
     build_hotel_card,
     search_in_memory,
+    search_in_memory_with_telemetry,
     search_relaxed,
 )
 
-async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
-    """Векторный поиск по ChromaDB с последующей жесткой фильтрацией."""
+async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> Tuple[List[HotelCardWidget], SearchTelemetry]:
+    """Векторный поиск по ChromaDB с последующей жесткой фильтрацией и телеметрией."""
+    dataset = get_hotels_dataset()
+    total_in_region = sum(1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower()))
+
     if not is_vector_ready():
-        return []
+        return search_in_memory_with_telemetry(dataset, slots)
 
     # Строим семантический запрос из слотов
     query_parts = []
@@ -50,12 +54,15 @@ async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
     res = await query_chroma_raw(query_text, n_results=50)
 
     if not res or not res.get("metadatas") or not res.get("distances") or not res.get("ids"):
-        return search_in_memory(get_hotels_dataset(), slots)
+        cards, telem = search_in_memory_with_telemetry(dataset, slots)
+        telem.engine = "In-Memory (Chroma Fallback)"
+        return cards, telem
 
     distances = res["distances"][0]
     ids = res["ids"][0]
 
     scored_candidates = []
+    scalar_matched = 0
     for i in range(len(ids)):
         h_id = ids[i]
         hotel = get_hotel_by_id(h_id)
@@ -64,6 +71,7 @@ async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
 
         if not matches_scalar_filters(hotel, slots):
             continue
+        scalar_matched += 1
 
         dist = distances[i]
         raw_sim = 1.0 - float(dist)
@@ -76,32 +84,53 @@ async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
     for score_pct, hotel in scored_candidates[:6]:
         cards.append(build_hotel_card(hotel, float(score_pct), slots))
 
-    # Если строгие фильтры оставили 0 отелей — умное ослабление
+    is_relaxed = False
     if not cards:
-        cards = search_relaxed(get_hotels_dataset(), slots)
+        cards = search_relaxed(dataset, slots)
+        is_relaxed = True
 
+    top_score = cards[0].match_score_pct if cards else 0
+    min_price = min((c.min_price_per_night_rub for c in cards), default=0)
+
+    telemetry = SearchTelemetry(
+        engine="ChromaDB (HNSW)",
+        total_evaluated=len(ids),
+        total_in_region=total_in_region,
+        scalar_matched=scalar_matched,
+        is_relaxed=is_relaxed,
+        top_score_pct=top_score,
+        min_price_rub=min_price,
+    )
+    return cards, telemetry
+
+async def _search_chroma(slots: ExtractedSlots) -> List[HotelCardWidget]:
+    cards, _ = await _search_chroma_with_telemetry(slots)
     return cards
 
-async def search_hotels_unified(slots: ExtractedSlots) -> List[HotelCardWidget]:
+async def search_hotels_with_telemetry(slots: ExtractedSlots) -> Tuple[List[HotelCardWidget], SearchTelemetry]:
     """
-    Гибридный отказоустойчивый поиск:
+    Гибридный отказоустойчивый поиск с детальной телеметрией:
     1. Если доступна ChromaDB + SentenceTransformer -> Векторный + метаданные
     2. Иначе -> Быстрый детерминированный in-memory поиск по 2 600+ отелям с расчетом match_score
     """
     init_dataset()
     dataset = get_hotels_dataset()
     if not dataset:
-        return []
+        return [], SearchTelemetry(engine="Empty Dataset")
 
     # 1. Попытка через ChromaDB
     if is_vector_ready():
         try:
-            return await _search_chroma(slots)
+            return await _search_chroma_with_telemetry(slots)
         except Exception as e:
             print(f"[Search Fallback] Ошибка ChromaDB ({e}), переключение на in-memory...")
 
     # 2. In-Memory фильтрация и скоринг
-    return search_in_memory(dataset, slots)
+    return search_in_memory_with_telemetry(dataset, slots)
+
+async def search_hotels_unified(slots: ExtractedSlots) -> List[HotelCardWidget]:
+    cards, _ = await search_hotels_with_telemetry(slots)
+    return cards
 
 # Псевдонимы для обратной совместимости
 _compute_calibrated_match_score = compute_calibrated_match_score
@@ -111,6 +140,7 @@ _search_relaxed = lambda slots: search_relaxed(get_hotels_dataset(), slots)
 
 __all__ = [
     "search_hotels_unified",
+    "search_hotels_with_telemetry",
     "warmup_models",
     "init_dataset",
     "compute_calibrated_match_score",
