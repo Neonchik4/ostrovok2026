@@ -146,12 +146,10 @@ jobs:
             # Production application secrets come from the host's Doppler `prd`
             # service token; the compose file only references ${VAR} placeholders.
             if command -v doppler >/dev/null 2>&1; then
-              doppler run --project ostrovok2026 --config prd -- $COMPOSE pull
-              doppler run --project ostrovok2026 --config prd -- $COMPOSE up -d --remove-orphans
-            else
-              $COMPOSE pull
-              $COMPOSE up -d --remove-orphans
+              COMPOSE="doppler run --project ostrovok2026 --config prd -- $COMPOSE"
             fi
 
+            $COMPOSE pull
+            $COMPOSE up -d --remove-orphans
             docker image prune -f
             $COMPOSE ps
