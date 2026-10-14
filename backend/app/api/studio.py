@@ -21,6 +21,19 @@ _mem_proposals: Dict[str, Dict[str, Any]] = {}
 _mem_snapshots: Dict[str, Dict[str, Any]] = {}
 
 
+@router.get("/auth-status")
+async def get_auth_status():
+    """Проверяет режим работы и возвращает токен для локальной разработки (dev)."""
+    from ..config import settings
+    is_dev = getattr(settings, "APP_ENV", "development").lower() != "production"
+    auto_token = getattr(settings, "STUDIO_TEAM_TOKEN", "") if is_dev else None
+    return {
+        "is_dev": is_dev,
+        "auto_token": auto_token or ("dev_local_token" if is_dev else None),
+        "requires_auth": not is_dev,
+    }
+
+
 @router.get("/schema")
 async def get_schema(token: str = Depends(verify_team_token)):
     """Возвращает метаданные схемы таблиц и связей для интерактивной ER-диаграммы."""

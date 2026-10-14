@@ -195,12 +195,18 @@ export const StudioErDiagram: React.FC<Props> = ({ schema }) => {
                 key={idx}
                 className={`flex items-center justify-between p-2 rounded-lg border transition-colors ${
                   isHighlighted
-                    ? "border-primary bg-secondary text-primary font-medium"
+                    ? "border-primary bg-primary/10 text-primary font-semibold shadow-sm"
                     : "border-border bg-muted/30 text-foreground"
                 }`}
               >
                 <span className="font-mono">{rel.from_table}</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono">
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded font-mono ${
+                    isHighlighted
+                      ? "bg-primary text-primary-foreground font-semibold"
+                      : "bg-muted text-muted-foreground"
+                  }`}
+                >
                   {rel.label}
                 </span>
                 <span className="font-mono">{rel.to_table}</span>
