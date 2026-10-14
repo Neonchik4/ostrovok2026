@@ -112,23 +112,36 @@ jobs:
           IMAGE_TAG: ${{ steps.vars.outputs.tag }}
           GHCR_USER: ${{ github.actor }}
           APP_DIR: ${{ secrets.VM_APP_DIR }}
+          DOMAIN: ${{ secrets.DOMAIN }}
         with:
           host: ${{ secrets.VM_HOST }}
           username: ${{ secrets.VM_USER }}
           key: ${{ secrets.VM_SSH_KEY }}
           port: ${{ secrets.VM_SSH_PORT || '22' }}
-          envs: REGISTRY,GHCR_READ_TOKEN,GHCR_OWNER,IMAGE_TAG,GHCR_USER,APP_DIR
-          script_stop: true
+          envs: REGISTRY,GHCR_READ_TOKEN,GHCR_OWNER,IMAGE_TAG,GHCR_USER,APP_DIR,DOMAIN
           script: |
             set -euo pipefail
             APP_DIR="${APP_DIR:-/opt/ostrovok2026}"
             cd "$APP_DIR"
 
-            # Authenticate to the private registry for this pull only.
-            echo "$GHCR_READ_TOKEN" | docker login "$REGISTRY" -u "$GHCR_USER" --password-stdin
+            # Authenticate to the private registry for this pull if token is provided.
+            if [ -n "${GHCR_READ_TOKEN:-}" ]; then
+              echo "$GHCR_READ_TOKEN" | docker login "$REGISTRY" -u "$GHCR_USER" --password-stdin
+            fi
+
+            # Set domain in .env if provided via secret or fallback to host IP nip.io
+            if [ -n "${DOMAIN:-}" ]; then
+              echo "DOMAIN=${DOMAIN}" > .env
+            elif [ ! -f .env ]; then
+              echo "DOMAIN=158.160.228.85.nip.io" > .env
+            fi
 
             export GHCR_OWNER IMAGE_TAG
-            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.deploy.yml"
+            if docker compose version >/dev/null 2>&1; then
+              COMPOSE="docker compose -f docker-compose.yml -f docker-compose.deploy.yml"
+            else
+              COMPOSE="docker-compose -f docker-compose.yml -f docker-compose.deploy.yml"
+            fi
 
             # Production application secrets come from the host's Doppler `prd`
             # service token; the compose file only references ${VAR} placeholders.
