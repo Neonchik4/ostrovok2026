@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .api.chat_stream import router as chat_router
 from .api.hotels import router as hotels_router
+from .api.live_router import router as live_router
 from .api.studio import router as studio_router
 from .config import settings
 from .middleware.body_limit import RequestBodyLimitMiddleware
@@ -58,6 +59,7 @@ app.add_middleware(RequestBodyLimitMiddleware, max_bytes=2 * 1024 * 1024)
 app.include_router(chat_router, prefix=settings.API_PREFIX)
 app.include_router(hotels_router, prefix=settings.API_PREFIX)
 app.include_router(studio_router)
+app.include_router(live_router)
 
 @app.get("/health")
 @app.get(f"{settings.API_PREFIX}/health")
