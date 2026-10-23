@@ -14,6 +14,8 @@ class ActRequest(BaseModel):
     query: str = Field(description="Текстовый или расшифрованный голосовой запрос пользователя")
     persona: str | None = Field(default=None, description="Желаемая персона: bro | assistant | concierge")
     current_url: str | None = Field(default=None, description="Текущий адрес страницы поиска")
+    available_filters: list[str] | None = Field(default=None, description="Список доступных фильтров на странице")
+    page_type: str | None = Field(default=None, description="Тип текущей страницы (SERP, HOTEL_DETAIL, HOME)")
 
 
 @router.get("/health")
@@ -40,11 +42,13 @@ async def live_proxy_page(
 @router.post("/act", response_model=LiveActionResponse)
 async def live_act(body: ActRequest) -> LiveActionResponse:
     """
-    Принимает пользовательскую команду и формирует план действий (DOM steps) и ToV-реплику.
+    Принимает пользовательскую команду и формирует план действий (DOM steps) через Google Gemini (Flash-Lite).
     """
     return await action_service.plan_action(
         user_text=body.query,
         forced_persona=body.persona,
+        available_filters=body.available_filters,
+        page_type=body.page_type,
     )
 
 
@@ -58,10 +62,9 @@ async def live_proxy_api(
     """
     body = await request.body()
     status, headers, content = await proxy_service.proxy_api(
-        method=request.method,
         path=full_path,
+        method=request.method,
         headers=dict(request.headers),
-        content=body if body else None,
-        query_params=dict(request.query_params),
+        body=body,
     )
     return Response(content=content, status_code=status, headers=headers)

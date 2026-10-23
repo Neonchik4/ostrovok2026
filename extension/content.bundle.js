@@ -1,36 +1,143 @@
 // extension/src/semantic-dom.js
-function cleanQuery(rawText) {
-  return rawText.toLowerCase().replace(/^(найди|поищи|включи|поставь|выбери|добавь|покажи|отметь)\s+/i, "").replace(/\s+(и\s+включи|и\s+выбери|и\s+найди|фильтр|чекбокс|галочку)$/i, "").trim();
+function getRussianStem(word) {
+  if (!word || typeof word !== "string")
+    return "";
+  let w = word.toLowerCase().trim();
+  if (w.length <= 3)
+    return w;
+  w = w.replace(/(овского|евского|овскому|евскому|овским|евским|овском|евском|овская|евская|овское|евское|овской|евской|овские|евские|овских|евских|ов|ев|иями|ями|ами|ого|его|ому|ему|ыми|ими|ей|ой|ем|ом|ым|им|ам|ям|ах|ях|ую|юю|ое|ее|ие|ые|ых|их|ая|яя|ий|ый|ой|ин|на|но|ны|а|я|у|ю|е|о|ы|и)$/i, "");
+  return w.length >= 3 ? w : word.toLowerCase().trim();
 }
-function findFilterElement(targetName, doc = document) {
+function cleanQuery(rawText) {
+  if (!rawText)
+    return "";
+  return rawText.toLowerCase().replace(/^(найди|поищи|найти|включи|включить|поставь|поставить|выбери|выбрать|добавь|добавить|покажи|показать|отметь|отметить|активируй|активировать|сними|снять|убери|убрать|отключи|отключить)\s+/i, "").replace(/\s+(и\s+включи|и\s+включить|и\s+выбери|и\s+выбрать|и\s+найди|и\s+найти|фильтр|чекбокс|галочку|галочка)$/i, "").replace(/^(отель\s+в\s+|отели\s+в\s+|гостиница\s+в\s+|район\s+|достопримечательность\s+|пляж\s+|улица\s+)/i, "").replace(/^(с|со|без|в|во|на|под|от|до|для|около|у|к|по)\s+/i, "").trim();
+}
+function parsePriceRangeIntent(query) {
+  if (!query)
+    return null;
+  const q = query.toLowerCase();
+  let minPrice = null;
+  let maxPrice = null;
+  const rangeMatch = q.match(/(?:от\s*(\d[\d\s]*))\s*(?:до|-)\s*(\d[\d\s]*)/i);
+  if (rangeMatch) {
+    minPrice = parseInt(rangeMatch[1].replace(/\s+/g, ""), 10);
+    maxPrice = parseInt(rangeMatch[2].replace(/\s+/g, ""), 10);
+    return { minPrice, maxPrice };
+  }
+  const minMatch = q.match(/(?:минимальн[а-яё]*|мин\b|не меньше|не дешевле|(?:^|\s)от)\s*(?:цен[а-яё]*|стоимост[а-яё]*)?\s*(\d[\d\s]*)/iu);
+  if (minMatch) {
+    const val = parseInt(minMatch[1].replace(/\s+/g, ""), 10);
+    if (val >= 100)
+      minPrice = val;
+  }
+  const maxMatch = q.match(/(?:максимальн[а-яё]*|макс\b|не дороже|не больше|дешевле|бюджет|(?:^|\s)до)\s*(?:цен[а-яё]*|стоимост[а-яё]*)?\s*(\d[\d\s]*)/iu);
+  if (maxMatch) {
+    const val = parseInt(maxMatch[1].replace(/\s+/g, ""), 10);
+    if (val >= 100)
+      maxPrice = val;
+  }
+  if (minPrice === null && maxPrice === null) {
+    let genericMatch = q.match(/(?:цена|цену|стоимость)\s*(\d[\d\s]*)/i);
+    if (genericMatch) {
+      const val = parseInt(genericMatch[1].replace(/\s+/g, ""), 10);
+      if (val >= 100)
+        maxPrice = val;
+    } else {
+      genericMatch = q.match(/(\d[\d\s]*)\s*(?:₽|руб|рублей|р\b)/i);
+      if (genericMatch) {
+        const val = parseInt(genericMatch[1].replace(/\s+/g, ""), 10);
+        if (val >= 100)
+          maxPrice = val;
+      } else {
+        genericMatch = q.trim().match(/^(\d[\d\s]*)$/);
+        if (genericMatch) {
+          const val = parseInt(genericMatch[1].replace(/\s+/g, ""), 10);
+          if (val >= 500)
+            maxPrice = val;
+        }
+      }
+    }
+  }
+  if (minPrice !== null || maxPrice !== null) {
+    return { minPrice, maxPrice };
+  }
+  return null;
+}
+var SEMANTIC_FILTER_MAP = {
+  завтрак: ["breakfast", "halfboard", "fullboard"],
+  бассейн: ["has_pool", "pool"],
+  парковк: ["has_parking", "parking"],
+  вайфай: ["has_wifi", "wifi", "internet"],
+  интернет: ["has_wifi", "wifi", "internet"],
+  питомц: ["pets", "allow_pets"],
+  животн: ["pets", "allow_pets"],
+  собак: ["pets", "allow_pets"],
+  кондиционер: ["air_conditioning", "ac"],
+  пляж: ["beach", "first_line"],
+  спа: ["spa", "sauna"],
+  кухн: ["kitchen"]
+};
+function findFilterElement(targetName, doc = document, onStep = null) {
   const query = cleanQuery(targetName);
   if (!query)
     return null;
-  let match = searchVisibleLabels(query, doc);
+  let match = searchVisibleLabels(query, doc, onStep);
   if (match)
     return match;
   const spoilerButtons = Array.from(doc.querySelectorAll('button[class*="SpoilerButton"], button[class*="showMore"], button')).filter((b) => /показать еще/i.test(b.textContent || ""));
+  if (spoilerButtons.length > 0 && onStep) {
+    onStep("dom", `Раскрываю ${spoilerButtons.length} скрытых секций фильтров ("Показать еще")...`);
+  }
   for (const btn of spoilerButtons) {
     try {
       btn.click();
     } catch {}
   }
-  return searchVisibleLabels(query, doc);
+  return searchVisibleLabels(query, doc, onStep);
 }
-function searchVisibleLabels(query, doc = document) {
-  const candidateLabels = Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], label, [role="checkbox"]'));
+function searchVisibleLabels(query, doc = document, onStep = null) {
+  const candidateLabels = Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], [class*="SwitchableFilter"], label, [role="checkbox"]'));
+  if (onStep) {
+    onStep("dom", `Сканирую ${candidateLabels.length} элементов фильтров на странице для: «${query}»`);
+  }
+  const queryTokens = query.split(/\s+/).filter((t) => t.length >= 2);
+  const queryStems = queryTokens.map(getRussianStem);
+  for (const item of candidateLabels) {
+    const input = item.querySelector("input[type='checkbox']") || (item.tagName === "INPUT" ? item : null);
+    if (input) {
+      const val = (input.value || "").toLowerCase();
+      const name = (input.name || "").toLowerCase();
+      const id = (input.id || "").toLowerCase();
+      for (const stem of queryStems) {
+        const aliases = SEMANTIC_FILTER_MAP[stem] || [];
+        if (aliases.some((a) => val.includes(a) || name.includes(a) || id.includes(a))) {
+          const text = (item.textContent || "").toLowerCase().trim();
+          if (onStep)
+            onStep("dom", `Найдено семантическое соответствие [value="${val}"]`);
+          return { container: item, input, text };
+        }
+      }
+    }
+  }
   for (const item of candidateLabels) {
     const text = (item.textContent || "").toLowerCase().trim();
     if (text.includes(query)) {
       const input = item.querySelector("input[type='checkbox']") || (item.tagName === "INPUT" ? item : null);
+      if (onStep)
+        onStep("dom", `Найдено точное текстовое совпадение: «${text.slice(0, 35)}»`);
       return { container: item, input, text };
     }
   }
-  const tokens = query.split(/\s+/).filter((t) => t.length > 2);
   for (const item of candidateLabels) {
-    const text = (item.textContent || "").toLowerCase();
-    if (tokens.every((t) => text.includes(t))) {
+    const text = (item.textContent || "").toLowerCase().replace(/\d+$/, "").trim();
+    const labelTokens = text.split(/[\s,.-]+/).filter((t) => t.length >= 2);
+    const labelStems = labelTokens.map(getRussianStem);
+    const allMatched = queryStems.every((qs) => text.includes(qs) || labelStems.some((ls) => ls.includes(qs) || qs.includes(ls)));
+    if (allMatched && labelTokens.length > 0) {
       const input = item.querySelector("input[type='checkbox']") || (item.tagName === "INPUT" ? item : null);
+      if (onStep)
+        onStep("dom", `Совпадение по корню слова: «${text.slice(0, 35)}»`);
       return { container: item, input, text };
     }
   }
@@ -50,29 +157,78 @@ function setCheckboxSemanticState(inputEl, containerEl, desiredState = true) {
   clickable.click();
   return { changed: true, alreadyInState: false };
 }
-function setPriceLimit(maxPrice, doc = document) {
-  const priceInput = doc.querySelector('#price_to, input[name="price_to"], input[id*="price_to"]');
-  if (!priceInput)
+function setSinglePriceInput(inputEl, priceNum, isMin, doc, onStep) {
+  if (!inputEl)
     return false;
-  priceInput.focus();
+  const formatted = `${priceNum} ₽`;
+  if (onStep) {
+    onStep("dom", `Найден инпут #${inputEl.id} (${isMin ? "От" : "До"}), текущее: "${inputEl.value}"`);
+  }
+  inputEl.focus();
+  if (inputEl._valueTracker) {
+    inputEl._valueTracker.setValue("" + Math.random());
+  }
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-  const formatted = `${maxPrice} ₽`;
-  if (setter)
-    setter.call(priceInput, formatted);
-  else
-    priceInput.value = formatted;
-  priceInput.dispatchEvent(new Event("input", { bubbles: true }));
-  priceInput.dispatchEvent(new Event("change", { bubbles: true }));
-  priceInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
-  const thumb = doc.querySelectorAll('[role="slider"]')[1];
+  if (setter) {
+    setter.call(inputEl, formatted);
+  } else {
+    inputEl.value = formatted;
+  }
+  inputEl.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+  inputEl.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+  inputEl.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", keyCode: 13, bubbles: true }));
+  inputEl.dispatchEvent(new KeyboardEvent("keyup", { key: "Enter", keyCode: 13, bubbles: true }));
+  inputEl.blur();
+  inputEl.dispatchEvent(new FocusEvent("blur", { bubbles: true, composed: true }));
+  const wrapper = inputEl.closest("label, .InputBase_wrapper___7Lrs, .PriceFilter_inputs__PuZp0") || inputEl;
+  wrapper.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  if (onStep) {
+    onStep("action", `Установлено значение: ${formatted} в #${inputEl.id} (без необходимости ручного клика)`);
+  }
+  const thumbs = doc.querySelectorAll('[role="slider"]');
+  const thumb = isMin ? thumbs[0] : thumbs[1];
   if (thumb)
-    thumb.setAttribute("aria-valuenow", String(maxPrice));
+    thumb.setAttribute("aria-valuenow", String(priceNum));
   return true;
 }
-function setDistanceLimit(maxKm, doc = document) {
+function applyPriceRange(minPrice, maxPrice, doc = document, onStep = null) {
+  let anySuccess = false;
+  if (minPrice !== null && minPrice !== undefined) {
+    const minInput = doc.querySelector('#price_from, input[name="price_from"], input[id*="price_from"]');
+    if (minInput) {
+      const ok = setSinglePriceInput(minInput, minPrice, true, doc, onStep);
+      if (ok)
+        anySuccess = true;
+    } else if (onStep) {
+      onStep("error", "Инпут минимальной цены #price_from не найден");
+    }
+  }
+  if (maxPrice !== null && maxPrice !== undefined) {
+    const maxInput = doc.querySelector('#price_to, input[name="price_to"], input[id*="price_to"]');
+    if (maxInput) {
+      const ok = setSinglePriceInput(maxInput, maxPrice, false, doc, onStep);
+      if (ok)
+        anySuccess = true;
+    } else if (onStep) {
+      onStep("error", "Инпут максимальной цены #price_to не найден");
+    }
+  }
+  if (anySuccess) {
+    const container = doc.querySelector('.PriceFilter_inputs__PuZp0, [class*="PriceFilter"]') || doc.body;
+    container.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  }
+  return anySuccess;
+}
+function setPriceLimit(maxPrice, doc = document, onStep = null) {
+  return applyPriceRange(null, maxPrice, doc, onStep);
+}
+function setDistanceLimit(maxKm, doc = document, onStep = null) {
   const distInput = doc.querySelector('#distance_filter\\.field, input[name*="distance"]');
-  if (!distInput)
+  if (!distInput) {
+    if (onStep)
+      onStep("error", "Инпут фильтра расстояния не найден");
     return false;
+  }
   distInput.focus();
   const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
   const formatted = `${maxKm} км`;
@@ -82,10 +238,13 @@ function setDistanceLimit(maxKm, doc = document) {
     distInput.value = formatted;
   distInput.dispatchEvent(new Event("input", { bubbles: true }));
   distInput.dispatchEvent(new Event("change", { bubbles: true }));
+  distInput.dispatchEvent(new Event("blur", { bubbles: true }));
   distInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   const thumb = doc.querySelector('.DistanceFilter_root__gph2_ ~ .Slider_track__tp_xu [role="slider"]');
   if (thumb)
     thumb.setAttribute("aria-valuenow", String(maxKm));
+  if (onStep)
+    onStep("action", `Установлен лимит расстояния: ${maxKm} км`);
   return true;
 }
 function setSortOption(sortHint, doc = document) {
@@ -196,7 +355,7 @@ class GhostActor {
     const dist = Math.hypot(mouseX - this.currentCoords.x, mouseY - this.currentCoords.y);
     if (dist < 80) {
       this.isDodging = true;
-      this.returnHome("Уступаю место!").finally(() => {
+      this.returnHome("").finally(() => {
         setTimeout(() => {
           this.isDodging = false;
         }, 800);
@@ -234,10 +393,10 @@ class GhostActor {
       this.isExecuting = false;
     }
   }
-  async toggleSemanticFilter(targetName, desiredState = true) {
+  async toggleSemanticFilter(targetName, desiredState = true, onStep = null) {
     this.isExecuting = true;
     try {
-      const match = findFilterElement(targetName);
+      const match = findFilterElement(targetName, document, onStep);
       if (!match) {
         this.speak(`Не нашел фильтр «${shortenText(targetName, 25)}»`);
         return false;
@@ -457,6 +616,84 @@ class GhostCanvas {
   }
 }
 
+// extension/src/network.js
+var ENDPOINT_CANDIDATES = [
+  "http://127.0.0.1:8000",
+  "http://localhost:8080"
+];
+var cachedActiveBaseUrl = null;
+async function pingEndpoint(baseUrl, timeoutMs = 350) {
+  try {
+    const controller = new AbortController;
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const resp = await fetch(`${baseUrl}/api/live/health`, {
+      method: "GET",
+      signal: controller.signal
+    });
+    clearTimeout(timer);
+    if (resp.ok) {
+      const data = await resp.json();
+      return data.status === "ok" ? baseUrl : null;
+    }
+  } catch {}
+  return null;
+}
+async function getActiveBaseUrl() {
+  if (cachedActiveBaseUrl) {
+    const stillOk = await pingEndpoint(cachedActiveBaseUrl, 250);
+    if (stillOk)
+      return cachedActiveBaseUrl;
+  }
+  const checks = ENDPOINT_CANDIDATES.map((url) => pingEndpoint(url));
+  const results = await Promise.all(checks);
+  const found = results.find((r) => r !== null);
+  if (found) {
+    cachedActiveBaseUrl = found;
+    return found;
+  }
+  cachedActiveBaseUrl = ENDPOINT_CANDIDATES[0];
+  return cachedActiveBaseUrl;
+}
+async function requestActionPlan(query, persona = "bro", availableFilters = [], pageType = "SERP") {
+  const baseUrl = await getActiveBaseUrl();
+  try {
+    const resp = await fetch(`${baseUrl}/api/live/act`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        persona,
+        current_url: window.location.href,
+        available_filters: availableFilters,
+        page_type: pageType
+      })
+    });
+    if (resp.ok) {
+      return await resp.json();
+    }
+  } catch {}
+  return getDeterministicFallbackPlan(query, persona);
+}
+function getDeterministicFallbackPlan(query, persona) {
+  const qLower = query.toLowerCase();
+  const city = qLower.includes("питер") || qLower.includes("петербург") ? "Санкт-Петербург" : qLower.includes("москв") ? "Москва" : qLower.includes("казан") ? "Казань" : "Сочи";
+  const speechMap = {
+    bro: `Принято! Подбираю лучший вариант в ${city}. Сейчас открою выдачу и подсвечу отель.`,
+    assistant: `Запрос принят. Анализирую параметры поездки в ${city}. Выполняю переход в каталог.`,
+    concierge: `С удовольствием организую вашу поездку в ${city}. Представляю премиальную выборку.`
+  };
+  return {
+    persona: persona || "bro",
+    speech: speechMap[persona] || speechMap.bro,
+    steps: [
+      { action: "set_destination", selector: '[data-testid="destination-input"]', value: city, label: `Направление: ${city}` },
+      { action: "submit_search", selector: '[data-testid="search-button"]', value: "", label: "Запуск поиска" },
+      { action: "scroll_to_hotel", selector: '[data-testid="serp-hotelcard"]', value: "0", label: "Просмотр каталога" },
+      { action: "highlight_hotel", selector: '[data-testid="serp-hotelcard"]', value: "96% совпадение • Подогреваемый бассейн", label: "Топовый выбор" }
+    ]
+  };
+}
+
 // extension/src/voice.js
 class VoiceController {
   constructor(onTranscript, onListeningChange) {
@@ -536,7 +773,7 @@ function speakAloud(text) {
 
 // extension/src/intent-router.js
 function extractTargetEntity(rawText) {
-  return rawText.toLowerCase().replace(/^(найди|поищи|включи|поставь|выбери|добавь|покажи|отметь)\s+/i, "").replace(/\s+(и\s+включи|и\s+выбери|и\s+найди|фильтр|чекбокс)$/i, "").replace(/^(отель\s+в\s+|отели\s+в\s+|район\s+|достопримечательность\s+)/i, "").trim();
+  return cleanQuery(rawText);
 }
 async function routeUserIntent(rawQuery, actor, thoughtLog, pageContext) {
   const query = (rawQuery || "").trim();
@@ -558,38 +795,40 @@ async function routeUserIntent(rawQuery, actor, thoughtLog, pageContext) {
     if (ok) {
       thoughtLog.addStep("success", "Переход к реальному оформлению заказа на Островке");
     } else {
-      thoughtLog.addStep("dom", "Кнопка бронирования не найдена на текущем экране");
-      actor.speak("Ищу кнопку бронирования на странице...");
+      thoughtLog.addStep("error", "Кнопка бронирования отсутствует на текущем экране");
+      actor.speak("Кнопка бронирования не найдена на этой странице.");
     }
     return;
   }
-  const priceMatch = query.match(/(?:до|дешевле|не дороже|цена до)\s*(\d[\d\s]*)/i);
-  if (priceMatch) {
-    const rawVal = parseInt(priceMatch[1].replace(/\s+/g, ""), 10);
-    if (rawVal > 0) {
-      thoughtLog.addStep("dom", `Обнаружен фильтр цены: до ${rawVal} ₽`);
-      const targetInput = document.querySelector('#price_to, input[name="price_to"]');
+  const priceRange = parsePriceRangeIntent(query);
+  if (priceRange && (priceRange.minPrice || priceRange.maxPrice)) {
+    const minStr = priceRange.minPrice ? `от ${priceRange.minPrice} ₽` : "";
+    const maxStr = priceRange.maxPrice ? `до ${priceRange.maxPrice} ₽` : "";
+    const desc = [minStr, maxStr].filter(Boolean).join(" ");
+    thoughtLog.addStep("dom", `Распознан диапазон цен: ${desc}`);
+    const onStep2 = (tag, msg) => thoughtLog.addStep(tag, msg);
+    const ok = applyPriceRange(priceRange.minPrice, priceRange.maxPrice, document, onStep2);
+    if (ok) {
+      thoughtLog.addStep("success", `Цены успешно зафиксированы: ${desc}`);
+      actor.speak(`Установил цену: ${desc}!`);
+      const targetInput = document.querySelector(priceRange.maxPrice ? "#price_to" : "#price_from");
       if (targetInput)
-        await actor.flyToElement(targetInput, `Ставлю цену до ${rawVal} ₽`);
-      const ok = setPriceLimit(rawVal, document);
-      if (ok) {
-        thoughtLog.addStep("success", `Слайдер и инпут цены выставлены на ${rawVal} ₽`);
-        actor.speak(`Цена до ${rawVal} ₽ установлена!`);
-        return;
-      }
+        actor.flyToElement(targetInput);
+      return;
     }
   }
   const distMatch = query.match(/(?:до|ближе чем)\s*(\d+)\s*км/i);
   if (distMatch) {
     const km = parseInt(distMatch[1], 10);
     thoughtLog.addStep("dom", `Обнаружен фильтр расстояния: до ${km} км`);
-    const distEl = document.querySelector("#distance_filter\\.field");
-    if (distEl)
-      await actor.flyToElement(distEl, `Ставлю расстояние: ${km} км`);
-    const ok = setDistanceLimit(km, document);
+    const onStep2 = (tag, msg) => thoughtLog.addStep(tag, msg);
+    const ok = setDistanceLimit(km, document, onStep2);
     if (ok) {
       thoughtLog.addStep("success", `Фильтр расстояния установлен на ${km} км`);
       actor.speak(`Расстояние до ${km} км установлено!`);
+      const distEl = document.querySelector("#distance_filter\\.field");
+      if (distEl)
+        actor.flyToElement(distEl);
       return;
     }
   }
@@ -599,45 +838,85 @@ async function routeUserIntent(rawQuery, actor, thoughtLog, pageContext) {
     const ok = setSortOption(hint, document);
     if (ok) {
       thoughtLog.addStep("success", "Сортировка выдачи успешно изменена");
-      actor.speak("Сортировка обновлена!");
+      actor.speak(`Сортировка по ${hint === "дешев" ? "цене" : hint === "оценк" ? "рейтингу" : "расстоянию"} применена!`);
       return;
     }
   }
   const target = extractTargetEntity(query);
   const desiredState = !/выключ|сними|убери|отключ/i.test(query);
-  thoughtLog.addStep("dom", `Сканирую боковые фильтры на предмет: "${target}"...`);
-  const filterMatched = await actor.toggleSemanticFilter(target, desiredState);
+  thoughtLog.addStep("scan", `Поиск фильтра: «${target}» (целевое состояние: ${desiredState ? "ВКЛ" : "ВЫКЛ"})...`);
+  const onStep = (tag, msg) => thoughtLog.addStep(tag, msg);
+  const filterMatched = await actor.toggleSemanticFilter(target, desiredState, onStep);
   if (filterMatched) {
-    thoughtLog.addStep("success", `Фильтр «${target}» успешно переведен в состояние: ${desiredState ? "ВКЛ" : "ВЫКЛ"}`);
+    thoughtLog.addStep("success", `Фильтр «${target}» переведен в состояние: ${desiredState ? "ВКЛ" : "ВЫКЛ"}`);
     return;
   }
-  thoughtLog.addStep("dom", `«${target}» не найден в фильтрах текущей страницы. Проверяю поисковую строку направления...`);
+  thoughtLog.addStep("ai", `Локальный фильтр не найден. Подключаю Google Gemini (Flash-Lite)...`);
+  const availableFilters = Array.from(document.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"]')).slice(0, 30).map((n) => n.textContent?.replace(/\d+$/, "").trim()).filter(Boolean);
+  const plan = await requestActionPlan(query, "bro", availableFilters, pageContext.type);
+  if (plan && plan.steps && plan.steps.length > 0) {
+    if (plan.thought)
+      thoughtLog.addStep("ai", plan.thought);
+    if (plan.speech)
+      actor.speak(plan.speech);
+    let anySuccess = false;
+    for (const step of plan.steps) {
+      if (step.action === "set_price" && step.value) {
+        const ok = setPriceLimit(step.value, document, onStep);
+        if (ok)
+          anySuccess = true;
+      } else if (step.action === "toggle_filter" && step.value) {
+        const ok = await actor.toggleSemanticFilter(step.value, true, onStep);
+        if (ok)
+          anySuccess = true;
+      } else if (step.action === "set_sort" && step.value) {
+        const ok = setSortOption(step.value, document);
+        if (ok)
+          anySuccess = true;
+      } else if (step.action === "set_destination" && step.value) {
+        const ok = await executeDestinationSearch(step.value, actor, thoughtLog);
+        if (ok)
+          anySuccess = true;
+      }
+    }
+    if (anySuccess) {
+      thoughtLog.addStep("success", "План от Google Gemini успешно выполнен");
+      return;
+    }
+  }
+  thoughtLog.addStep("dom", `Проверяю поле ввода направления для: «${target}»...`);
+  const destDone = await executeDestinationSearch(target, actor, thoughtLog);
+  if (destDone)
+    return;
+  thoughtLog.addStep("error", `Действие для «${query}» не удалось сопоставить с элементами страницы.`);
+  actor.speak(`Не удалось найти фильтр или действие для «${target || query}».`);
+}
+async function executeDestinationSearch(target, actor, thoughtLog) {
   const searchSummary = document.querySelector('.SearchInfo_wrapper__iCRSw, [class*="SearchInfo"]');
   if (searchSummary && !document.querySelector('[data-testid="destination-input"]')) {
     searchSummary.click();
     await new Promise((r) => setTimeout(r, 400));
   }
-  let destInput = document.querySelector('[data-testid="destination-input"], input[placeholder*="Куда"], input[name="destination"], input[placeholder*="Город"]');
-  if (destInput) {
-    thoughtLog.addStep("action", `Ввожу направление «${target}» в поисковую строку`);
-    await actor.flyToElement(destInput, `Ввожу: ${target}`);
-    await actor.smoothType(destInput, target);
-    await new Promise((r) => setTimeout(r, 600));
-    const suggest = document.querySelector('[class*="Suggest"] [role="option"], [class*="Suggest"] li, [class*="PlaceSuggest"] li');
-    if (suggest) {
-      suggest.click();
-      thoughtLog.addStep("dom", "Выбран вариант из автодополнения");
-    }
-    const searchBtn = document.querySelector('[data-testid="search-button"], button[type="submit"]');
-    if (searchBtn) {
-      await actor.flyToElement(searchBtn, "Запускаю поиск!");
-      searchBtn.click();
-      thoughtLog.addStep("success", `Поиск по направлению «${target}» успешно запущен!`);
-    }
-    return;
+  const destInput = document.querySelector('[data-testid="destination-input"], input[placeholder*="Куда"], input[name="destination"], input[placeholder*="Город"]');
+  if (!destInput)
+    return false;
+  thoughtLog.addStep("action", `Ввожу направление «${target}» в поисковую строку`);
+  await actor.flyToElement(destInput, `Ввожу: ${target}`);
+  await actor.smoothType(destInput, target);
+  await new Promise((r) => setTimeout(r, 600));
+  const suggest = document.querySelector('[class*="Suggest"] [role="option"], [class*="Suggest"] li, [class*="PlaceSuggest"] li');
+  if (suggest) {
+    suggest.click();
+    thoughtLog.addStep("dom", "Выбран вариант из автодополнения");
   }
-  thoughtLog.addStep("action", `Выполняю общий запрос: ${query}`);
-  actor.speak(`Ищу: ${target || query}`);
+  const searchBtn = document.querySelector('[data-testid="search-button"], button[type="submit"]');
+  if (searchBtn) {
+    await actor.flyToElement(searchBtn, "Запускаю поиск!");
+    searchBtn.click();
+    thoughtLog.addStep("success", `Поиск по направлению «${target}» успешно запущен!`);
+    return true;
+  }
+  return false;
 }
 
 // extension/src/page-analyzer.js
@@ -727,9 +1006,14 @@ function getContextualChips(context, doc = document) {
     return chips;
   }
   if (context.type === "SERP") {
-    const filterNodes = Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], [class*="SwitchableFilter_label"]'));
+    const filterNodes = Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem_root"], [class*="SwitchableFilter_root"]'));
+    const candidates = filterNodes.length > 0 ? filterNodes : Array.from(doc.querySelectorAll(".FiltersListItem_root__UH0W8, label"));
     const extracted = [];
-    for (const node of filterNodes) {
+    for (const node of candidates) {
+      const input = node.querySelector('input[type="checkbox"]') || (node.tagName === "INPUT" ? node : null);
+      if (input && (input.checked || input.hasAttribute("checked"))) {
+        continue;
+      }
       const labelText = node.textContent?.replace(/\d+$/, "").trim() || "";
       const countEl = node.parentElement?.querySelector('[class*="count"]') || node.querySelector('[class*="count"]');
       const count = countEl ? parseInt(countEl.textContent || "0", 10) : 1;
@@ -741,10 +1025,16 @@ function getContextualChips(context, doc = document) {
     }
     if (extracted.length > 0)
       return extracted;
-    return [
-      { label: "С завтраком", action: "filter_завтрак" },
-      { label: "С бассейном", action: "filter_бассейн" }
-    ];
+    const isBreakfastChecked = Boolean(doc.querySelector('input[value="breakfast"]')?.checked);
+    const isPoolChecked = Boolean(doc.querySelector('input[value*="pool"]')?.checked);
+    const fallbacks = [];
+    if (!isBreakfastChecked)
+      fallbacks.push({ label: "С завтраком", action: "filter_завтрак" });
+    if (!isPoolChecked)
+      fallbacks.push({ label: "С бассейном", action: "filter_бассейн" });
+    fallbacks.push({ label: "Ближе к центру", action: "filter_центр" });
+    fallbacks.push({ label: "Топ по отзывам", action: "sort_rating" });
+    return fallbacks.slice(0, 4);
   }
   const destLinks = Array.from(doc.querySelectorAll('a[href*="/hotel/russia/"], a[href*="/hotel/"]')).map((a) => a.textContent?.trim() || "").filter((txt) => txt.length > 2 && txt.length < 25 && !/отели/i.test(txt));
   const uniqueDests = Array.from(new Set(destLinks)).slice(0, 4);
@@ -762,7 +1052,6 @@ class ThoughtLog {
     this.root = shadowRoot;
     this.container = null;
     this.listEl = null;
-    this.hideTimeout = null;
     this.init();
   }
   init() {
@@ -774,31 +1063,24 @@ class ThoughtLog {
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Ход мыслей агента (SSE Stream)</span>
         </div>
-        <div class="thought-live-badge">
-          <span class="thought-live-dot"></span>
-          <span>LIVE</span>
+        <div class="thought-header-actions">
+          <button type="button" class="thought-close-btn" id="thought-close-btn" title="Скрыть панель мыслей">×</button>
         </div>
       </div>
       <div class="thought-log-list" id="thought-log-list"></div>
     `;
     this.listEl = this.container.querySelector("#thought-log-list");
+    const closeBtn = this.container.querySelector("#thought-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => this.hide());
+    }
     this.root.appendChild(this.container);
   }
   show() {
-    if (this.hideTimeout)
-      clearTimeout(this.hideTimeout);
     this.container.classList.add("visible");
   }
-  hide(delayMs = 0) {
-    if (delayMs > 0) {
-      if (this.hideTimeout)
-        clearTimeout(this.hideTimeout);
-      this.hideTimeout = setTimeout(() => {
-        this.container.classList.remove("visible");
-      }, delayMs);
-    } else {
-      this.container.classList.remove("visible");
-    }
+  hide() {
+    this.container.classList.remove("visible");
   }
   clear() {
     if (this.listEl)
@@ -810,15 +1092,23 @@ class ThoughtLog {
       return;
     const item = document.createElement("div");
     item.className = "thought-log-item";
-    const tagClass = ["intent", "dom", "action", "success"].includes(tag) ? tag : "dom";
-    const tagLabel = tag === "intent" ? "ИНТЕНТ" : tag === "dom" ? "DOM" : tag === "action" ? "ДЕЙСТВИЕ" : "РЕЗУЛЬТАТ";
+    const tagClass = ["intent", "dom", "action", "success", "scan", "error", "ai"].includes(tag) ? tag : "dom";
+    const tagLabels = {
+      intent: "ИНТЕНТ",
+      dom: "DOM",
+      scan: "СКАНЕР",
+      action: "ДЕЙСТВИЕ",
+      success: "РЕЗУЛЬТАТ",
+      error: "ОШИБКА",
+      ai: "GEMINI AI"
+    };
+    const tagLabel = tagLabels[tagClass] || "DOM";
     item.innerHTML = `
       <span class="thought-tag ${tagClass}">[${tagLabel}]</span>
       <span class="thought-text">${text}</span>
     `;
     this.listEl.appendChild(item);
     this.listEl.scrollTop = this.listEl.scrollHeight;
-    this.hide(6000);
   }
 }
 
@@ -897,6 +1187,10 @@ class ThoughtLog {
     const pageContext = detectPageContext(window.location.href, document);
     renderChips(pageContext);
     greetForContext(pageContext);
+    async function handleUserCommand(rawText) {
+      await routeUserIntent(rawText, actor, thoughtLog, pageContext);
+      renderChips(pageContext);
+    }
     function renderChips(context) {
       const chips = getContextualChips(context);
       chipsContainer.innerHTML = "";
@@ -907,7 +1201,7 @@ class ThoughtLog {
         btn.textContent = c.label;
         btn.addEventListener("click", () => {
           const text = c.action === "toggle_chistyakovskaya" ? "Чистяковская роща" : c.label;
-          routeUserIntent(text, actor, thoughtLog, pageContext);
+          handleUserCommand(text);
         });
         chipsContainer.appendChild(btn);
       });
@@ -923,7 +1217,7 @@ class ThoughtLog {
     }
     const voice = new VoiceController((transcript) => {
       inputEl.value = transcript;
-      routeUserIntent(transcript, actor, thoughtLog, pageContext);
+      handleUserCommand(transcript);
     }, (listening) => {
       voiceBtn.classList.toggle("active", listening);
       ghostCanvas.setState(listening ? "speaking" : "idle");
@@ -935,7 +1229,7 @@ class ThoughtLog {
       if (!query)
         return;
       inputEl.value = "";
-      routeUserIntent(query, actor, thoughtLog, pageContext);
+      handleUserCommand(query);
     });
   }
   start();

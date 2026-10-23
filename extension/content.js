@@ -100,6 +100,11 @@ import { VoiceController } from "./src/voice.js";
   renderChips(pageContext);
   greetForContext(pageContext);
 
+  async function handleUserCommand(rawText) {
+    await routeUserIntent(rawText, actor, thoughtLog, pageContext);
+    renderChips(pageContext);
+  }
+
   function renderChips(context) {
     const chips = getContextualChips(context);
     chipsContainer.innerHTML = "";
@@ -110,7 +115,7 @@ import { VoiceController } from "./src/voice.js";
       btn.textContent = c.label;
       btn.addEventListener("click", () => {
         const text = c.action === "toggle_chistyakovskaya" ? "Чистяковская роща" : c.label;
-        routeUserIntent(text, actor, thoughtLog, pageContext);
+        handleUserCommand(text);
       });
       chipsContainer.appendChild(btn);
     });
@@ -130,7 +135,7 @@ import { VoiceController } from "./src/voice.js";
   const voice = new VoiceController(
     (transcript) => {
       inputEl.value = transcript;
-      routeUserIntent(transcript, actor, thoughtLog, pageContext);
+      handleUserCommand(transcript);
     },
     (listening) => {
       voiceBtn.classList.toggle("active", listening);
@@ -145,7 +150,7 @@ import { VoiceController } from "./src/voice.js";
       const query = inputEl.value.trim();
       if (!query) return;
       inputEl.value = "";
-      routeUserIntent(query, actor, thoughtLog, pageContext);
+      handleUserCommand(query);
     });
   }
 

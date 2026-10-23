@@ -1,6 +1,7 @@
 /**
  * Wild Thought Stream Logger UI
  * Streams and visualizes real-time reasoning and DOM actions above the Action Bar.
+ * Permanently visible during user session with manual close control.
  */
 
 export class ThoughtLog {
@@ -8,7 +9,6 @@ export class ThoughtLog {
     this.root = shadowRoot;
     this.container = null;
     this.listEl = null;
-    this.hideTimeout = null;
     this.init();
   }
 
@@ -21,31 +21,28 @@ export class ThoughtLog {
           <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           <span>Ход мыслей агента (SSE Stream)</span>
         </div>
-        <div class="thought-live-badge">
-          <span class="thought-live-dot"></span>
-          <span>LIVE</span>
+        <div class="thought-header-actions">
+          <button type="button" class="thought-close-btn" id="thought-close-btn" title="Скрыть панель мыслей">×</button>
         </div>
       </div>
       <div class="thought-log-list" id="thought-log-list"></div>
     `;
     this.listEl = this.container.querySelector("#thought-log-list");
+
+    const closeBtn = this.container.querySelector("#thought-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => this.hide());
+    }
+
     this.root.appendChild(this.container);
   }
 
   show() {
-    if (this.hideTimeout) clearTimeout(this.hideTimeout);
     this.container.classList.add("visible");
   }
 
-  hide(delayMs = 0) {
-    if (delayMs > 0) {
-      if (this.hideTimeout) clearTimeout(this.hideTimeout);
-      this.hideTimeout = setTimeout(() => {
-        this.container.classList.remove("visible");
-      }, delayMs);
-    } else {
-      this.container.classList.remove("visible");
-    }
+  hide() {
+    this.container.classList.remove("visible");
   }
 
   clear() {
@@ -59,8 +56,17 @@ export class ThoughtLog {
     const item = document.createElement("div");
     item.className = "thought-log-item";
 
-    const tagClass = ["intent", "dom", "action", "success"].includes(tag) ? tag : "dom";
-    const tagLabel = tag === "intent" ? "ИНТЕНТ" : tag === "dom" ? "DOM" : tag === "action" ? "ДЕЙСТВИЕ" : "РЕЗУЛЬТАТ";
+    const tagClass = ["intent", "dom", "action", "success", "scan", "error", "ai"].includes(tag) ? tag : "dom";
+    const tagLabels = {
+      intent: "ИНТЕНТ",
+      dom: "DOM",
+      scan: "СКАНЕР",
+      action: "ДЕЙСТВИЕ",
+      success: "РЕЗУЛЬТАТ",
+      error: "ОШИБКА",
+      ai: "GEMINI AI",
+    };
+    const tagLabel = tagLabels[tagClass] || "DOM";
 
     item.innerHTML = `
       <span class="thought-tag ${tagClass}">[${tagLabel}]</span>
@@ -69,8 +75,5 @@ export class ThoughtLog {
 
     this.listEl.appendChild(item);
     this.listEl.scrollTop = this.listEl.scrollHeight;
-
-    // Reset auto-hide timer: keep visible for 6 seconds after last step
-    this.hide(6000);
   }
 }

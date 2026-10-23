@@ -117,16 +117,24 @@ export function getContextualChips(context, doc = document) {
   if (context.type === "SERP") {
     // Dynamically extract top live filters that actually exist on the page
     const filterNodes = Array.from(
-      doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], [class*="SwitchableFilter_label"]')
+      doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem_root"], [class*="SwitchableFilter_root"]')
     );
+    const candidates = filterNodes.length > 0
+      ? filterNodes
+      : Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, label'));
 
     const extracted = [];
-    for (const node of filterNodes) {
+    for (const node of candidates) {
+      const input = node.querySelector('input[type="checkbox"]') || (node.tagName === "INPUT" ? node : null);
+      if (input && (input.checked || input.hasAttribute("checked"))) {
+        continue; // Exclude already active filters from suggested chips
+      }
+
       const labelText = node.textContent?.replace(/\d+$/, "").trim() || "";
       const countEl = node.parentElement?.querySelector('[class*="count"]') || node.querySelector('[class*="count"]');
       const count = countEl ? parseInt(countEl.textContent || "0", 10) : 1;
 
-      // Only offer filters that exist and have available hotels (> 0)
+      // Only offer filters that exist, are unchecked and have available hotels (> 0)
       if (labelText && count > 0 && !extracted.some((c) => c.label === labelText)) {
         extracted.push({ label: labelText, action: `filter_${labelText}` });
       }
@@ -135,11 +143,16 @@ export function getContextualChips(context, doc = document) {
 
     if (extracted.length > 0) return extracted;
 
-    // Minimal dynamic fallback if sidebar has not rendered yet
-    return [
-      { label: "С завтраком", action: "filter_завтрак" },
-      { label: "С бассейном", action: "filter_бассейн" },
-    ];
+    // Minimal dynamic fallback: check what is already active
+    const isBreakfastChecked = Boolean(doc.querySelector('input[value="breakfast"]')?.checked);
+    const isPoolChecked = Boolean(doc.querySelector('input[value*="pool"]')?.checked);
+
+    const fallbacks = [];
+    if (!isBreakfastChecked) fallbacks.push({ label: "С завтраком", action: "filter_завтрак" });
+    if (!isPoolChecked) fallbacks.push({ label: "С бассейном", action: "filter_бассейн" });
+    fallbacks.push({ label: "Ближе к центру", action: "filter_центр" });
+    fallbacks.push({ label: "Топ по отзывам", action: "sort_rating" });
+    return fallbacks.slice(0, 4);
   }
 
   // Home Page: Extract live popular destination links from DOM if present

@@ -112,23 +112,23 @@
 }
 
 /* === action-bar.css === */
-/* Floating Action Island / Bar (Docked at Bottom Center) */
+/* Floating Action Island / Bar (Docked at Bottom Center - 1.5x Enlarged) */
 .copilot-action-bar {
   position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(24px) scale(0.96);
   z-index: 2147483646;
-  background: rgba(22, 24, 29, 0.94);
+  background: rgba(22, 24, 29, 0.95);
   border: 1px solid #242731;
-  border-radius: 28px;
-  padding: 6px 10px 6px 14px;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border-radius: 36px;
+  padding: 10px 14px 10px 20px;
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   color: #F4F4F6;
   max-width: calc(100vw - 48px);
   opacity: 0;
@@ -147,17 +147,22 @@
 .action-bar-label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 8px;
+  font-size: 15px;
   font-weight: 700;
   color: #2DD4BF;
   white-space: nowrap;
 }
 
+.action-bar-label svg {
+  width: 18px;
+  height: 18px;
+}
+
 .action-chips {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -169,9 +174,9 @@
 .chip-btn {
   background: #1B1E26;
   border: 1px solid #2A2E3D;
-  border-radius: 16px;
-  padding: 5px 11px;
-  font-size: 12px;
+  border-radius: 20px;
+  padding: 8px 15px;
+  font-size: 13.5px;
   font-weight: 500;
   color: #E2E4E9;
   cursor: pointer;
@@ -181,27 +186,33 @@
 
 .chip-btn:hover {
   background: #242834;
-  border-color: #1652F0;
+  border-color: #2DD4BF;
   color: #FFFFFF;
+}
+
+.chip-btn.active {
+  background: rgba(45, 212, 191, 0.15);
+  border-color: #2DD4BF;
+  color: #2DD4BF;
 }
 
 .action-input-form {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   background: #0D0E11;
   border: 1px solid #242731;
-  border-radius: 20px;
-  padding: 3px 6px 3px 12px;
+  border-radius: 28px;
+  padding: 6px 8px 6px 16px;
 }
 
 .action-input {
   background: transparent;
   border: none;
   outline: none;
-  font-size: 12px;
+  font-size: 14.5px;
   color: #F4F4F6;
-  width: 170px;
+  width: 220px;
 }
 
 .action-input::placeholder {
@@ -216,9 +227,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   transition: all 0.15s ease;
+}
+
+.icon-btn svg, .submit-btn svg {
+  width: 17px;
+  height: 17px;
 }
 
 .icon-btn:hover {
@@ -237,28 +254,28 @@
 }
 
 .submit-btn {
-  background: #1652F0;
-  color: #FFFFFF;
+  background: #2DD4BF;
+  color: #0D0E11;
 }
 
 .submit-btn:hover {
-  background: #2563EB;
+  background: #14B8A6;
 }
 
 /* === thought-log.css === */
 /* Wild SSE Thought Stream Logger (Floating directly above Action Bar) */
 .copilot-thought-log {
   position: fixed;
-  bottom: 80px;
+  bottom: 96px;
   left: 50%;
   transform: translateX(-50%) translateY(12px) scale(0.96);
   z-index: 2147483645;
-  width: 520px;
+  width: 580px;
   max-width: calc(100vw - 48px);
-  background: rgba(18, 20, 26, 0.95);
-  border: 1px solid rgba(45, 212, 191, 0.3);
+  background: rgba(18, 20, 26, 0.96);
+  border: 1px solid rgba(45, 212, 191, 0.35);
   border-radius: 16px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -298,36 +315,33 @@
   letter-spacing: 0.04em;
 }
 
-.thought-live-badge {
-  display: inline-flex;
+.thought-header-actions {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  color: #10B981;
-  background: rgba(16, 185, 129, 0.12);
+  gap: 8px;
+}
+
+.thought-close-btn {
+  background: transparent;
+  border: none;
+  color: #8E92A0;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
   padding: 2px 6px;
-  border-radius: 10px;
-  font-weight: 600;
+  border-radius: 4px;
+  transition: color 0.15s ease;
 }
 
-.thought-live-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #10B981;
-  animation: live-blink 1.2s infinite;
-}
-
-@keyframes live-blink {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.4; transform: scale(0.85); }
+.thought-close-btn:hover {
+  color: #F4F4F6;
 }
 
 .thought-log-list {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  max-height: 120px;
+  gap: 6px;
+  max-height: 220px;
   overflow-y: auto;
   scrollbar-width: thin;
 }
@@ -336,7 +350,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.4;
   color: #D1D5DB;
   animation: thought-appear 0.2s ease;
@@ -350,15 +364,18 @@
 .thought-tag {
   font-size: 10px;
   font-weight: 700;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
 }
 
 .thought-tag.intent { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
 .thought-tag.dom { background: rgba(168, 85, 247, 0.2); color: #C084FC; }
+.thought-tag.scan { background: rgba(236, 72, 153, 0.2); color: #F472B6; }
 .thought-tag.action { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
 .thought-tag.success { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+.thought-tag.error { background: rgba(239, 68, 68, 0.2); color: #F87171; }
+.thought-tag.ai { background: rgba(14, 165, 233, 0.25); color: #38BDF8; }
 
 .thought-text {
   flex: 1;

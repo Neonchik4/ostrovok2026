@@ -117,7 +117,7 @@ export class GhostActor {
     const dist = Math.hypot(mouseX - this.currentCoords.x, mouseY - this.currentCoords.y);
     if (dist < 80) {
       this.isDodging = true;
-      this.returnHome("Уступаю место!").finally(() => {
+      this.returnHome("").finally(() => {
         setTimeout(() => {
           this.isDodging = false;
         }, 800);
@@ -154,10 +154,10 @@ export class GhostActor {
     }
   }
 
-  async toggleSemanticFilter(targetName, desiredState = true) {
+  async toggleSemanticFilter(targetName, desiredState = true, onStep = null) {
     this.isExecuting = true;
     try {
-      const match = findFilterElement(targetName);
+      const match = findFilterElement(targetName, document, onStep);
       if (!match) {
         this.speak(`Не нашел фильтр «${shortenText(targetName, 25)}»`);
         return false;

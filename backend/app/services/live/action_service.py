@@ -8,56 +8,51 @@ from ..llm_client import call_gemini_content
 
 
 class DOMAction(BaseModel):
-    action: str = Field(description="Тип действия: set_destination, toggle_filter, set_price, scroll_to_hotel, highlight_hotel")
-    selector: str = Field(default="", description="CSS селектор целевого элемента")
-    value: Any = Field(default=None, description="Значение для ввода или параметр")
-    label: str = Field(default="", description="Понятная подпись для пользователя")
+    action: str = Field(description="set_price | toggle_filter | set_sort | set_destination | scroll_to_hotel")
+    selector: str = Field(default="", description="Селектор или идентификатор элемента")
+    value: Any = Field(default=None, description="Значение для установки (число для цены, строка для направления)")
+    label: str = Field(default="", description="Описание шага для логирования")
 
 
 class LiveActionResponse(BaseModel):
     persona: str = Field(default="bro", description="bro | assistant | concierge")
-    speech: str = Field(description="Голосовая реплика / текст агента в выбранном ToV (БЕЗ ЭМОДЗИ)")
+    speech: str = Field(description="Голосовая реплика агента (БЕЗ ЭМОДЗИ, без слова 'Ищу')")
+    thought: str = Field(default="", description="Ход мыслей агента для отображения в логе")
     steps: list[DOMAction] = Field(default_factory=list, description="Шаги манипуляции страницей")
     detected_city: str | None = None
     target_hotel_badge: str = ""
 
 
 SYSTEM_PROMPT = """
-Ты — интеллектуальный браузерный AI-ассистент сервиса «Островок» (стиль Meta Muse).
-Твоя цель: принять запрос пользователя, выбрать подходящую персону и сгенерировать точный план действий (DOM steps) для реальной страницы поиска отелей ostrovok.ru.
+Ты — интеллектуальный браузерный AI-агент сервиса «Островок» (Google Gemini 3.5 Flash-Lite).
+Твоя цель: принять запрос пользователя, проанализировать доступные фильтры страницы и сгенерировать точный план действий (DOM steps).
 
-ПРАВИЛО ZERO-EMOJI: Категорически запрещено использовать эмодзи и смайлики (например :) или 🔥). Только живой текст!
+ПРАВИЛО ZERO-EMOJI: Категорически запрещено использовать эмодзи и смайлики (например :) или 🔥). Только чистый текст!
+ЗАПРЕТ СЛОВА "ИЩУ": Запрещено начинать реплику со слова "Ищу". Используй глаголы прямого действия: "Ставлю цену...", "Включаю фильтр...", "Выбираю отели с...".
 
-ПЕРСОНЫ:
-1. "bro" — заботливый тревел-бро. Живой неформальный сленг ("братан", "зашибись", "огонь", "ништяк", "хоромы"). Ищет скрытую выгоду, следит за бюджетом.
-2. "assistant" — деловой ассистент командировок. Сухой, точный, фокус на закрывающих документах, Wi-Fi, чеках и расположении у метро/центра.
-3. "concierge" — премиум-консьерж. Наглый апселл, сразу пушит 5 звезд, президентские люксы, спа и панорамные виды ("живем один раз, берем лучшее").
-
-ДЕЙСТВИЯ (steps):
-- set_destination: selector="input[placeholder*='Куда'], [data-testid='search-input']", value="Город"
-- toggle_filter: selector: селектор чекбокса ("бассейн", "спа", "пляж", "завтрак")
-- set_price: value=максимальная цена в рублях
-- scroll_to_hotel: selector="article, [data-testid='hotel-card']"
-- highlight_hotel: value=0 (первый отель), label="Аргумент рекомендации"
+ТИПЫ ДЕЙСТВИЙ (steps):
+1. "set_price" — установка максимальной цены: value=число (например 7500).
+2. "toggle_filter" — переключение чекбокса фильтра (завтрак, бассейн, питомцы, спа, пляж, район): value="название фильтра".
+3. "set_sort" — сортировка выдачи: value="дешев" | "оценк" | "расстоян".
+4. "set_destination" — ввод города или курорта в поисковую строку: value="Название города".
 
 Ответ верни СТРОГО в формате валидного JSON без markdown-оберток:
 {
   "persona": "bro",
-  "speech": "Текст ответа в выбранном стиле",
+  "thought": "Пользователь ищет отель с питомцами до 8000 руб в Сочи",
+  "speech": "Ставлю цену до 8 000 ₽ и включаю отели, где можно с питомцами!",
   "detected_city": "Сочи",
-  "target_hotel_badge": "Теплый бассейн и скидка 15%",
+  "target_hotel_badge": "Можно с собакой",
   "steps": [
-    {"action": "set_destination", "selector": "input[placeholder*='Куда']", "value": "Сочи", "label": "Ввод направления"},
-    {"action": "toggle_filter", "selector": "input[type='checkbox']", "value": "pool", "label": "Фильтр Бассейн"},
-    {"action": "scroll_to_hotel", "selector": "article", "value": 0, "label": "Фокус на лучшем отеле"},
-    {"action": "highlight_hotel", "selector": "article", "value": 0, "label": "Теплый бассейн и скидка 15%"}
+    {"action": "set_price", "value": 8000, "label": "Лимит цены 8 000 ₽"},
+    {"action": "toggle_filter", "value": "питомцы", "label": "Фильтр питомцев"}
   ]
 }
 """
 
 
 class LiveActionService:
-    """Сервис генерации действий агента Muse над живой страницей Островка."""
+    """Сервис генерации действий агента Muse на базе Google Gemini 3.5 Flash-Lite."""
 
     @staticmethod
     def _clean_emoji(text: str) -> str:
@@ -72,13 +67,11 @@ class LiveActionService:
         """Детерминированный fallback без моков, если LLM временно недоступна."""
         u = user_text.lower()
         city = "Сочи" if ("сочи" in u or "адлер" in u) else ("Санкт-Петербург" if ("питер" in u or "петербург" in u) else "Москва")
-        
-        has_pool = any(w in u for w in ["бассейн", "поплавать", "плавать"])
-        has_spa = any(w in u for w in ["спа", "spa", "массаж"])
-        is_luxury = any(w in u for w in ["люкс", "шикануть", "дорого", "премиум", "5 звезд"])
-        
-        p = persona if persona in ["bro", "assistant", "concierge"] else ("concierge" if is_luxury else "bro")
+        has_pool = any(w in u for w in ["бассейн", "поплавать"])
+        has_breakfast = any(w in u for w in ["завтрак", "поесть"])
+        is_luxury = any(w in u for w in ["люкс", "шикануть", "премиум", "5 звезд"])
 
+        p = persona if persona in ["bro", "assistant", "concierge"] else ("concierge" if is_luxury else "bro")
         steps: list[DOMAction] = [
             DOMAction(
                 action="set_destination",
@@ -87,26 +80,47 @@ class LiveActionService:
                 label=f"Направление: {city}",
             )
         ]
+
+        # Цена
+        price_match = re.search(r"(\d[\d\s]*)\s*(?:₽|руб)?", user_text)
+        if price_match:
+            try:
+                num = int(re.sub(r"\s+", "", price_match.group(1)))
+                if num >= 100:
+                    steps.append(DOMAction(action="set_price", value=num, label=f"Цена до {num} ₽"))
+            except ValueError:
+                pass
+
         if has_pool:
-            steps.append(DOMAction(action="toggle_filter", selector="input[value*='pool'], input[name*='pool']", value="pool", label="Фильтр: Бассейн"))
-        if has_spa:
-            steps.append(DOMAction(action="toggle_filter", selector="input[value*='spa'], input[name*='spa']", value="spa", label="Фильтр: Спа"))
+            steps.append(DOMAction(action="toggle_filter", value="бассейн", label="Фильтр: Бассейн"))
+        if has_breakfast:
+            steps.append(DOMAction(action="toggle_filter", value="завтрак", label="Фильтр: Завтрак"))
 
-        steps.append(DOMAction(action="scroll_to_hotel", selector="article, [data-testid='hotel-card']", value=0, label="Фокус на топовом отеле"))
-        steps.append(DOMAction(action="highlight_hotel", selector="article, [data-testid='hotel-card']", value=0, label="Проверено агентом"))
+        speech = f"Применяю параметры поездки: {', '.join(s.label for s in steps) if steps else city}."
+        return LiveActionResponse(
+            persona=p,
+            speech=self._clean_emoji(speech),
+            thought="Локальный парсинг параметров запроса",
+            steps=steps,
+            detected_city=city,
+            target_hotel_badge="Выбор Copilot"
+        )
 
-        if p == "assistant":
-            speech = f"Параметры поездки в {city} применены. Фильтры активированы, варианты отсортированы по удобству локации и закрывающим документам."
-        elif p == "concierge":
-            speech = f"Выбираем лучшее в {city}. Отсек компромиссы, подсветил отель высочайшего класса с премиальным сервисом."
-        else:
-            speech = f"Так, {city}! Накинул нужные галочки, ценник проверил. Зацени первый вариант — просто пушка!"
-
-        return LiveActionResponse(persona=p, speech=self._clean_emoji(speech), steps=steps, detected_city=city, target_hotel_badge="Топовый выбор")
-
-    async def plan_action(self, user_text: str, forced_persona: str | None = None) -> LiveActionResponse:
-        """Планирует действия агента над живой страницей."""
-        user_prompt = f"Запрос пользователя: \"{user_text}\"\nЖелаемая персона: {forced_persona or 'автоопределение'}"
+    async def plan_action(
+        self,
+        user_text: str,
+        forced_persona: str | None = None,
+        available_filters: list[str] | None = None,
+        page_type: str | None = None,
+    ) -> LiveActionResponse:
+        """Планирует действия агента через Google Gemini 3.5 Flash-Lite."""
+        filters_hint = f"\nДоступные фильтры на текущей странице: {', '.join(available_filters)}" if available_filters else ""
+        page_hint = f"\nТип страницы: {page_type}" if page_type else ""
+        user_prompt = (
+            f"Запрос пользователя: \"{user_text}\"\n"
+            f"Желаемая персона: {forced_persona or 'автоопределение'}"
+            f"{page_hint}{filters_hint}"
+        )
         full_prompt = f"{SYSTEM_PROMPT}\n\n{user_prompt}"
 
         raw_response = await call_gemini_content(full_prompt, timeout_sec=5.0)
@@ -114,7 +128,6 @@ class LiveActionService:
             return self._fallback_action(user_text, forced_persona or "bro")
 
         try:
-            # Извлекаем JSON
             json_text = raw_response.strip()
             if "```" in json_text:
                 json_text = re.sub(r"^```(?:json)?\s*", "", json_text)

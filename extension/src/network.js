@@ -49,20 +49,26 @@ export async function getActiveBaseUrl() {
   return cachedActiveBaseUrl;
 }
 
-export async function requestActionPlan(query, persona = "bro") {
+export async function requestActionPlan(query, persona = "bro", availableFilters = [], pageType = "SERP") {
   const baseUrl = await getActiveBaseUrl();
   try {
     const resp = await fetch(`${baseUrl}/api/live/act`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, persona, current_url: window.location.href })
+      body: JSON.stringify({
+        query,
+        persona,
+        current_url: window.location.href,
+        available_filters: availableFilters,
+        page_type: pageType,
+      })
     });
 
     if (resp.ok) {
       return await resp.json();
     }
   } catch {
-    // Graceful offline fallback plan
+    // Offline
   }
 
   return getDeterministicFallbackPlan(query, persona);
@@ -79,7 +85,7 @@ export function getDeterministicFallbackPlan(query, persona) {
     : "Сочи";
 
   const speechMap = {
-    bro: `Принято! Подбираю лучший вариант в ${city}. Сейчас открою выдачу и подсвечу топ-отель с бассейном.`,
+    bro: `Принято! Подбираю лучший вариант в ${city}. Сейчас открою выдачу и подсвечу отель.`,
     assistant: `Запрос принят. Анализирую параметры поездки в ${city}. Выполняю переход в каталог.`,
     concierge: `С удовольствием организую вашу поездку в ${city}. Представляю премиальную выборку.`
   };
@@ -88,10 +94,10 @@ export function getDeterministicFallbackPlan(query, persona) {
     persona: persona || "bro",
     speech: speechMap[persona] || speechMap.bro,
     steps: [
-      { action: "set_destination", selector: '[data-testid="destination-input"]', value: city, delay_ms: 300 },
-      { action: "submit_search", selector: '[data-testid="search-button"]', value: "", delay_ms: 500 },
-      { action: "scroll_to_hotel", selector: '[data-testid="serp-hotelcard"]', value: "0", delay_ms: 1200 },
-      { action: "highlight_hotel", selector: '[data-testid="serp-hotelcard"]', value: "96% совпадение • Подогреваемый бассейн", delay_ms: 400 }
+      { action: "set_destination", selector: '[data-testid="destination-input"]', value: city, label: `Направление: ${city}` },
+      { action: "submit_search", selector: '[data-testid="search-button"]', value: "", label: "Запуск поиска" },
+      { action: "scroll_to_hotel", selector: '[data-testid="serp-hotelcard"]', value: "0", label: "Просмотр каталога" },
+      { action: "highlight_hotel", selector: '[data-testid="serp-hotelcard"]', value: "96% совпадение • Подогреваемый бассейн", label: "Топовый выбор" }
     ]
   };
 }
