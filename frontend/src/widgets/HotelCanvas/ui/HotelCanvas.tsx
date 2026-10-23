@@ -1,9 +1,9 @@
 "use client";
 
-import { Building2,Hotel as HotelIcon, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
 import React, { useState } from "react";
 
-import { Hotel,HotelCard } from "@/entities/hotel";
+import { Hotel, HotelCard } from "@/entities/hotel";
 import { HotelDetailModal } from "@/features/hotel-details";
 import { Badge, Button } from "@/shared/ui";
 
@@ -38,13 +38,6 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
               {hotels.length === 1 ? "отель" : hotels.length < 5 ? "отеля" : "отелей"}
             </Badge>
           )}
-        </div>
-
-        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-          <SlidersHorizontal className="h-4 w-4 text-primary" />
-          <span>
-            Сортировка: <strong className="text-foreground">По релевантности (Match Score)</strong>
-          </span>
         </div>
       </header>
 
@@ -83,19 +76,17 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
                     <Sparkles className="mr-3 h-5 w-5 shrink-0 text-primary" />
                     <span>«Красная Поляна на двоих с собакой и теплым бассейном»</span>
                   </Button>
-
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() =>
-                      onSelectPrompt("Санкт-Петербург 5 звезд с включенным завтраком и спа")
+                      onSelectPrompt("Санкт-Петербург центр 4 звезды до 12000 руб")
                     }
                     className="h-auto justify-start rounded-xl border-border bg-card px-4 py-3.5 text-left text-base shadow-sm transition-all hover:border-primary/40 hover:bg-primary/15 hover:text-primary"
                   >
                     <Sparkles className="mr-3 h-5 w-5 shrink-0 text-primary" />
-                    <span>«Санкт-Петербург 5 звезд с включенным завтраком и спа»</span>
+                    <span>«Санкт-Петербург центр 4 звезды до 12000 руб»</span>
                   </Button>
-
                   <Button
                     variant="outline"
                     size="sm"

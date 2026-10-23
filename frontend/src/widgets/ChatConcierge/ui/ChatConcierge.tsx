@@ -61,7 +61,7 @@ export function ChatConcierge({
   return (
     <aside className="flex h-full w-[480px] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-2xl">
       {/* Шапка чата */}
-      <div className="flex items-center justify-between border-b border-border bg-card/90 p-4 px-5 backdrop-blur-md">
+      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border bg-card/90 px-5 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <Logo variant="mark" size={40} className="rounded-xl shadow-md" />
           <div>
