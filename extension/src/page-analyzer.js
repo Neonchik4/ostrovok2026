@@ -1,6 +1,6 @@
 /**
  * Page Analyzer: Multi-Page Intelligence for Ostrovok.ru
- * Distinguishes Home, SERP, and Hotel Detail pages, scraping live DOM context & logistics.
+ * 100% Dynamic: Scrapes live DOM elements, rooms, filters and links without hardcoded values.
  */
 
 export function detectPageContext(url = window.location.href, doc = document) {
@@ -55,7 +55,7 @@ export function analyzeHotelDetailPage(doc, urlObj) {
   const pathParts = urlObj.pathname.split("/").filter(Boolean);
   const city = pathParts.length > 2 ? pathParts[2] : "";
 
-  // Scrape room offers
+  // Scrape live room offers from DOM
   const roomRows = Array.from(doc.querySelectorAll('[class*="Room_root"], [data-testid*="room-row"], tr[class*="rate"], div[class*="RateCard"]'));
   const rooms = roomRows.slice(0, 5).map((row, idx) => {
     const title = row.querySelector('[class*="name"], [class*="Title"], h3, h4')?.textContent?.trim() || `Номер ${idx + 1}`;
@@ -65,8 +65,7 @@ export function analyzeHotelDetailPage(doc, urlObj) {
     return { idx, title, price, hasBreakfast, freeCancel, el: row };
   });
 
-  // Determine smart recommendation (best rate with breakfast or first option)
-  let recommendedRoom = rooms.find((r) => r.hasBreakfast) || rooms[0] || null;
+  const recommendedRoom = rooms.find((r) => r.hasBreakfast) || rooms[0] || null;
 
   return {
     hotelName,
@@ -84,24 +83,12 @@ export function analyzeSerpPage(doc, urlObj) {
   const cards = Array.from(doc.querySelectorAll('[data-testid="serp-hotelcard"], [class*="HotelCard"], [class*="zen-hotelcard"]'));
   const hotelCount = cards.length;
 
-  // Extract location from query params or header
   const pathParts = urlObj.pathname.split("/").filter(Boolean);
   const cityGuess = pathParts.length > 2 ? pathParts[2] : "городе";
-
-  // Check available filter checkboxes
-  const filterLabels = Array.from(doc.querySelectorAll("label, [role='checkbox'], [class*='FilterCheckbox']"));
-  const hasBreakfastFilter = filterLabels.some((l) => /завтрак/i.test(l.textContent || ""));
-  const hasPoolFilter = filterLabels.some((l) => /бассейн/i.test(l.textContent || ""));
-  const hasParkingFilter = filterLabels.some((l) => /парковк/i.test(l.textContent || ""));
-  const hasPetFilter = filterLabels.some((l) => /питомц|животн/i.test(l.textContent || ""));
 
   return {
     city: cityGuess,
     hotelCount,
-    hasBreakfastFilter,
-    hasPoolFilter,
-    hasParkingFilter,
-    hasPetFilter,
   };
 }
 
@@ -115,27 +102,57 @@ export function analyzeHomePage(doc, urlObj) {
   };
 }
 
-export function getContextualChips(context) {
-  switch (context.type) {
-    case "HOTEL_DETAIL":
-      return [
-        { label: "Выбрать лучший номер", action: "select_best_room" },
-        { label: "Забронировать на Островке", action: "book_on_ostrovok" },
-        { label: "Маршрут и логистика", action: "show_route_planner" },
-      ];
-    case "SERP":
-      return [
-        { label: "Включить завтрак", action: "toggle_breakfast" },
-        { label: "С бассейном", action: "toggle_pool" },
-        { label: "Ближе к центру", action: "filter_center" },
-        { label: "Топ по отзывам", action: "highlight_top" },
-      ];
-    case "HOME":
-    default:
-      return [
-        { label: "Краснодар 24-25 окт", action: "search_krasnodar" },
-        { label: "Сочи с бассейном", action: "search_sochi" },
-        { label: "Питер командировка", action: "search_spb" },
-      ];
+/**
+ * Dynamically extract relevant action chips from the LIVE DOM without hardcoded lists
+ */
+export function getContextualChips(context, doc = document) {
+  if (context.type === "HOTEL_DETAIL") {
+    const chips = [{ label: "Забронировать на Островке", action: "book_on_ostrovok" }];
+    if (context.data?.recommendedRoom) {
+      chips.unshift({ label: context.data.recommendedRoom.title, action: "select_best_room" });
+    }
+    return chips;
   }
+
+  if (context.type === "SERP") {
+    // Dynamically extract top live filters that actually exist on the page
+    const filterNodes = Array.from(
+      doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], [class*="SwitchableFilter_label"]')
+    );
+
+    const extracted = [];
+    for (const node of filterNodes) {
+      const labelText = node.textContent?.replace(/\d+$/, "").trim() || "";
+      const countEl = node.parentElement?.querySelector('[class*="count"]') || node.querySelector('[class*="count"]');
+      const count = countEl ? parseInt(countEl.textContent || "0", 10) : 1;
+
+      // Only offer filters that exist and have available hotels (> 0)
+      if (labelText && count > 0 && !extracted.some((c) => c.label === labelText)) {
+        extracted.push({ label: labelText, action: `filter_${labelText}` });
+      }
+      if (extracted.length >= 4) break;
+    }
+
+    if (extracted.length > 0) return extracted;
+
+    // Minimal dynamic fallback if sidebar has not rendered yet
+    return [
+      { label: "С завтраком", action: "filter_завтрак" },
+      { label: "С бассейном", action: "filter_бассейн" },
+    ];
+  }
+
+  // Home Page: Extract live popular destination links from DOM if present
+  const destLinks = Array.from(doc.querySelectorAll('a[href*="/hotel/russia/"], a[href*="/hotel/"]'))
+    .map((a) => a.textContent?.trim() || "")
+    .filter((txt) => txt.length > 2 && txt.length < 25 && !/отели/i.test(txt));
+
+  const uniqueDests = Array.from(new Set(destLinks)).slice(0, 4);
+  if (uniqueDests.length > 0) {
+    return uniqueDests.map((dest) => ({ label: dest, action: `search_${dest}` }));
+  }
+
+  return [
+    { label: "Поиск направления", action: "focus_destination" },
+  ];
 }

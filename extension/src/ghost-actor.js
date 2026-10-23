@@ -1,23 +1,44 @@
 /**
  * Ghost Actor & Flying Flight Engine
- * Animates ghost across viewport, physically hovering over inputs, filters, sliders, and cards.
- * Triggers real Ostrovok booking navigation.
+ * Handles concise speech, flight physics, evasive dodge AFTER action completion,
+ * and semantic filter execution.
  */
+import { findFilterElement, setCheckboxSemanticState } from "./semantic-dom.js";
+
+export function shortenText(text, maxChars = 50) {
+  if (!text) return "";
+  const cleaned = text.trim();
+  if (cleaned.length <= maxChars) return cleaned;
+  return cleaned.substring(0, maxChars - 3) + "...";
+}
 
 export class GhostActor {
   constructor(flyerElement, ghostCanvas, thoughtBubbleElement) {
     this.flyer = flyerElement;
     this.ghost = ghostCanvas;
     this.bubble = thoughtBubbleElement;
-    this.homeCoords = { right: 28, bottom: 28 };
+
     const winW = typeof window !== "undefined" ? window.innerWidth : 1024;
     const winH = typeof window !== "undefined" ? window.innerHeight : 768;
+    this.homeCoords = { x: winW - 90, y: winH - 90 };
     this.currentCoords = { x: winW - 90, y: winH - 90 };
+    this.isDodging = false;
+    this.isExecuting = false; // Busy lock: only dodge AFTER execution finishes!
   }
 
-  speak(text, durationMs = 3500) {
+  speak(text, durationMs = 3200) {
     if (!this.bubble) return;
-    this.bubble.textContent = text;
+    const short = shortenText(text, 65);
+    this.bubble.textContent = short;
+
+    // Adjust alignment so speech bubble never overflows left or right boundaries
+    this.bubble.classList.remove("align-center", "align-left");
+    if (this.currentCoords.x < 260) {
+      this.bubble.classList.add("align-left");
+    } else if (this.currentCoords.x < window.innerWidth - 300) {
+      this.bubble.classList.add("align-center");
+    }
+
     this.bubble.classList.add("visible");
     this.ghost.setState("speaking");
 
@@ -31,12 +52,11 @@ export class GhostActor {
   }
 
   async flyTo(targetX, targetY, speechText = "") {
-    if (speechText) this.speak(speechText, 3000);
+    if (speechText) this.speak(speechText, 2800);
 
     const startX = this.currentCoords.x;
     const dx = targetX - startX;
 
-    // Set flight lean & state
     this.ghost.setState("flying");
     const tilt = Math.max(-0.3, Math.min(0.3, dx * 0.0015));
     this.ghost.setTilt(tilt);
@@ -44,7 +64,6 @@ export class GhostActor {
     const winW = typeof window !== "undefined" ? window.innerWidth : 1024;
     const winH = typeof window !== "undefined" ? window.innerHeight : 768;
 
-    // Position flyer element via fixed styles
     this.flyer.style.left = `${Math.max(16, Math.min(winW - 80, targetX))}px`;
     this.flyer.style.top = `${Math.max(16, Math.min(winH - 80, targetY))}px`;
     this.flyer.style.right = "auto";
@@ -52,12 +71,10 @@ export class GhostActor {
 
     this.currentCoords = { x: targetX, y: targetY };
 
-    // Wait for transition to complete
-    await new Promise((r) => setTimeout(r, 680));
-
+    await new Promise((r) => setTimeout(r, 650));
     this.ghost.setTilt(0);
     this.ghost.setState("happy");
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 180));
     this.ghost.setState("idle");
   }
 
@@ -81,9 +98,31 @@ export class GhostActor {
   async returnHome(speechText = "") {
     const winW = typeof window !== "undefined" ? window.innerWidth : 1024;
     const winH = typeof window !== "undefined" ? window.innerHeight : 768;
-    const targetX = winW - 90;
-    const targetY = winH - 90;
-    await this.flyTo(targetX, targetY, speechText);
+    this.homeCoords = { x: winW - 90, y: winH - 90 };
+    await this.flyTo(this.homeCoords.x, this.homeCoords.y, speechText);
+  }
+
+  handleUserMouseMove(mouseX, mouseY) {
+    // Rule: Dodge ONLY after action is completed (isExecuting === false)
+    if (this.isExecuting || this.isDodging) return;
+
+    const isAtHome =
+      Math.abs(this.currentCoords.x - this.homeCoords.x) < 45 &&
+      Math.abs(this.currentCoords.y - this.homeCoords.y) < 45;
+
+    // Do not dodge if docked peacefully in home corner
+    if (isAtHome) return;
+
+    // If user's mouse approaches ghost within 80px while idle in page body, yield
+    const dist = Math.hypot(mouseX - this.currentCoords.x, mouseY - this.currentCoords.y);
+    if (dist < 80) {
+      this.isDodging = true;
+      this.returnHome("Уступаю место!").finally(() => {
+        setTimeout(() => {
+          this.isDodging = false;
+        }, 800);
+      });
+    }
   }
 
   pulseElement(element) {
@@ -94,80 +133,88 @@ export class GhostActor {
     }, 1200);
   }
 
-  async smoothType(inputEl, text, charDelay = 40) {
+  async smoothType(inputEl, text, charDelay = 35) {
     if (!inputEl) return;
-    if (typeof inputEl.focus === "function") inputEl.focus();
-    let current = "";
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+    this.isExecuting = true;
+    try {
+      if (typeof inputEl.focus === "function") inputEl.focus();
+      let current = "";
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
 
-    for (const char of text) {
-      current += char;
-      if (setter) setter.call(inputEl, current);
-      else inputEl.value = current;
-      inputEl.dispatchEvent(new Event("input", { bubbles: true }));
-      await new Promise((r) => setTimeout(r, charDelay));
+      for (const char of text) {
+        current += char;
+        if (setter) setter.call(inputEl, current);
+        else inputEl.value = current;
+        inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        await new Promise((r) => setTimeout(r, charDelay));
+      }
+      inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+    } finally {
+      this.isExecuting = false;
     }
-    inputEl.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
-  async toggleFilterCheckbox(filterName) {
-    const labels = Array.from(document.querySelectorAll("label, [role='checkbox'], [class*='FilterCheckbox'], [class*='Control_label']"));
-    const target = labels.find((l) => new RegExp(filterName, "i").test(l.textContent || ""));
+  async toggleSemanticFilter(targetName, desiredState = true) {
+    this.isExecuting = true;
+    try {
+      const match = findFilterElement(targetName);
+      if (!match) {
+        this.speak(`Не нашел фильтр «${shortenText(targetName, 25)}»`);
+        return false;
+      }
 
-    if (target) {
-      await this.flyToElement(target, `Включаю фильтр: ${filterName}`);
-      const clickable = target.querySelector("input[type='checkbox']") || target;
-      clickable.click();
+      await this.flyToElement(match.container, `Лечу к фильтру: ${shortenText(targetName, 22)}`);
+      const res = setCheckboxSemanticState(match.input, match.container, desiredState);
+
+      if (res.alreadyInState) {
+        this.speak(`Фильтр уже ${desiredState ? "включен" : "выключен"}!`);
+      } else {
+        this.speak(`${desiredState ? "Включил" : "Снял"}: ${shortenText(targetName, 25)}`);
+      }
+
+      this.pulseElement(match.container);
       return true;
+    } finally {
+      this.isExecuting = false;
     }
-    return false;
   }
 
   async highlightRoomOffer(room) {
     if (!room || !room.el) return;
-    await this.flyToElement(room.el, "Выбрал лучший тариф с завтраком!");
+    this.isExecuting = true;
+    try {
+      await this.flyToElement(room.el, "Выбрал лучший тариф с завтраком!");
 
-    // Add badge to room row
-    let badge = room.el.querySelector(".ostrovok-copilot-room-badge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.className = "ostrovok-copilot-room-badge";
-      badge.textContent = "Рекомендация Copilot: Выгодный тариф";
-      room.el.prepend(badge);
+      let badge = room.el.querySelector(".ostrovok-copilot-room-badge");
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.className = "ostrovok-copilot-room-badge";
+        badge.textContent = "Рекомендация Copilot";
+        room.el.prepend(badge);
+      }
+    } finally {
+      this.isExecuting = false;
     }
-
-    const bookBtn = room.el.querySelector("button, [class*='Button'], a[href*='book']");
-    if (bookBtn) this.pulseElement(bookBtn);
   }
 
   async bookRoomOnOstrovok(room) {
-    let bookBtn = room?.el?.querySelector("button, [class*='Button'], a[href*='order'], a[href*='book']");
-    if (!bookBtn) {
-      bookBtn = document.querySelector('[data-testid*="book-button"], button[class*="BookButton"], a[href*="/order/"]');
-    }
+    this.isExecuting = true;
+    try {
+      let bookBtn = room?.el?.querySelector("button, [class*='Button'], a[href*='order'], a[href*='book']");
+      if (!bookBtn) {
+        bookBtn = document.querySelector('[data-testid*="book-button"], button[class*="BookButton"], a[href*="/order/"]');
+      }
 
-    if (bookBtn) {
-      await this.flyToElement(bookBtn, "Перехожу к бронированию на Островке!");
-      this.pulseElement(bookBtn);
-      await new Promise((r) => setTimeout(r, 400));
-      bookBtn.click();
-      return true;
+      if (bookBtn) {
+        await this.flyToElement(bookBtn, "Перехожу к бронированию на Островке!");
+        this.pulseElement(bookBtn);
+        await new Promise((r) => setTimeout(r, 400));
+        bookBtn.click();
+        return true;
+      }
+      return false;
+    } finally {
+      this.isExecuting = false;
     }
-    return false;
-  }
-
-  async highlightHotelCard(cardEl, matchText = "98% совпадение • Лучший по отзывам") {
-    if (!cardEl) return;
-    await this.flyToElement(cardEl, matchText);
-
-    let badge = cardEl.querySelector(".ostrovok-copilot-injected-badge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.className = "ostrovok-copilot-injected-badge";
-      badge.innerHTML = `<span class="badge-dot"></span><span class="badge-text">${matchText}</span>`;
-      cardEl.appendChild(badge);
-    }
-    cardEl.style.borderColor = "#1652F0";
-    cardEl.style.boxShadow = "0 0 0 2px #1652F0, 0 12px 32px rgba(22, 82, 240, 0.22)";
   }
 }

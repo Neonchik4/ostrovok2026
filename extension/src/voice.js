@@ -1,23 +1,22 @@
 /**
- * Web Speech API Controller for Voice Input
- * Audio synthesis is muted by default as requested.
+ * Web Speech API Voice Controller & Speech Synthesis
+ * Captures microphone input and synthesizes friendly Russian responses.
  */
+
 export class VoiceController {
-  constructor(onResultCallback, onStateChangeCallback) {
-    this.onResult = onResultCallback;
-    this.onStateChange = onStateChangeCallback;
+  constructor(onTranscript, onListeningChange) {
+    this.onTranscript = onTranscript;
+    this.onListeningChange = onListeningChange;
     this.recognition = null;
     this.isListening = false;
-    this.init();
+
+    this.initRecognition();
   }
 
-  init() {
+  initRecognition() {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      this.supported = false;
-      return;
-    }
-    this.supported = true;
+    if (!SpeechRecognition) return;
+
     this.recognition = new SpeechRecognition();
     this.recognition.lang = "ru-RU";
     this.recognition.continuous = false;
@@ -25,37 +24,68 @@ export class VoiceController {
 
     this.recognition.onstart = () => {
       this.isListening = true;
-      if (this.onStateChange) this.onStateChange(true);
-    };
-
-    this.recognition.onend = () => {
-      this.isListening = false;
-      if (this.onStateChange) this.onStateChange(false);
+      if (this.onListeningChange) this.onListeningChange(true);
     };
 
     this.recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      if (this.onResult && transcript) {
-        this.onResult(transcript);
+      const transcript = event.results[0]?.[0]?.transcript?.trim();
+      if (transcript && this.onTranscript) {
+        this.onTranscript(transcript);
       }
     };
 
     this.recognition.onerror = () => {
+      this.stop();
+    };
+
+    this.recognition.onend = () => {
       this.isListening = false;
-      if (this.onStateChange) this.onStateChange(false);
+      if (this.onListeningChange) this.onListeningChange(false);
     };
   }
 
-  toggle() {
-    if (!this.supported) return;
-    if (this.isListening) {
-      this.recognition.stop();
-    } else {
-      try {
-        this.recognition.start();
-      } catch {
-        // already started
-      }
+  start() {
+    if (!this.recognition || this.isListening) return;
+    try {
+      this.recognition.start();
+    } catch {
+      // Ignored if already active
     }
+  }
+
+  stop() {
+    if (!this.recognition || !this.isListening) return;
+    try {
+      this.recognition.stop();
+    } catch {
+      // Ignored
+    }
+    this.isListening = false;
+    if (this.onListeningChange) this.onListeningChange(false);
+  }
+
+  toggle() {
+    if (this.isListening) this.stop();
+    else this.start();
+  }
+}
+
+/**
+ * Speech Synthesis (Audio Output)
+ */
+export function speakAloud(text) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  try {
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[^\w\sа-яА-ЯёЁ.,!?-]/gi, "").trim();
+    if (!cleanText) return;
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = "ru-RU";
+    utterance.rate = 1.05;
+    utterance.pitch = 1.05;
+    window.speechSynthesis.speak(utterance);
+  } catch {
+    // Graceful fallback if audio permissions are restricted
   }
 }

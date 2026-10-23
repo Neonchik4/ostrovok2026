@@ -1,15 +1,15 @@
-/* Scoped Styles for Shadow DOM Ostrovok Muse Copilot */
+/* Consolidated Styles for Ostrovok Muse Copilot (Self-Contained) */
 :host {
   all: initial;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   box-sizing: border-box;
 }
-
 *, *::before, *::after {
   box-sizing: inherit;
 }
 
-/* Flying Ghost Mascot Layer */
+/* === ghost.css === */
+/* Flying Ghost Mascot & Adaptive Thought Bubble */
 .ostrovok-ghost-flyer {
   position: fixed;
   right: 28px;
@@ -18,7 +18,7 @@
   height: 64px;
   z-index: 2147483647;
   pointer-events: auto;
-  cursor: grab;
+  cursor: pointer;
   background: transparent;
   border: none;
   padding: 0;
@@ -41,22 +41,25 @@
   background: transparent;
 }
 
-/* Thought / Speech Bubble attached directly to Ghost */
 .ghost-thought-bubble {
   position: absolute;
   bottom: calc(100% + 12px);
-  left: 50%;
-  transform: translateX(-50%) translateY(6px);
+  right: 0;
+  left: auto;
+  transform: translateY(6px);
   background: rgba(18, 20, 26, 0.96);
   border: 1px solid rgba(22, 82, 240, 0.45);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
   color: #F4F4F6;
   padding: 8px 14px;
   border-radius: 14px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
-  white-space: nowrap;
-  max-width: 320px;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+  width: max-content;
+  max-width: 250px;
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
@@ -69,26 +72,52 @@
 .ghost-thought-bubble.visible {
   opacity: 1;
   visibility: visible;
+  transform: translateY(0);
+}
+
+.ghost-thought-bubble.align-center {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+}
+
+.ghost-thought-bubble.align-center.visible {
   transform: translateX(-50%) translateY(0);
+}
+
+.ghost-thought-bubble.align-left {
+  right: auto;
+  left: 0;
 }
 
 .ghost-thought-bubble::after {
   content: "";
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  right: 24px;
   border-width: 6px;
   border-style: solid;
   border-color: rgba(18, 20, 26, 0.96) transparent transparent transparent;
 }
 
-/* Minimalist Floating Action Bar (Bottom Center/Right) */
+.ghost-thought-bubble.align-center::after {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.ghost-thought-bubble.align-left::after {
+  right: auto;
+  left: 24px;
+}
+
+/* === action-bar.css === */
+/* Floating Action Island / Bar (Docked at Bottom Center) */
 .copilot-action-bar {
   position: fixed;
   bottom: 24px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateY(24px) scale(0.96);
   z-index: 2147483646;
   background: rgba(22, 24, 29, 0.94);
   border: 1px solid #242731;
@@ -102,7 +131,17 @@
   gap: 10px;
   color: #F4F4F6;
   max-width: calc(100vw - 48px);
-  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.25s;
+}
+
+.copilot-action-bar.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
 .action-bar-label {
@@ -115,7 +154,6 @@
   white-space: nowrap;
 }
 
-/* Quick Chips inside Action Bar */
 .action-chips {
   display: flex;
   align-items: center;
@@ -138,17 +176,15 @@
   color: #E2E4E9;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .chip-btn:hover {
   background: #242834;
   border-color: #1652F0;
   color: #FFFFFF;
-  transform: translateY(-1px);
 }
 
-/* Quick Input Row */
 .action-input-form {
   display: flex;
   align-items: center;
@@ -209,6 +245,127 @@
   background: #2563EB;
 }
 
+/* === thought-log.css === */
+/* Wild SSE Thought Stream Logger (Floating directly above Action Bar) */
+.copilot-thought-log {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px) scale(0.96);
+  z-index: 2147483645;
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  background: rgba(18, 20, 26, 0.95);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  border-radius: 16px;
+  padding: 10px 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #F4F4F6;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.copilot-thought-log.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.thought-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.thought-log-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2DD4BF;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.thought-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.thought-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: live-blink 1.2s infinite;
+}
+
+@keyframes live-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.thought-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.thought-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #D1D5DB;
+  animation: thought-appear 0.2s ease;
+}
+
+@keyframes thought-appear {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.thought-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.thought-tag.intent { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+.thought-tag.dom { background: rgba(168, 85, 247, 0.2); color: #C084FC; }
+.thought-tag.action { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+.thought-tag.success { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+
+.thought-text {
+  flex: 1;
+  word-break: break-word;
+}
+
+/* === injected.css === */
 /* Injected Badges & Target Pulse Glow */
 .ostrovok-copilot-targeted {
   outline: 2px solid #1652F0 !important;
@@ -247,186 +404,4 @@
   padding: 3px 8px;
   margin-bottom: 6px;
   display: inline-block;
-}
-
-/* Route & Location Intelligence Panel */
-.ostrovok-route-panel {
-  position: fixed;
-  bottom: 84px;
-  right: 28px;
-  width: 380px;
-  max-width: calc(100vw - 40px);
-  background: rgba(22, 24, 29, 0.96);
-  border: 1px solid #242731;
-  border-radius: 20px;
-  padding: 20px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  color: #F4F4F6;
-  z-index: 2147483645;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  opacity: 0;
-  pointer-events: none;
-  transform: translateY(16px) scale(0.96);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.ostrovok-route-panel.visible {
-  opacity: 1;
-  pointer-events: auto;
-  transform: translateY(0) scale(1);
-}
-
-.route-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.route-header-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 700;
-  color: #2DD4BF;
-}
-
-.route-close-btn {
-  background: transparent;
-  border: none;
-  color: #8E92A0;
-  font-size: 18px;
-  cursor: pointer;
-  line-height: 1;
-  padding: 4px;
-  border-radius: 6px;
-  transition: color 0.15s ease;
-}
-
-.route-close-btn:hover {
-  color: #FFFFFF;
-}
-
-.route-hotel-info {
-  background: #1B1E26;
-  border: 1px solid #2A2E3D;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-
-.route-hotel-name {
-  font-size: 14px;
-  font-weight: 700;
-  color: #F4F4F6;
-  margin-bottom: 4px;
-}
-
-.route-hotel-address {
-  font-size: 12px;
-  color: #8E92A0;
-  line-height: 1.4;
-}
-
-.route-legs {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.route-leg-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  position: relative;
-}
-
-.leg-icon-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-top: 4px;
-}
-
-.leg-icon-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #1652F0;
-  box-shadow: 0 0 8px rgba(22, 82, 240, 0.6);
-}
-
-.leg-line {
-  width: 2px;
-  height: 34px;
-  background: rgba(36, 39, 49, 0.8);
-  margin-top: 4px;
-}
-
-.route-leg-item:last-child .leg-line {
-  display: none;
-}
-
-.leg-content {
-  flex: 1;
-}
-
-.leg-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #E2E4E9;
-  margin-bottom: 2px;
-}
-
-.leg-desc {
-  font-size: 11px;
-  color: #8E92A0;
-  line-height: 1.35;
-}
-
-.leg-time {
-  font-size: 11px;
-  font-weight: 600;
-  color: #2DD4BF;
-  white-space: nowrap;
-}
-
-.route-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border-top: 1px solid #242731;
-  padding-top: 14px;
-}
-
-.route-summary {
-  font-size: 11px;
-  color: #8E92A0;
-  text-align: center;
-}
-
-.btn-proceed-booking {
-  background: #1652F0;
-  color: #FFFFFF;
-  border: none;
-  border-radius: 12px;
-  padding: 10px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s ease;
-  box-shadow: 0 4px 16px rgba(22, 82, 240, 0.35);
-}
-
-.btn-proceed-booking:hover {
-  background: #2563EB;
-  transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(22, 82, 240, 0.45);
 }

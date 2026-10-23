@@ -1,0 +1,118 @@
+/* Wild SSE Thought Stream Logger (Floating directly above Action Bar) */
+.copilot-thought-log {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%) translateY(12px) scale(0.96);
+  z-index: 2147483645;
+  width: 520px;
+  max-width: calc(100vw - 48px);
+  background: rgba(18, 20, 26, 0.95);
+  border: 1px solid rgba(45, 212, 191, 0.3);
+  border-radius: 16px;
+  padding: 10px 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: #F4F4F6;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.copilot-thought-log.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+}
+
+.thought-log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 6px;
+}
+
+.thought-log-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #2DD4BF;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.thought-live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.12);
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.thought-live-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #10B981;
+  animation: live-blink 1.2s infinite;
+}
+
+@keyframes live-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.thought-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 120px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.thought-log-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #D1D5DB;
+  animation: thought-appear 0.2s ease;
+}
+
+@keyframes thought-appear {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.thought-tag {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.thought-tag.intent { background: rgba(59, 130, 246, 0.2); color: #60A5FA; }
+.thought-tag.dom { background: rgba(168, 85, 247, 0.2); color: #C084FC; }
+.thought-tag.action { background: rgba(245, 158, 11, 0.2); color: #FBBF24; }
+.thought-tag.success { background: rgba(16, 185, 129, 0.2); color: #34D399; }
+
+.thought-text {
+  flex: 1;
+  word-break: break-word;
+}

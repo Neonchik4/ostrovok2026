@@ -43,7 +43,8 @@
     {
       "resources": [
         "icons/*",
-        "styles.css"
+        "styles.css",
+        "styles/*"
       ],
       "matches": [
         "*://*.ostrovok.ru/*"

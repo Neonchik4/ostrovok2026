@@ -1,18 +1,141 @@
+// extension/src/semantic-dom.js
+function cleanQuery(rawText) {
+  return rawText.toLowerCase().replace(/^(найди|поищи|включи|поставь|выбери|добавь|покажи|отметь)\s+/i, "").replace(/\s+(и\s+включи|и\s+выбери|и\s+найди|фильтр|чекбокс|галочку)$/i, "").trim();
+}
+function findFilterElement(targetName, doc = document) {
+  const query = cleanQuery(targetName);
+  if (!query)
+    return null;
+  let match = searchVisibleLabels(query, doc);
+  if (match)
+    return match;
+  const spoilerButtons = Array.from(doc.querySelectorAll('button[class*="SpoilerButton"], button[class*="showMore"], button')).filter((b) => /показать еще/i.test(b.textContent || ""));
+  for (const btn of spoilerButtons) {
+    try {
+      btn.click();
+    } catch {}
+  }
+  return searchVisibleLabels(query, doc);
+}
+function searchVisibleLabels(query, doc = document) {
+  const candidateLabels = Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], label, [role="checkbox"]'));
+  for (const item of candidateLabels) {
+    const text = (item.textContent || "").toLowerCase().trim();
+    if (text.includes(query)) {
+      const input = item.querySelector("input[type='checkbox']") || (item.tagName === "INPUT" ? item : null);
+      return { container: item, input, text };
+    }
+  }
+  const tokens = query.split(/\s+/).filter((t) => t.length > 2);
+  for (const item of candidateLabels) {
+    const text = (item.textContent || "").toLowerCase();
+    if (tokens.every((t) => text.includes(t))) {
+      const input = item.querySelector("input[type='checkbox']") || (item.tagName === "INPUT" ? item : null);
+      return { container: item, input, text };
+    }
+  }
+  return null;
+}
+function setCheckboxSemanticState(inputEl, containerEl, desiredState = true) {
+  if (!inputEl) {
+    if (containerEl)
+      containerEl.click();
+    return { changed: true, alreadyInState: false };
+  }
+  const isChecked = Boolean(inputEl.checked);
+  if (isChecked === desiredState) {
+    return { changed: false, alreadyInState: true };
+  }
+  const clickable = containerEl?.querySelector("label") || containerEl || inputEl;
+  clickable.click();
+  return { changed: true, alreadyInState: false };
+}
+function setPriceLimit(maxPrice, doc = document) {
+  const priceInput = doc.querySelector('#price_to, input[name="price_to"], input[id*="price_to"]');
+  if (!priceInput)
+    return false;
+  priceInput.focus();
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+  const formatted = `${maxPrice} ₽`;
+  if (setter)
+    setter.call(priceInput, formatted);
+  else
+    priceInput.value = formatted;
+  priceInput.dispatchEvent(new Event("input", { bubbles: true }));
+  priceInput.dispatchEvent(new Event("change", { bubbles: true }));
+  priceInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  const thumb = doc.querySelectorAll('[role="slider"]')[1];
+  if (thumb)
+    thumb.setAttribute("aria-valuenow", String(maxPrice));
+  return true;
+}
+function setDistanceLimit(maxKm, doc = document) {
+  const distInput = doc.querySelector('#distance_filter\\.field, input[name*="distance"]');
+  if (!distInput)
+    return false;
+  distInput.focus();
+  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+  const formatted = `${maxKm} км`;
+  if (setter)
+    setter.call(distInput, formatted);
+  else
+    distInput.value = formatted;
+  distInput.dispatchEvent(new Event("input", { bubbles: true }));
+  distInput.dispatchEvent(new Event("change", { bubbles: true }));
+  distInput.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
+  const thumb = doc.querySelector('.DistanceFilter_root__gph2_ ~ .Slider_track__tp_xu [role="slider"]');
+  if (thumb)
+    thumb.setAttribute("aria-valuenow", String(maxKm));
+  return true;
+}
+function setSortOption(sortHint, doc = document) {
+  const container = doc.querySelector('[data-testid="sort-filter-field-container"], #sort-filter-select');
+  if (!container)
+    return false;
+  const clickable = container.closest("label") || container;
+  clickable.click();
+  const options = Array.from(doc.querySelectorAll('[class*="option"], [role="option"], li'));
+  const targetOption = options.find((opt) => new RegExp(sortHint, "i").test(opt.textContent || ""));
+  if (targetOption) {
+    targetOption.click();
+    return true;
+  }
+  return false;
+}
+
 // extension/src/ghost-actor.js
+function shortenText(text, maxChars = 50) {
+  if (!text)
+    return "";
+  const cleaned = text.trim();
+  if (cleaned.length <= maxChars)
+    return cleaned;
+  return cleaned.substring(0, maxChars - 3) + "...";
+}
+
 class GhostActor {
   constructor(flyerElement, ghostCanvas, thoughtBubbleElement) {
     this.flyer = flyerElement;
     this.ghost = ghostCanvas;
     this.bubble = thoughtBubbleElement;
-    this.homeCoords = { right: 28, bottom: 28 };
     const winW = typeof window !== "undefined" ? window.innerWidth : 1024;
     const winH = typeof window !== "undefined" ? window.innerHeight : 768;
+    this.homeCoords = { x: winW - 90, y: winH - 90 };
     this.currentCoords = { x: winW - 90, y: winH - 90 };
+    this.isDodging = false;
+    this.isExecuting = false;
   }
-  speak(text, durationMs = 3500) {
+  speak(text, durationMs = 3200) {
     if (!this.bubble)
       return;
-    this.bubble.textContent = text;
+    const short = shortenText(text, 65);
+    this.bubble.textContent = short;
+    this.bubble.classList.remove("align-center", "align-left");
+    if (this.currentCoords.x < 260) {
+      this.bubble.classList.add("align-left");
+    } else if (this.currentCoords.x < window.innerWidth - 300) {
+      this.bubble.classList.add("align-center");
+    }
     this.bubble.classList.add("visible");
     this.ghost.setState("speaking");
     if (this.bubbleTimeout)
@@ -26,7 +149,7 @@ class GhostActor {
   }
   async flyTo(targetX, targetY, speechText = "") {
     if (speechText)
-      this.speak(speechText, 3000);
+      this.speak(speechText, 2800);
     const startX = this.currentCoords.x;
     const dx = targetX - startX;
     this.ghost.setState("flying");
@@ -39,10 +162,10 @@ class GhostActor {
     this.flyer.style.right = "auto";
     this.flyer.style.bottom = "auto";
     this.currentCoords = { x: targetX, y: targetY };
-    await new Promise((r) => setTimeout(r, 680));
+    await new Promise((r) => setTimeout(r, 650));
     this.ghost.setTilt(0);
     this.ghost.setState("happy");
-    await new Promise((r) => setTimeout(r, 200));
+    await new Promise((r) => setTimeout(r, 180));
     this.ghost.setState("idle");
   }
   async flyToElement(element, speechText = "") {
@@ -61,9 +184,24 @@ class GhostActor {
   async returnHome(speechText = "") {
     const winW = typeof window !== "undefined" ? window.innerWidth : 1024;
     const winH = typeof window !== "undefined" ? window.innerHeight : 768;
-    const targetX = winW - 90;
-    const targetY = winH - 90;
-    await this.flyTo(targetX, targetY, speechText);
+    this.homeCoords = { x: winW - 90, y: winH - 90 };
+    await this.flyTo(this.homeCoords.x, this.homeCoords.y, speechText);
+  }
+  handleUserMouseMove(mouseX, mouseY) {
+    if (this.isExecuting || this.isDodging)
+      return;
+    const isAtHome = Math.abs(this.currentCoords.x - this.homeCoords.x) < 45 && Math.abs(this.currentCoords.y - this.homeCoords.y) < 45;
+    if (isAtHome)
+      return;
+    const dist = Math.hypot(mouseX - this.currentCoords.x, mouseY - this.currentCoords.y);
+    if (dist < 80) {
+      this.isDodging = true;
+      this.returnHome("Уступаю место!").finally(() => {
+        setTimeout(() => {
+          this.isDodging = false;
+        }, 800);
+      });
+    }
   }
   pulseElement(element) {
     if (!element || !element.classList)
@@ -73,77 +211,85 @@ class GhostActor {
       element.classList.remove("ostrovok-copilot-targeted");
     }, 1200);
   }
-  async smoothType(inputEl, text, charDelay = 40) {
+  async smoothType(inputEl, text, charDelay = 35) {
     if (!inputEl)
       return;
-    if (typeof inputEl.focus === "function")
-      inputEl.focus();
-    let current = "";
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
-    for (const char of text) {
-      current += char;
-      if (setter)
-        setter.call(inputEl, current);
-      else
-        inputEl.value = current;
-      inputEl.dispatchEvent(new Event("input", { bubbles: true }));
-      await new Promise((r) => setTimeout(r, charDelay));
+    this.isExecuting = true;
+    try {
+      if (typeof inputEl.focus === "function")
+        inputEl.focus();
+      let current = "";
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")?.set;
+      for (const char of text) {
+        current += char;
+        if (setter)
+          setter.call(inputEl, current);
+        else
+          inputEl.value = current;
+        inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+        await new Promise((r) => setTimeout(r, charDelay));
+      }
+      inputEl.dispatchEvent(new Event("change", { bubbles: true }));
+    } finally {
+      this.isExecuting = false;
     }
-    inputEl.dispatchEvent(new Event("change", { bubbles: true }));
   }
-  async toggleFilterCheckbox(filterName) {
-    const labels = Array.from(document.querySelectorAll("label, [role='checkbox'], [class*='FilterCheckbox'], [class*='Control_label']"));
-    const target = labels.find((l) => new RegExp(filterName, "i").test(l.textContent || ""));
-    if (target) {
-      await this.flyToElement(target, `Включаю фильтр: ${filterName}`);
-      const clickable = target.querySelector("input[type='checkbox']") || target;
-      clickable.click();
+  async toggleSemanticFilter(targetName, desiredState = true) {
+    this.isExecuting = true;
+    try {
+      const match = findFilterElement(targetName);
+      if (!match) {
+        this.speak(`Не нашел фильтр «${shortenText(targetName, 25)}»`);
+        return false;
+      }
+      await this.flyToElement(match.container, `Лечу к фильтру: ${shortenText(targetName, 22)}`);
+      const res = setCheckboxSemanticState(match.input, match.container, desiredState);
+      if (res.alreadyInState) {
+        this.speak(`Фильтр уже ${desiredState ? "включен" : "выключен"}!`);
+      } else {
+        this.speak(`${desiredState ? "Включил" : "Снял"}: ${shortenText(targetName, 25)}`);
+      }
+      this.pulseElement(match.container);
       return true;
+    } finally {
+      this.isExecuting = false;
     }
-    return false;
   }
   async highlightRoomOffer(room) {
     if (!room || !room.el)
       return;
-    await this.flyToElement(room.el, "Выбрал лучший тариф с завтраком!");
-    let badge = room.el.querySelector(".ostrovok-copilot-room-badge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.className = "ostrovok-copilot-room-badge";
-      badge.textContent = "Рекомендация Copilot: Выгодный тариф";
-      room.el.prepend(badge);
+    this.isExecuting = true;
+    try {
+      await this.flyToElement(room.el, "Выбрал лучший тариф с завтраком!");
+      let badge = room.el.querySelector(".ostrovok-copilot-room-badge");
+      if (!badge) {
+        badge = document.createElement("div");
+        badge.className = "ostrovok-copilot-room-badge";
+        badge.textContent = "Рекомендация Copilot";
+        room.el.prepend(badge);
+      }
+    } finally {
+      this.isExecuting = false;
     }
-    const bookBtn = room.el.querySelector("button, [class*='Button'], a[href*='book']");
-    if (bookBtn)
-      this.pulseElement(bookBtn);
   }
   async bookRoomOnOstrovok(room) {
-    let bookBtn = room?.el?.querySelector("button, [class*='Button'], a[href*='order'], a[href*='book']");
-    if (!bookBtn) {
-      bookBtn = document.querySelector('[data-testid*="book-button"], button[class*="BookButton"], a[href*="/order/"]');
+    this.isExecuting = true;
+    try {
+      let bookBtn = room?.el?.querySelector("button, [class*='Button'], a[href*='order'], a[href*='book']");
+      if (!bookBtn) {
+        bookBtn = document.querySelector('[data-testid*="book-button"], button[class*="BookButton"], a[href*="/order/"]');
+      }
+      if (bookBtn) {
+        await this.flyToElement(bookBtn, "Перехожу к бронированию на Островке!");
+        this.pulseElement(bookBtn);
+        await new Promise((r) => setTimeout(r, 400));
+        bookBtn.click();
+        return true;
+      }
+      return false;
+    } finally {
+      this.isExecuting = false;
     }
-    if (bookBtn) {
-      await this.flyToElement(bookBtn, "Перехожу к бронированию на Островке!");
-      this.pulseElement(bookBtn);
-      await new Promise((r) => setTimeout(r, 400));
-      bookBtn.click();
-      return true;
-    }
-    return false;
-  }
-  async highlightHotelCard(cardEl, matchText = "98% совпадение • Лучший по отзывам") {
-    if (!cardEl)
-      return;
-    await this.flyToElement(cardEl, matchText);
-    let badge = cardEl.querySelector(".ostrovok-copilot-injected-badge");
-    if (!badge) {
-      badge = document.createElement("div");
-      badge.className = "ostrovok-copilot-injected-badge";
-      badge.innerHTML = `<span class="badge-dot"></span><span class="badge-text">${matchText}</span>`;
-      cardEl.appendChild(badge);
-    }
-    cardEl.style.borderColor = "#1652F0";
-    cardEl.style.boxShadow = "0 0 0 2px #1652F0, 0 12px 32px rgba(22, 82, 240, 0.22)";
   }
 }
 
@@ -311,6 +457,189 @@ class GhostCanvas {
   }
 }
 
+// extension/src/voice.js
+class VoiceController {
+  constructor(onTranscript, onListeningChange) {
+    this.onTranscript = onTranscript;
+    this.onListeningChange = onListeningChange;
+    this.recognition = null;
+    this.isListening = false;
+    this.initRecognition();
+  }
+  initRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition)
+      return;
+    this.recognition = new SpeechRecognition;
+    this.recognition.lang = "ru-RU";
+    this.recognition.continuous = false;
+    this.recognition.interimResults = false;
+    this.recognition.onstart = () => {
+      this.isListening = true;
+      if (this.onListeningChange)
+        this.onListeningChange(true);
+    };
+    this.recognition.onresult = (event) => {
+      const transcript = event.results[0]?.[0]?.transcript?.trim();
+      if (transcript && this.onTranscript) {
+        this.onTranscript(transcript);
+      }
+    };
+    this.recognition.onerror = () => {
+      this.stop();
+    };
+    this.recognition.onend = () => {
+      this.isListening = false;
+      if (this.onListeningChange)
+        this.onListeningChange(false);
+    };
+  }
+  start() {
+    if (!this.recognition || this.isListening)
+      return;
+    try {
+      this.recognition.start();
+    } catch {}
+  }
+  stop() {
+    if (!this.recognition || !this.isListening)
+      return;
+    try {
+      this.recognition.stop();
+    } catch {}
+    this.isListening = false;
+    if (this.onListeningChange)
+      this.onListeningChange(false);
+  }
+  toggle() {
+    if (this.isListening)
+      this.stop();
+    else
+      this.start();
+  }
+}
+function speakAloud(text) {
+  if (typeof window === "undefined" || !window.speechSynthesis)
+    return;
+  try {
+    window.speechSynthesis.cancel();
+    const cleanText = text.replace(/[^\w\sа-яА-ЯёЁ.,!?-]/gi, "").trim();
+    if (!cleanText)
+      return;
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = "ru-RU";
+    utterance.rate = 1.05;
+    utterance.pitch = 1.05;
+    window.speechSynthesis.speak(utterance);
+  } catch {}
+}
+
+// extension/src/intent-router.js
+function extractTargetEntity(rawText) {
+  return rawText.toLowerCase().replace(/^(найди|поищи|включи|поставь|выбери|добавь|покажи|отметь)\s+/i, "").replace(/\s+(и\s+включи|и\s+выбери|и\s+найди|фильтр|чекбокс)$/i, "").replace(/^(отель\s+в\s+|отели\s+в\s+|район\s+|достопримечательность\s+)/i, "").trim();
+}
+async function routeUserIntent(rawQuery, actor, thoughtLog, pageContext) {
+  const query = (rawQuery || "").trim();
+  if (!query)
+    return;
+  thoughtLog.clear();
+  thoughtLog.addStep("intent", `Распознан запрос: "${query}"`);
+  if (/что ты умеешь|что умеешь|помощь|help|кто ты/i.test(query)) {
+    thoughtLog.addStep("dom", "Запрос возможностей агента");
+    const reply = "Я нахожу любые районы, отели и достопримечательности, кручу слайдеры цен и довожу бронь до покупки.";
+    actor.speak(reply, 5000);
+    speakAloud(reply);
+    thoughtLog.addStep("success", "Озвучен голосовой ответ возможностей");
+    return;
+  }
+  if (/забронир|купи|оформ/i.test(query)) {
+    thoughtLog.addStep("dom", "Поиск целевого тарифа и кнопки бронирования на Островке...");
+    const ok = await actor.bookRoomOnOstrovok(pageContext.data?.recommendedRoom);
+    if (ok) {
+      thoughtLog.addStep("success", "Переход к реальному оформлению заказа на Островке");
+    } else {
+      thoughtLog.addStep("dom", "Кнопка бронирования не найдена на текущем экране");
+      actor.speak("Ищу кнопку бронирования на странице...");
+    }
+    return;
+  }
+  const priceMatch = query.match(/(?:до|дешевле|не дороже|цена до)\s*(\d[\d\s]*)/i);
+  if (priceMatch) {
+    const rawVal = parseInt(priceMatch[1].replace(/\s+/g, ""), 10);
+    if (rawVal > 0) {
+      thoughtLog.addStep("dom", `Обнаружен фильтр цены: до ${rawVal} ₽`);
+      const targetInput = document.querySelector('#price_to, input[name="price_to"]');
+      if (targetInput)
+        await actor.flyToElement(targetInput, `Ставлю цену до ${rawVal} ₽`);
+      const ok = setPriceLimit(rawVal, document);
+      if (ok) {
+        thoughtLog.addStep("success", `Слайдер и инпут цены выставлены на ${rawVal} ₽`);
+        actor.speak(`Цена до ${rawVal} ₽ установлена!`);
+        return;
+      }
+    }
+  }
+  const distMatch = query.match(/(?:до|ближе чем)\s*(\d+)\s*км/i);
+  if (distMatch) {
+    const km = parseInt(distMatch[1], 10);
+    thoughtLog.addStep("dom", `Обнаружен фильтр расстояния: до ${km} км`);
+    const distEl = document.querySelector("#distance_filter\\.field");
+    if (distEl)
+      await actor.flyToElement(distEl, `Ставлю расстояние: ${km} км`);
+    const ok = setDistanceLimit(km, document);
+    if (ok) {
+      thoughtLog.addStep("success", `Фильтр расстояния установлен на ${km} км`);
+      actor.speak(`Расстояние до ${km} км установлено!`);
+      return;
+    }
+  }
+  if (/сначала дешев|подешев|по оценк|по рейтинг|по расстоян/i.test(query)) {
+    const hint = /дешев/i.test(query) ? "дешев" : /оценк|рейтинг/i.test(query) ? "оценк" : "расстоян";
+    thoughtLog.addStep("dom", `Настройка сортировки выдачи: ${hint}`);
+    const ok = setSortOption(hint, document);
+    if (ok) {
+      thoughtLog.addStep("success", "Сортировка выдачи успешно изменена");
+      actor.speak("Сортировка обновлена!");
+      return;
+    }
+  }
+  const target = extractTargetEntity(query);
+  const desiredState = !/выключ|сними|убери|отключ/i.test(query);
+  thoughtLog.addStep("dom", `Сканирую боковые фильтры на предмет: "${target}"...`);
+  const filterMatched = await actor.toggleSemanticFilter(target, desiredState);
+  if (filterMatched) {
+    thoughtLog.addStep("success", `Фильтр «${target}» успешно переведен в состояние: ${desiredState ? "ВКЛ" : "ВЫКЛ"}`);
+    return;
+  }
+  thoughtLog.addStep("dom", `«${target}» не найден в фильтрах текущей страницы. Проверяю поисковую строку направления...`);
+  const searchSummary = document.querySelector('.SearchInfo_wrapper__iCRSw, [class*="SearchInfo"]');
+  if (searchSummary && !document.querySelector('[data-testid="destination-input"]')) {
+    searchSummary.click();
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  let destInput = document.querySelector('[data-testid="destination-input"], input[placeholder*="Куда"], input[name="destination"], input[placeholder*="Город"]');
+  if (destInput) {
+    thoughtLog.addStep("action", `Ввожу направление «${target}» в поисковую строку`);
+    await actor.flyToElement(destInput, `Ввожу: ${target}`);
+    await actor.smoothType(destInput, target);
+    await new Promise((r) => setTimeout(r, 600));
+    const suggest = document.querySelector('[class*="Suggest"] [role="option"], [class*="Suggest"] li, [class*="PlaceSuggest"] li');
+    if (suggest) {
+      suggest.click();
+      thoughtLog.addStep("dom", "Выбран вариант из автодополнения");
+    }
+    const searchBtn = document.querySelector('[data-testid="search-button"], button[type="submit"]');
+    if (searchBtn) {
+      await actor.flyToElement(searchBtn, "Запускаю поиск!");
+      searchBtn.click();
+      thoughtLog.addStep("success", `Поиск по направлению «${target}» успешно запущен!`);
+    }
+    return;
+  }
+  thoughtLog.addStep("action", `Выполняю общий запрос: ${query}`);
+  actor.speak(`Ищу: ${target || query}`);
+}
+
 // extension/src/page-analyzer.js
 function detectPageContext(url = window.location.href, doc = document) {
   const urlObj = new URL(url);
@@ -359,7 +688,7 @@ function analyzeHotelDetailPage(doc, urlObj) {
     const freeCancel = /бесплатн.*отмен/i.test(row.textContent || "");
     return { idx, title, price, hasBreakfast, freeCancel, el: row };
   });
-  let recommendedRoom = rooms.find((r) => r.hasBreakfast) || rooms[0] || null;
+  const recommendedRoom = rooms.find((r) => r.hasBreakfast) || rooms[0] || null;
   return {
     hotelName,
     rating,
@@ -376,18 +705,9 @@ function analyzeSerpPage(doc, urlObj) {
   const hotelCount = cards.length;
   const pathParts = urlObj.pathname.split("/").filter(Boolean);
   const cityGuess = pathParts.length > 2 ? pathParts[2] : "городе";
-  const filterLabels = Array.from(doc.querySelectorAll("label, [role='checkbox'], [class*='FilterCheckbox']"));
-  const hasBreakfastFilter = filterLabels.some((l) => /завтрак/i.test(l.textContent || ""));
-  const hasPoolFilter = filterLabels.some((l) => /бассейн/i.test(l.textContent || ""));
-  const hasParkingFilter = filterLabels.some((l) => /парковк/i.test(l.textContent || ""));
-  const hasPetFilter = filterLabels.some((l) => /питомц|животн/i.test(l.textContent || ""));
   return {
     city: cityGuess,
-    hotelCount,
-    hasBreakfastFilter,
-    hasPoolFilter,
-    hasParkingFilter,
-    hasPetFilter
+    hotelCount
   };
 }
 function analyzeHomePage(doc, urlObj) {
@@ -398,248 +718,136 @@ function analyzeHomePage(doc, urlObj) {
     hasSearchButton: Boolean(searchBtn)
   };
 }
-function getContextualChips(context) {
-  switch (context.type) {
-    case "HOTEL_DETAIL":
-      return [
-        { label: "Выбрать лучший номер", action: "select_best_room" },
-        { label: "Забронировать на Островке", action: "book_on_ostrovok" },
-        { label: "Маршрут и логистика", action: "show_route_planner" }
-      ];
-    case "SERP":
-      return [
-        { label: "Включить завтрак", action: "toggle_breakfast" },
-        { label: "С бассейном", action: "toggle_pool" },
-        { label: "Ближе к центру", action: "filter_center" },
-        { label: "Топ по отзывам", action: "highlight_top" }
-      ];
-    case "HOME":
-    default:
-      return [
-        { label: "Краснодар 24-25 окт", action: "search_krasnodar" },
-        { label: "Сочи с бассейном", action: "search_sochi" },
-        { label: "Питер командировка", action: "search_spb" }
-      ];
+function getContextualChips(context, doc = document) {
+  if (context.type === "HOTEL_DETAIL") {
+    const chips = [{ label: "Забронировать на Островке", action: "book_on_ostrovok" }];
+    if (context.data?.recommendedRoom) {
+      chips.unshift({ label: context.data.recommendedRoom.title, action: "select_best_room" });
+    }
+    return chips;
   }
-}
-
-// extension/src/route-planner.js
-class RoutePlanner {
-  constructor(shadowRoot, onProceedToBooking) {
-    this.root = shadowRoot;
-    this.onProceedToBooking = onProceedToBooking;
-    this.panelEl = null;
-    this.createPanel();
-  }
-  createPanel() {
-    this.panelEl = document.createElement("div");
-    this.panelEl.className = "ostrovok-route-panel";
-    this.panelEl.innerHTML = `
-      <div class="route-panel-header">
-        <div class="route-header-title">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-          <span>Маршрут и логистика поездки</span>
-        </div>
-        <button type="button" class="route-close-btn" aria-label="Закрыть">&times;</button>
-      </div>
-
-      <div class="route-hotel-info">
-        <div class="route-hotel-name" id="route-hotel-name">Отель</div>
-        <div class="route-hotel-address" id="route-hotel-address">Адрес загружается...</div>
-      </div>
-
-      <div class="route-legs" id="route-legs">
-        <!-- Rendered dynamically -->
-      </div>
-
-      <div class="route-footer">
-        <div class="route-summary" id="route-summary">Оптимальная логистика по отзывам гостей</div>
-        <button type="button" class="btn-proceed-booking" id="btn-proceed-booking">
-          <span>Перейти к бронированию на Островке</span>
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-      </div>
-    `;
-    this.panelEl.querySelector(".route-close-btn").addEventListener("click", () => {
-      this.hide();
-    });
-    this.panelEl.querySelector("#btn-proceed-booking").addEventListener("click", () => {
-      this.hide();
-      if (typeof this.onProceedToBooking === "function") {
-        this.onProceedToBooking();
+  if (context.type === "SERP") {
+    const filterNodes = Array.from(doc.querySelectorAll('.FiltersListItem_root__UH0W8, [class*="FiltersListItem"], [class*="SwitchableFilter_label"]'));
+    const extracted = [];
+    for (const node of filterNodes) {
+      const labelText = node.textContent?.replace(/\d+$/, "").trim() || "";
+      const countEl = node.parentElement?.querySelector('[class*="count"]') || node.querySelector('[class*="count"]');
+      const count = countEl ? parseInt(countEl.textContent || "0", 10) : 1;
+      if (labelText && count > 0 && !extracted.some((c) => c.label === labelText)) {
+        extracted.push({ label: labelText, action: `filter_${labelText}` });
       }
-    });
-    this.root.appendChild(this.panelEl);
-  }
-  show(hotelInfo = {}) {
-    const nameEl = this.panelEl.querySelector("#route-hotel-name");
-    const addrEl = this.panelEl.querySelector("#route-hotel-address");
-    const legsContainer = this.panelEl.querySelector("#route-legs");
-    const summaryEl = this.panelEl.querySelector("#route-summary");
-    if (nameEl)
-      nameEl.textContent = hotelInfo.name || "Выбранный отель";
-    if (addrEl)
-      addrEl.textContent = hotelInfo.address || "Центральный район";
-    const legs = this.calculateRouteLegs(hotelInfo);
-    legsContainer.innerHTML = legs.map((leg) => `
-      <div class="route-leg-item">
-        <div class="leg-icon-col">
-          <div class="leg-icon-dot"></div>
-          <div class="leg-line"></div>
-        </div>
-        <div class="leg-content">
-          <div class="leg-title">${leg.title}</div>
-          <div class="leg-desc">${leg.description}</div>
-        </div>
-        <div class="leg-time">${leg.duration}</div>
-      </div>
-    `).join("");
-    if (summaryEl && hotelInfo.distanceSummary) {
-      summaryEl.textContent = hotelInfo.distanceSummary;
+      if (extracted.length >= 4)
+        break;
     }
-    this.panelEl.classList.add("visible");
-  }
-  hide() {
-    this.panelEl.classList.remove("visible");
-  }
-  calculateRouteLegs(hotelInfo) {
-    const city = (hotelInfo.city || "").toLowerCase();
-    const isSochi = city.includes("сочи") || city.includes("полян");
-    const isSpb = city.includes("питер") || city.includes("санкт");
-    if (isSochi) {
-      return [
-        {
-          title: "Аэропорт Сочи (AER) → Отель",
-          description: "Скоростная «Ласточка» или такси по совмещенной трассе",
-          duration: "40 мин"
-        },
-        {
-          title: "Отель → Подъемники / Горная карусель",
-          description: "Бесплатный шаттл от отеля каждые 15 минут",
-          duration: "7 мин"
-        },
-        {
-          title: "Пешая доступность",
-          description: "Прокат снаряжения, рестораны и супермаркет в 200 м",
-          duration: "3 мин"
-        }
-      ];
-    }
-    if (isSpb) {
-      return [
-        {
-          title: "Московский вокзал → Отель",
-          description: "Прямой маршрут по Невскому проспекту / линия метро 1",
-          duration: "12 мин"
-        },
-        {
-          title: "Отель → Эрмитаж и Дворцовая площадь",
-          description: "Пешая прогулка по исторической набережной",
-          duration: "15 мин"
-        },
-        {
-          title: "Ближайшая станция метро",
-          description: "Удобный доступ к центральным пересадкам",
-          duration: "4 мин"
-        }
-      ];
-    }
+    if (extracted.length > 0)
+      return extracted;
     return [
-      {
-        title: "Транспортный узел (Аэропорт / ЖД) → Отель",
-        description: "Оптимальный маршрут на экспрессе или городском такси",
-        duration: "30-45 мин"
-      },
-      {
-        title: "Отель → Исторический / Деловой центр",
-        description: "Удобный выезд на ключевые магистрали",
-        duration: "10-15 мин"
-      },
-      {
-        title: "Инфраструктура рядом",
-        description: "Остановки общественного транспорта, кафе и магазины",
-        duration: "2-5 мин"
-      }
+      { label: "С завтраком", action: "filter_завтрак" },
+      { label: "С бассейном", action: "filter_бассейн" }
     ];
   }
+  const destLinks = Array.from(doc.querySelectorAll('a[href*="/hotel/russia/"], a[href*="/hotel/"]')).map((a) => a.textContent?.trim() || "").filter((txt) => txt.length > 2 && txt.length < 25 && !/отели/i.test(txt));
+  const uniqueDests = Array.from(new Set(destLinks)).slice(0, 4);
+  if (uniqueDests.length > 0) {
+    return uniqueDests.map((dest) => ({ label: dest, action: `search_${dest}` }));
+  }
+  return [
+    { label: "Поиск направления", action: "focus_destination" }
+  ];
 }
 
-// extension/src/voice.js
-class VoiceController {
-  constructor(onResultCallback, onStateChangeCallback) {
-    this.onResult = onResultCallback;
-    this.onStateChange = onStateChangeCallback;
-    this.recognition = null;
-    this.isListening = false;
+// extension/src/thought-log.js
+class ThoughtLog {
+  constructor(shadowRoot) {
+    this.root = shadowRoot;
+    this.container = null;
+    this.listEl = null;
+    this.hideTimeout = null;
     this.init();
   }
   init() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      this.supported = false;
-      return;
-    }
-    this.supported = true;
-    this.recognition = new SpeechRecognition;
-    this.recognition.lang = "ru-RU";
-    this.recognition.continuous = false;
-    this.recognition.interimResults = false;
-    this.recognition.onstart = () => {
-      this.isListening = true;
-      if (this.onStateChange)
-        this.onStateChange(true);
-    };
-    this.recognition.onend = () => {
-      this.isListening = false;
-      if (this.onStateChange)
-        this.onStateChange(false);
-    };
-    this.recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
-      if (this.onResult && transcript) {
-        this.onResult(transcript);
-      }
-    };
-    this.recognition.onerror = () => {
-      this.isListening = false;
-      if (this.onStateChange)
-        this.onStateChange(false);
-    };
+    this.container = document.createElement("div");
+    this.container.className = "copilot-thought-log";
+    this.container.innerHTML = `
+      <div class="thought-log-header">
+        <div class="thought-log-title">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          <span>Ход мыслей агента (SSE Stream)</span>
+        </div>
+        <div class="thought-live-badge">
+          <span class="thought-live-dot"></span>
+          <span>LIVE</span>
+        </div>
+      </div>
+      <div class="thought-log-list" id="thought-log-list"></div>
+    `;
+    this.listEl = this.container.querySelector("#thought-log-list");
+    this.root.appendChild(this.container);
   }
-  toggle() {
-    if (!this.supported)
-      return;
-    if (this.isListening) {
-      this.recognition.stop();
+  show() {
+    if (this.hideTimeout)
+      clearTimeout(this.hideTimeout);
+    this.container.classList.add("visible");
+  }
+  hide(delayMs = 0) {
+    if (delayMs > 0) {
+      if (this.hideTimeout)
+        clearTimeout(this.hideTimeout);
+      this.hideTimeout = setTimeout(() => {
+        this.container.classList.remove("visible");
+      }, delayMs);
     } else {
-      try {
-        this.recognition.start();
-      } catch {}
+      this.container.classList.remove("visible");
     }
+  }
+  clear() {
+    if (this.listEl)
+      this.listEl.innerHTML = "";
+  }
+  addStep(tag, text) {
+    this.show();
+    if (!this.listEl)
+      return;
+    const item = document.createElement("div");
+    item.className = "thought-log-item";
+    const tagClass = ["intent", "dom", "action", "success"].includes(tag) ? tag : "dom";
+    const tagLabel = tag === "intent" ? "ИНТЕНТ" : tag === "dom" ? "DOM" : tag === "action" ? "ДЕЙСТВИЕ" : "РЕЗУЛЬТАТ";
+    item.innerHTML = `
+      <span class="thought-tag ${tagClass}">[${tagLabel}]</span>
+      <span class="thought-text">${text}</span>
+    `;
+    this.listEl.appendChild(item);
+    this.listEl.scrollTop = this.listEl.scrollHeight;
+    this.hide(6000);
   }
 }
 
 // extension/content.js
 (function initOstrovokCopilot() {
-  if (document.getElementById("ostrovok-copilot-shadow-host"))
-    return;
-  const host = document.createElement("div");
-  host.id = "ostrovok-copilot-shadow-host";
-  document.body.appendChild(host);
-  const shadow = host.attachShadow({ mode: "open" });
-  const styleLink = document.createElement("link");
-  styleLink.rel = "stylesheet";
-  styleLink.href = chrome.runtime.getURL("styles.css");
-  shadow.appendChild(styleLink);
-  const container = document.createElement("div");
-  container.innerHTML = `
+  function start() {
+    if (document.getElementById("ostrovok-copilot-shadow-host"))
+      return;
+    if (!document.body) {
+      document.addEventListener("DOMContentLoaded", start);
+      return;
+    }
+    const host = document.createElement("div");
+    host.id = "ostrovok-copilot-shadow-host";
+    document.body.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open" });
+    const styleLink = document.createElement("link");
+    styleLink.rel = "stylesheet";
+    styleLink.href = chrome.runtime.getURL("styles.css");
+    shadow.appendChild(styleLink);
+    const container = document.createElement("div");
+    container.innerHTML = `
     <!-- Flying Mascot -->
-    <div class="ostrovok-ghost-flyer" id="ghost-flyer" title="AI Агент Островка">
+    <div class="ostrovok-ghost-flyer" id="ghost-flyer" title="Нажмите, чтобы открыть меню агента">
       <div class="ghost-thought-bubble" id="ghost-bubble">Привет!</div>
       <canvas class="ghost-canvas" id="ghost-canvas" width="60" height="60"></canvas>
     </div>
 
-    <!-- Floating Action Island / Bar -->
+    <!-- Floating Action Island / Bar (Hidden by default, opens on ghost click) -->
     <div class="copilot-action-bar" id="action-bar">
       <div class="action-bar-label">
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -659,137 +867,76 @@ class VoiceController {
       </form>
     </div>
   `;
-  shadow.appendChild(container);
-  const flyerEl = shadow.getElementById("ghost-flyer");
-  const canvasEl = shadow.getElementById("ghost-canvas");
-  const bubbleEl = shadow.getElementById("ghost-bubble");
-  const chipsContainer = shadow.getElementById("action-chips");
-  const formEl = shadow.getElementById("action-form");
-  const inputEl = shadow.getElementById("action-input");
-  const voiceBtn = shadow.getElementById("voice-btn");
-  const ghostCanvas = new GhostCanvas(canvasEl);
-  const actor = new GhostActor(flyerEl, ghostCanvas, bubbleEl);
-  const routePlanner = new RoutePlanner(shadow, async () => {
-    const ctx = detectPageContext(window.location.href, document);
-    await actor.bookRoomOnOstrovok(ctx.data?.recommendedRoom);
-  });
-  window.addEventListener("mousemove", (e) => {
-    const rect = canvasEl.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = (e.clientX - cx) / (window.innerWidth / 2);
-    const dy = (e.clientY - cy) / (window.innerHeight / 2);
-    ghostCanvas.setLookTarget(dx, dy);
-  });
-  const pageContext = detectPageContext(window.location.href, document);
-  renderChips(pageContext);
-  greetForContext(pageContext);
-  function renderChips(context) {
-    const chips = getContextualChips(context);
-    chipsContainer.innerHTML = "";
-    chips.forEach((c) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "chip-btn";
-      btn.textContent = c.label;
-      btn.addEventListener("click", () => handleAction(c.action, c.label));
-      chipsContainer.appendChild(btn);
+    shadow.appendChild(container);
+    const flyerEl = shadow.getElementById("ghost-flyer");
+    const canvasEl = shadow.getElementById("ghost-canvas");
+    const bubbleEl = shadow.getElementById("ghost-bubble");
+    const actionBar = shadow.getElementById("action-bar");
+    const chipsContainer = shadow.getElementById("action-chips");
+    const formEl = shadow.getElementById("action-form");
+    const inputEl = shadow.getElementById("action-input");
+    const voiceBtn = shadow.getElementById("voice-btn");
+    const ghostCanvas = new GhostCanvas(canvasEl);
+    const actor = new GhostActor(flyerEl, ghostCanvas, bubbleEl);
+    const thoughtLog = new ThoughtLog(shadow);
+    flyerEl.addEventListener("click", () => {
+      actionBar.classList.toggle("open");
+      if (actionBar.classList.contains("open")) {
+        inputEl.focus();
+      }
+    });
+    window.addEventListener("mousemove", (e) => {
+      const rect = canvasEl.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const dx = (e.clientX - cx) / (window.innerWidth / 2);
+      const dy = (e.clientY - cy) / (window.innerHeight / 2);
+      ghostCanvas.setLookTarget(dx, dy);
+      actor.handleUserMouseMove(e.clientX, e.clientY);
+    });
+    const pageContext = detectPageContext(window.location.href, document);
+    renderChips(pageContext);
+    greetForContext(pageContext);
+    function renderChips(context) {
+      const chips = getContextualChips(context);
+      chipsContainer.innerHTML = "";
+      chips.forEach((c) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "chip-btn";
+        btn.textContent = c.label;
+        btn.addEventListener("click", () => {
+          const text = c.action === "toggle_chistyakovskaya" ? "Чистяковская роща" : c.label;
+          routeUserIntent(text, actor, thoughtLog, pageContext);
+        });
+        chipsContainer.appendChild(btn);
+      });
+    }
+    function greetForContext(context) {
+      if (context.type === "HOTEL_DETAIL") {
+        actor.speak("Вижу отель! Могу выбрать выгодный тариф с завтраком.", 3500);
+      } else if (context.type === "SERP") {
+        actor.speak("Нашел отели! Готов настроить любые фильтры.", 3500);
+      } else {
+        actor.speak("Куда отправимся? Назови город или отель.", 3500);
+      }
+    }
+    const voice = new VoiceController((transcript) => {
+      inputEl.value = transcript;
+      routeUserIntent(transcript, actor, thoughtLog, pageContext);
+    }, (listening) => {
+      voiceBtn.classList.toggle("active", listening);
+      ghostCanvas.setState(listening ? "speaking" : "idle");
+    });
+    voiceBtn.addEventListener("click", () => voice.toggle());
+    formEl.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const query = inputEl.value.trim();
+      if (!query)
+        return;
+      inputEl.value = "";
+      routeUserIntent(query, actor, thoughtLog, pageContext);
     });
   }
-  function greetForContext(context) {
-    if (context.type === "HOTEL_DETAIL") {
-      const name = context.data.hotelName || "отель";
-      actor.speak(`Вижу ${name}! Могу показать маршрут или выбрать выгодный номер.`, 4000);
-    } else if (context.type === "SERP") {
-      actor.speak("Нашел отели! Готов настроить фильтры и показать топ.", 4000);
-    } else {
-      actor.speak("Привет! Куда отправимся? Скажи или напиши направление.", 3500);
-    }
-  }
-  async function handleAction(actionKey, rawQuery = "") {
-    const ctx = detectPageContext(window.location.href, document);
-    if (actionKey === "select_best_room" || actionKey === "filter_breakfast_room") {
-      if (ctx.type === "HOTEL_DETAIL" && ctx.data.recommendedRoom) {
-        await actor.highlightRoomOffer(ctx.data.recommendedRoom);
-      } else {
-        actor.speak("Сканирую таблицу номеров на странице...", 2500);
-      }
-    } else if (actionKey === "book_on_ostrovok") {
-      const booked = await actor.bookRoomOnOstrovok(ctx.data?.recommendedRoom);
-      if (!booked)
-        actor.speak("Ищу кнопку бронирования на странице...", 2500);
-    } else if (actionKey === "show_route_planner") {
-      routePlanner.show({
-        name: ctx.data?.hotelName || "Отель",
-        address: ctx.data?.address || "Центральный район",
-        city: ctx.data?.city || "",
-        distanceSummary: ctx.data?.distanceSummary || "Оптимальная логистика по отзывам"
-      });
-      actor.speak("Открыл логистику и маршрут поездки!", 2500);
-    } else if (actionKey === "toggle_breakfast") {
-      const ok = await actor.toggleFilterCheckbox("завтрак");
-      if (!ok)
-        actor.speak("Ищу чекбокс 'Завтрак' в панели фильтров...", 2500);
-    } else if (actionKey === "toggle_pool") {
-      const ok = await actor.toggleFilterCheckbox("бассейн");
-      if (!ok)
-        actor.speak("Ищу фильтр бассейна...", 2500);
-    } else if (actionKey === "filter_center") {
-      const ok = await actor.toggleFilterCheckbox("центр");
-      if (!ok)
-        actor.speak("Ищу фильтр близости к центру...", 2500);
-    } else if (actionKey === "highlight_top") {
-      const card = document.querySelector('[data-testid="serp-hotelcard"], [class*="HotelCard"]');
-      if (card) {
-        await actor.highlightHotelCard(card, "98% совпадение • Топ по отзывам и цене");
-      }
-    } else if (actionKey.startsWith("search_")) {
-      const city = actionKey === "search_krasnodar" ? "Краснодар" : actionKey === "search_sochi" ? "Сочи" : "Санкт-Петербург";
-      const input = document.querySelector('[data-testid="destination-input"], input[placeholder*="Куда"], input[name="destination"]');
-      if (input) {
-        await actor.flyToElement(input, `Ввожу направление: ${city}`);
-        await actor.smoothType(input, city);
-        const searchBtn = document.querySelector('[data-testid="search-button"], button[type="submit"]');
-        if (searchBtn) {
-          await actor.flyToElement(searchBtn, "Запускаю поиск!");
-          searchBtn.click();
-        }
-      }
-    } else {
-      if (/забронир|купи|оформ/i.test(rawQuery)) {
-        await actor.bookRoomOnOstrovok(ctx.data?.recommendedRoom);
-      } else if (/маршрут|как добраться|транспорт|логистик/i.test(rawQuery)) {
-        routePlanner.show({
-          name: ctx.data?.hotelName || "Отель",
-          address: ctx.data?.address || "Центральный район",
-          city: ctx.data?.city || ""
-        });
-      } else if (/завтрак/i.test(rawQuery)) {
-        await actor.toggleFilterCheckbox("завтрак");
-      } else if (/бассейн/i.test(rawQuery)) {
-        await actor.toggleFilterCheckbox("бассейн");
-      } else if (/номер|комнат/i.test(rawQuery)) {
-        if (ctx.data?.recommendedRoom)
-          await actor.highlightRoomOffer(ctx.data.recommendedRoom);
-      } else {
-        actor.speak(`Выполняю: ${rawQuery}`, 3000);
-      }
-    }
-  }
-  const voice = new VoiceController((transcript) => {
-    inputEl.value = transcript;
-    handleAction("voice_query", transcript);
-  }, (listening) => {
-    voiceBtn.classList.toggle("active", listening);
-    ghostCanvas.setState(listening ? "speaking" : "idle");
-  });
-  voiceBtn.addEventListener("click", () => voice.toggle());
-  formEl.addEventListener("submit", (e) => {
-    e.preventDefault();
-    const query = inputEl.value.trim();
-    if (!query)
-      return;
-    inputEl.value = "";
-    handleAction("text_query", query);
-  });
+  start();
 })();

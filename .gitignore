@@ -83,3 +83,6 @@ backend/outputs/
 .kilo/
 .wrangler/
 **/.wrangler/
+
+# Extension test fixtures & raw dumps
+extension/fixtures/
