@@ -21,6 +21,7 @@
     "test:back": "bun run --cwd backend test",
     "test:deploy": "node --test scripts/test-deployment.mjs scripts/test-dev-guard.mjs",
     "build": "bun run --cwd frontend build",
+    "build:ext": "bun build extension/content.js --outfile extension/content.bundle.js && python extension/scripts/build_zip.py",
     "setup:front": "bun install --frozen-lockfile && bun install --cwd frontend --frozen-lockfile",
     "setup:back": "uv sync --locked",
     "setup": "bun run setup:front && bun run setup:back",
