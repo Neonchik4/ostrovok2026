@@ -1,8 +1,8 @@
-import { AlertCircle,CheckCircle2, MapPin, Star } from "lucide-react";
+import { AlertCircle, CheckCircle2, MapPin, Star } from "lucide-react";
 import React from "react";
 
 import { formatPrice } from "@/shared/lib";
-import { Badge,Button, Card } from "@/shared/ui";
+import { Badge, Button, Card } from "@/shared/ui";
 
 import { Hotel } from "../model/types";
 import { HotelReceiptPreview } from "./HotelReceiptPreview";
@@ -27,32 +27,34 @@ export function HotelCard({ hotel, onSelect }: HotelCardProps) {
   }, [hotel.id, hotel.image_urls, fallbackUrl]);
 
   return (
-    <Card className="flex flex-col justify-between overflow-hidden rounded-2xl border-border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-2xl">
+    <Card className="relative flex flex-col justify-between rounded-2xl border-border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-2xl">
       <div>
         {/* Фотография отеля и бейджи */}
-        <div
-          onClick={() => onSelect?.(hotel)}
-          className={`relative h-56 w-full overflow-hidden bg-muted ${onSelect ? "cursor-pointer" : ""}`}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={imgSrc}
-            alt={hotel.name}
-            onError={() => {
-              if (imgSrc !== fallbackUrl) {
-                setImgSrc(fallbackUrl);
-              }
-            }}
-            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-            loading="lazy"
-          />
-          <div className="absolute right-3.5 top-3.5">
+        <div className="relative h-56 w-full">
+          <div
+            onClick={() => onSelect?.(hotel)}
+            className={`h-full w-full overflow-hidden rounded-t-2xl bg-muted ${onSelect ? "cursor-pointer" : ""}`}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={imgSrc}
+              alt={hotel.name}
+              onError={() => {
+                if (imgSrc !== fallbackUrl) {
+                  setImgSrc(fallbackUrl);
+                }
+              }}
+              className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+              loading="lazy"
+            />
+          </div>
+          <div className="absolute right-3.5 top-3.5 z-30">
             <HotelScoreBadge
               scorePct={hotel.match_score_pct}
               criteriaBreakdown={hotel.criteria_breakdown}
             />
           </div>
-          <div className="absolute bottom-3.5 left-3.5 flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/85 px-3 py-1.5 text-sm font-semibold shadow-md backdrop-blur-md">
+          <div className="absolute bottom-3.5 left-3.5 z-10 flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/85 px-3 py-1.5 text-sm font-semibold shadow-md backdrop-blur-md">
             <Star className="h-4 w-4 fill-rating text-rating" />
             <span className="font-bold text-foreground">{hotel.rating.toFixed(1)}</span>
             <span className="text-xs text-muted-foreground">({hotel.reviews_count})</span>

@@ -6,7 +6,6 @@
   "description": "AI-агент для умного поиска и бронирования отелей (О!Хакатон 2026 — Трек №2)",
   "scripts": {
     "dev": "node scripts/guard-dev-environment.mjs && concurrently -n \"front,back\" -c \"cyan,magenta\" \"bun run dev:front\" \"bun run dev:back\"",
-    "dev:dop": "doppler run --project ostrovok2026 --config dev -- bun run dev",
     "dev:static-back": "node scripts/guard-dev-environment.mjs && concurrently -n \"front,back\" -c \"cyan,magenta\" \"bun run dev:front\" \"bun run --cwd backend start\"",
     "dev:front": "bun run --cwd frontend dev",
     "dev:back": "bun run --cwd backend dev",
@@ -26,7 +25,7 @@
     "setup:back": "uv sync --locked",
     "setup": "bun run setup:front && bun run setup:back",
     "db:backup": "ssh yc-user@158.160.228.85 \"sudo /opt/ostrovok/scripts/backup.sh\"",
-    "db:seed": "doppler run --project ostrovok2026 --config dev -- bun run --cwd backend python -m app.db.seed"
+    "db:seed": "bun run --cwd backend python -m app.db.seed"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"

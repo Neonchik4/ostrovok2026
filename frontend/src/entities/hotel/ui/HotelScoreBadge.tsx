@@ -1,5 +1,5 @@
-import { AlertCircle, ChevronDown, ChevronUp,ShieldCheck, Sparkles } from "lucide-react";
-import React, { useEffect,useRef, useState } from "react";
+import { AlertCircle, ChevronDown, ChevronUp, HelpCircle, ShieldCheck } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { CriterionMatch } from "../model/types";
 
@@ -44,7 +44,7 @@ export function HotelScoreBadge({ scorePct, criteriaBreakdown = [], className = 
   };
 
   return (
-    <div ref={containerRef} className={`relative inline-block ${className}`}>
+    <div ref={containerRef} className={`relative inline-block ${isOpen ? "z-50" : "z-20"} ${className}`}>
       <button
         type="button"
         onClick={toggleOpen}
@@ -56,7 +56,7 @@ export function HotelScoreBadge({ scorePct, criteriaBreakdown = [], className = 
             : "cursor-default"
         }`}
       >
-        <Sparkles className="h-4 w-4 shrink-0 text-primary" />
+        <HelpCircle className="h-4 w-4 shrink-0 text-primary" />
         <span className="text-foreground">{scorePct}% совпадение</span>
         {hasBreakdown && (
           isOpen ? (
@@ -97,7 +97,7 @@ export function HotelScoreBadge({ scorePct, criteriaBreakdown = [], className = 
                     ) : isCompromise ? (
                       <AlertCircle className="h-4 w-4 text-warning" />
                     ) : (
-                      <Sparkles className="h-4 w-4 text-primary" />
+                      <HelpCircle className="h-4 w-4 text-primary" />
                     )}
                   </div>
                   <div className="min-w-0 flex-1">

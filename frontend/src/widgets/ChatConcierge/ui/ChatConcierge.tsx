@@ -1,6 +1,6 @@
 "use client";
 
-import { Database, Send, Sparkles, Square } from "lucide-react";
+import { Database, Send, Square } from "lucide-react";
 import Link from "next/link";
 import React, { useState } from "react";
 
@@ -69,11 +69,6 @@ export function ChatConcierge({
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          <Link href="/live">
-            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-primary hover:text-primary hover:bg-primary/10">
-              <Sparkles className="h-3.5 w-3.5 mr-1" /> Live
-            </Button>
-          </Link>
           <Link href="/studio">
             <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
               <Database className="h-3.5 w-3.5 mr-1.5 text-primary" /> Studio

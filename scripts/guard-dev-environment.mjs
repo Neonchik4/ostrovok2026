@@ -48,7 +48,7 @@ function main() {
   if (violations.length > 0) {
     console.error("Refusing to start the development stack:");
     for (const violation of violations) console.error(`- ${violation}`);
-    console.error("Use `bun run dev:dop` to load the shared Doppler dev secrets.");
+    console.error("Check your local .env file.");
     process.exit(1);
   }
 }

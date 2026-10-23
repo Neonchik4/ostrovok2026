@@ -14,6 +14,13 @@ BLOCKED_RESPONSE_HEADERS = {
     "content-security-policy-report-only",
     "x-frame-options",
     "strict-transport-security",
+    "transfer-encoding",
+    "content-length",
+    "connection",
+    "keep-alive",
+    "content-encoding",
+    "server",
+    "date",
 }
 
 
