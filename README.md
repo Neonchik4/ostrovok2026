@@ -189,6 +189,7 @@ bun run dev
 
 ## Архитектура и правила для агентов
 
+* [BACKLOG.md](BACKLOG.md) — генеральный бэклог хакатона, дорожная карта и матрица ответственности команды.
 * [AGENTS.md](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/AGENTS.md) — главный архитектурный манифест проекта и стандарты команды.
 * [.agents/RULES.md](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/.agents/RULES.md) — свод операционных инженерных правил:
   * `.agents/rules/frontend.md` — архитектура FSD, запрет HEX, Zero-Emoji;
