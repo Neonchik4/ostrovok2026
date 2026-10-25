@@ -4,7 +4,6 @@ import { ExternalLink, Hotel as HotelIcon, Plane, Train } from "lucide-react";
 import React, { useMemo, useState } from "react";
 
 import { Hotel } from "@/entities/hotel";
-import { HotelDetailModal } from "@/features/hotel-details";
 import { TransportSummaryData } from "@/shared/api";
 import { formatPrice } from "@/shared/lib";
 
@@ -16,9 +15,17 @@ interface ClassicSerpProps {
   hotels: Hotel[];
   transportSummary?: TransportSummaryData | null;
   onSendQuery?: (query: string) => void;
+  filters?: FilterState;
+  onFilterChange?: (filters: FilterState) => void;
+  highlightedHotelId?: string | null;
+  onSelectHotel?: (hotel: Hotel) => void;
 }
 
 const initialFilters: FilterState = {
+  checkInDate: "2026-10-26",
+  checkOutDate: "2026-10-29",
+  guests: 2,
+  sort: "match",
   breakfast: false,
   pool: false,
   spa: false,
@@ -31,27 +38,72 @@ const initialFilters: FilterState = {
 export function ClassicSerp({
   hotels,
   transportSummary,
-  onSendQuery: _onSendQuery,
+  filters: controlledFilters,
+  onFilterChange: setControlledFilters,
+  highlightedHotelId: controlledHighlightedId,
+  onSelectHotel: externalOnSelectHotel,
 }: ClassicSerpProps) {
-  const [filters, setFilters] = useState<FilterState>(initialFilters);
-  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
-  const [highlightedHotelId, setHighlightedHotelId] = useState<string | null>(null);
+  const [internalFilters, setInternalFilters] = useState<FilterState>(initialFilters);
+  const [internalHighlightedId, setInternalHighlightedId] = useState<string | null>(null);
 
-  // Фильтрация на лету
+  const filters = controlledFilters ?? internalFilters;
+  const setFilters = setControlledFilters ?? setInternalFilters;
+  const highlightedHotelId = controlledHighlightedId ?? internalHighlightedId;
+
+  // Реактивная фильтрация и сортировка
   const filteredHotels = useMemo(() => {
-    return hotels.filter((h) => {
+    const list = hotels.filter((h) => {
       if (filters.minStars && h.stars < filters.minStars) return false;
       if (filters.maxPrice && h.min_price_per_night_rub > filters.maxPrice) return false;
+
+      const tags = (h.tags || []).map((t) => t.toLowerCase());
+      if (filters.breakfast && !tags.some((t) => t.includes("завтрак") || t.includes("питани"))) {
+        return false;
+      }
+      if (filters.pool && !tags.some((t) => t.includes("бассейн") || t.includes("поплавать"))) {
+        return false;
+      }
+      if (filters.spa && !tags.some((t) => t.includes("спа") || t.includes("spa") || t.includes("саун"))) {
+        return false;
+      }
+      if (filters.pets && !tags.some((t) => t.includes("собак") || t.includes("питомц") || t.includes("дог"))) {
+        return false;
+      }
+      if (filters.freeCancellation && !tags.some((t) => t.includes("отмен"))) {
+        return false;
+      }
       return true;
     });
+
+    if (filters.sort === "price_asc") {
+      list.sort((a, b) => a.min_price_per_night_rub - b.min_price_per_night_rub);
+    } else if (filters.sort === "price_desc") {
+      list.sort((a, b) => b.min_price_per_night_rub - a.min_price_per_night_rub);
+    } else if (filters.sort === "rating") {
+      list.sort((a, b) => b.rating - a.rating);
+    }
+
+    return list;
   }, [hotels, filters]);
 
   const handleReset = () => {
     setFilters(initialFilters);
   };
 
+  const handleSelectHotel = (hotel: Hotel) => {
+    if (setControlledFilters) {
+      externalOnSelectHotel?.(hotel);
+    } else {
+      setInternalHighlightedId(hotel.id);
+      externalOnSelectHotel?.(hotel);
+    }
+  };
+
   return (
-    <div className="flex h-full flex-1 overflow-hidden bg-background p-6">
+    <div
+      data-testid="classic-serp-container"
+      className="flex h-full flex-1 overflow-hidden bg-background p-6"
+    >
       <div className="mx-auto flex h-full w-full max-w-7xl gap-6">
         {/* Колонка 1: Фильтры */}
         <ClassicSerpFilters
@@ -64,108 +116,45 @@ export function ClassicSerp({
         {/* Колонка 2: Список отелей (Горизонтальные карточки) */}
         <main className="flex flex-1 flex-col overflow-hidden">
           {/* Баннер транспорта (Авиа + Ж/Д) */}
-          {transportSummary && (transportSummary.recommended_flight || transportSummary.recommended_train) && (() => {
-            const isTrainPref = transportSummary.preferred_mode === "train";
-            const flightBlock = transportSummary.recommended_flight && (
-              <div className={`flex items-center gap-2 text-xs ${isTrainPref ? "border-border md:border-l md:pl-3" : ""}`}>
-                <Plane className={`h-4 w-4 ${!isTrainPref ? "text-primary" : "text-foreground"}`} />
-                <span className="font-bold text-foreground">
-                  {transportSummary.recommended_flight.airline}
-                </span>
-                <span className={!isTrainPref ? "text-primary" : "text-foreground"}>
-                  от {formatPrice(transportSummary.recommended_flight.price_rub)}
-                </span>
-                <span className="text-muted-foreground">
-                  • {transportSummary.origin_city} → {transportSummary.destination_city} (прилет ~{transportSummary.arrival_time || "13:45"})
-                </span>
-              </div>
-            );
-
-            const trainBlock = transportSummary.recommended_train && (
-              <div className={`flex items-center gap-2 text-xs ${!isTrainPref ? "border-border md:border-l md:pl-3" : ""}`}>
-                <Train className={`h-4 w-4 ${isTrainPref ? "text-primary" : "text-foreground"}`} />
-                <span className="font-bold text-foreground">
-                  {transportSummary.recommended_train.train_number}
-                </span>
-                <span className={isTrainPref ? "text-primary" : "text-foreground"}>
-                  от {formatPrice(transportSummary.recommended_train.price_from_rub)}
-                </span>
-                <span className="text-muted-foreground">• 14:40 → 08:15</span>
-              </div>
-            );
-
-            return (
+          {transportSummary &&
+            (transportSummary.recommended_flight || transportSummary.recommended_train) && (
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-card/85 p-3.5 shadow-md backdrop-blur-md">
-                <div className="flex flex-wrap items-center gap-4">
-                  {isTrainPref ? (
-                    <>
-                      {trainBlock}
-                      {flightBlock}
-                    </>
-                  ) : (
-                    <>
-                      {flightBlock}
-                      {trainBlock}
-                    </>
+                <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
+                  {transportSummary.recommended_flight && (
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Plane className="h-4 w-4 text-primary" />
+                      <span>{transportSummary.recommended_flight.airline}</span>
+                      <span className="text-primary font-bold">
+                        от {formatPrice(transportSummary.recommended_flight.price_rub)}
+                      </span>
+                    </div>
+                  )}
+                  {transportSummary.recommended_train && (
+                    <div className="flex items-center gap-1.5 text-foreground">
+                      <Train className="h-4 w-4 text-primary" />
+                      <span>{transportSummary.recommended_train.train_number}</span>
+                      <span className="text-primary font-bold">
+                        от {formatPrice(transportSummary.recommended_train.price_from_rub)}
+                      </span>
+                    </div>
                   )}
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {isTrainPref ? (
-                    <>
-                      {transportSummary.recommended_train && (
-                        <a
-                          href={transportSummary.recommended_train.booking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-primary/40 bg-primary/15 px-2.5 text-xs font-semibold text-primary hover:bg-primary/25"
-                        >
-                          <span>Tutu.ru</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                      {transportSummary.recommended_flight && (
-                        <a
-                          href={transportSummary.recommended_flight.booking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-secondary/70 px-2.5 text-xs font-semibold text-foreground hover:text-primary"
-                        >
-                          <span>Aviasales</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      {transportSummary.recommended_flight && (
-                        <a
-                          href={transportSummary.recommended_flight.booking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-primary/40 bg-primary/15 px-2.5 text-xs font-semibold text-primary hover:bg-primary/25"
-                        >
-                          <span>Aviasales</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                      {transportSummary.recommended_train && (
-                        <a
-                          href={transportSummary.recommended_train.booking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-8 items-center gap-1 rounded-lg border border-border bg-secondary/70 px-2.5 text-xs font-semibold text-foreground hover:text-primary"
-                        >
-                          <span>Tutu.ru</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
-                    </>
+                  {transportSummary.recommended_flight?.booking_url && (
+                    <a
+                      href={transportSummary.recommended_flight.booking_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex h-8 items-center gap-1 rounded-lg border border-primary/40 bg-primary/15 px-2.5 text-xs font-semibold text-primary hover:bg-primary/25"
+                    >
+                      <span>Билеты</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
                   )}
                 </div>
               </div>
-            );
-          })()}
+            )}
 
           {/* Список отелей */}
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
@@ -187,7 +176,7 @@ export function ClassicSerp({
                   key={h.id}
                   hotel={h}
                   isHighlighted={highlightedHotelId === h.id}
-                  onSelect={(hotel) => setSelectedHotel(hotel)}
+                  onSelect={handleSelectHotel}
                 />
               ))
             )}
@@ -199,17 +188,14 @@ export function ClassicSerp({
           hotels={filteredHotels}
           selectedHotelId={highlightedHotelId}
           onSelectHotel={(hotel) => {
-            setHighlightedHotelId(hotel.id);
-            setSelectedHotel(hotel);
+            if (setControlledFilters) {
+              externalOnSelectHotel?.(hotel);
+            } else {
+              setInternalHighlightedId(hotel.id);
+            }
           }}
         />
       </div>
-
-      {/* Модальное окно детализации */}
-      <HotelDetailModal
-        hotel={selectedHotel}
-        onClose={() => setSelectedHotel(null)}
-      />
     </div>
   );
 }

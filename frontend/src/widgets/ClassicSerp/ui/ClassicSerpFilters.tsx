@@ -5,12 +5,20 @@ import React from "react";
 
 import { Badge, Button } from "@/shared/ui";
 
+import { ClassicSerpDatesGuests, SortOption } from "./ClassicSerpDatesGuests";
+import { ClassicSerpPriceSlider } from "./ClassicSerpPriceSlider";
+
 export interface FilterState {
+  checkInDate?: string;
+  checkOutDate?: string;
+  guests: number;
+  sort: SortOption;
   breakfast: boolean;
   pool: boolean;
   spa: boolean;
   pets: boolean;
   freeCancellation: boolean;
+  category?: string;
   minStars: number | null;
   maxPrice: number | null;
 }
@@ -28,7 +36,7 @@ export function ClassicSerpFilters({
   onReset,
   totalFound,
 }: ClassicSerpFiltersProps) {
-  const toggleCheckbox = (key: keyof Omit<FilterState, "minStars" | "maxPrice">) => {
+  const toggleCheckbox = (key: "breakfast" | "pool" | "spa" | "pets" | "freeCancellation") => {
     onFilterChange({
       ...filters,
       [key]: !filters[key],
@@ -42,15 +50,11 @@ export function ClassicSerpFilters({
     });
   };
 
-  const setPrice = (price: number | null) => {
-    onFilterChange({
-      ...filters,
-      maxPrice: filters.maxPrice === price ? null : price,
-    });
-  };
-
   return (
-    <aside className="w-64 shrink-0 space-y-5 rounded-2xl border border-border bg-card/70 p-5 backdrop-blur-md">
+    <aside
+      aria-label="Фильтры каталога"
+      className="w-72 shrink-0 space-y-4 overflow-y-auto rounded-2xl border border-border bg-card/70 p-4 backdrop-blur-md"
+    >
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-primary" />
@@ -61,12 +65,54 @@ export function ClassicSerpFilters({
         </Badge>
       </div>
 
-      {/* Популярные удобства */}
-      <div className="space-y-2.5">
+      {/* Даты, гости и сортировка */}
+      <ClassicSerpDatesGuests
+        checkInDate={filters.checkInDate}
+        checkOutDate={filters.checkOutDate}
+        guests={filters.guests}
+        sort={filters.sort}
+        onDatesChange={(inD, outD) =>
+          onFilterChange({ ...filters, checkInDate: inD, checkOutDate: outD })
+        }
+        onGuestsChange={(g) => onFilterChange({ ...filters, guests: g })}
+        onSortChange={(s) => onFilterChange({ ...filters, sort: s })}
+      />
+
+      {/* Слайдер цен 100 ₽ – 100 000 ₽ */}
+      <ClassicSerpPriceSlider
+        maxPrice={filters.maxPrice}
+        onChange={(price) => onFilterChange({ ...filters, maxPrice: price })}
+      />
+
+      {/* Звездность */}
+      <div className="space-y-2 border-t border-border pt-4">
+        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Категория отеля
+        </span>
+        <div className="flex gap-1.5">
+          {[5, 4, 3].map((star) => (
+            <button
+              key={star}
+              type="button"
+              onClick={() => setStars(star)}
+              className={`flex-1 rounded-xl border py-1.5 text-xs font-bold transition-all ${
+                filters.minStars === star
+                  ? "border-primary bg-primary/20 text-primary"
+                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+              }`}
+            >
+              {star} ★
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Удобства и правила */}
+      <div className="space-y-2 border-t border-border pt-4">
         <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Удобства и правила
         </span>
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {[
             { id: "breakfast", label: "Завтрак включен", key: "breakfast" as const },
             { id: "pool", label: "Теплый бассейн", key: "pool" as const },
@@ -78,7 +124,7 @@ export function ClassicSerpFilters({
             return (
               <label
                 key={item.id}
-                className="flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-secondary/40"
+                className="flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-secondary/40"
               >
                 <span>{item.label}</span>
                 <input
@@ -102,58 +148,7 @@ export function ClassicSerpFilters({
         </div>
       </div>
 
-      {/* Звездность */}
-      <div className="space-y-2.5 border-t border-border pt-4">
-        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Категория отеля
-        </span>
-        <div className="flex gap-1.5">
-          {[5, 4, 3].map((star) => (
-            <button
-              key={star}
-              type="button"
-              onClick={() => setStars(star)}
-              className={`flex-1 rounded-xl border py-2 text-xs font-bold transition-all ${
-                filters.minStars === star
-                  ? "border-primary bg-primary/20 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              {star} ★
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Бюджет */}
-      <div className="space-y-2.5 border-t border-border pt-4">
-        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Бюджет / ночь
-        </span>
-        <div className="flex flex-col gap-1.5">
-          {[
-            { label: "Любой бюджет", value: null },
-            { label: "До 5 000 ₽", value: 5000 },
-            { label: "До 8 000 ₽", value: 8000 },
-            { label: "До 12 000 ₽", value: 12000 },
-          ].map((tier, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setPrice(tier.value)}
-              className={`rounded-xl border px-3 py-1.5 text-left text-xs font-medium transition-all ${
-                filters.maxPrice === tier.value
-                  ? "border-primary bg-primary/20 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
-            >
-              {tier.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Сброс */}
+      {/* Сброс всех фильтров */}
       <div className="border-t border-border pt-3">
         <Button
           variant="outline"

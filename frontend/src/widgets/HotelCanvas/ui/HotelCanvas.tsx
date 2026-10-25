@@ -4,7 +4,7 @@ import { Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
 import React, { useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
-import { HotelDetailModal } from "@/features/hotel-details";
+import { HotelDetailView } from "@/features/hotel-details";
 import { TransportSummaryData } from "@/shared/api";
 import { Badge, Button } from "@/shared/ui";
 
@@ -23,7 +23,17 @@ export function HotelCanvas({
   isStreaming: _isStreaming,
   onSelectPrompt,
 }: HotelCanvasProps) {
-  const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<Hotel | null>(null);
+  const [mode, setMode] = useState<"list" | "detail">("list");
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
+
+  const handleSelectHotel = (hotel: Hotel) => {
+    setSelectedHotel(hotel);
+    setMode("detail");
+  };
+
+  const handleBackToList = () => {
+    setMode("list");
+  };
 
   return (
     <main className="flex h-full flex-1 min-w-0 flex-col overflow-hidden bg-background">
@@ -35,10 +45,10 @@ export function HotelCanvas({
               <Building2 className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">
-              Витрина отелей
+              {mode === "detail" && selectedHotel ? selectedHotel.name : "Витрина отелей"}
             </h1>
           </div>
-          {hotels.length > 0 && (
+          {mode === "list" && hotels.length > 0 && (
             <Badge
               variant="outline"
               className="border-border bg-card px-3 py-1 text-sm font-semibold text-primary shadow-sm"
@@ -52,7 +62,13 @@ export function HotelCanvas({
 
       {/* Основной контент */}
       <div className="flex-1 min-h-0 overflow-y-auto p-8 hotel-canvas-scroll">
-        {hotels.length === 0 ? (
+        {mode === "detail" && selectedHotel ? (
+          <HotelDetailView
+            hotel={selectedHotel}
+            transport={transportSummary}
+            onBack={handleBackToList}
+          />
+        ) : hotels.length === 0 ? (
           <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center space-y-6 text-center text-muted-foreground">
             <div className="rounded-3xl border border-border bg-card p-5 text-primary shadow-xl">
               <HotelIcon className="h-14 w-14 stroke-[1.5]" />
@@ -121,20 +137,13 @@ export function HotelCanvas({
                 <HotelCard
                   key={hotel.id}
                   hotel={hotel}
-                  onSelect={(h) => setSelectedHotelForDetails(h)}
+                  onSelect={handleSelectHotel}
                 />
               ))}
             </div>
           </div>
         )}
       </div>
-
-      {/* Детальная модалка с реальными отзывами гостей и графиком состыковки */}
-      <HotelDetailModal
-        hotel={selectedHotelForDetails}
-        transport={transportSummary}
-        onClose={() => setSelectedHotelForDetails(null)}
-      />
     </main>
   );
 }
