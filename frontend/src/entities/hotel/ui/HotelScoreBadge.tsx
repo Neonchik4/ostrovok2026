@@ -70,9 +70,8 @@ export function HotelScoreBadge({ scorePct, criteriaBreakdown = [], className = 
         >
           <div className="mb-2.5 flex items-center justify-between border-b border-border pb-2">
             <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-              Обоснование Match Score
+              Почему Вам это подходит?
             </span>
-            <span className="text-xs font-black text-primary">{scorePct}%</span>
           </div>
 
           <div className="max-h-64 space-y-2.5 overflow-y-auto pr-1">

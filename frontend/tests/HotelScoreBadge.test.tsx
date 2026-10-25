@@ -50,7 +50,8 @@ describe("HotelScoreBadge", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     // Contains breakdown sections
-    expect(screen.getByText("Обоснование Match Score")).toBeInTheDocument();
+    expect(screen.getByText("Почему Вам это подходит?")).toBeInTheDocument();
+    expect(screen.queryByText("94%")).not.toBeInTheDocument();
     expect(screen.getByText("8 500 ₽/ночь <= 10 000 ₽")).toBeInTheDocument();
     expect(screen.getByText("Размещение с животными разрешено")).toBeInTheDocument();
     expect(screen.getByText("Семантическое совпадение с отзывами гостей")).toBeInTheDocument();
