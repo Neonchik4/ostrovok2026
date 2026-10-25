@@ -36,11 +36,12 @@ export function HotelScoreBadge({ scorePct, criteriaBreakdown = [], className = 
     };
   }, [isOpen]);
 
+  // Без обоснования бейдж не несет информации, поэтому не рендерится
+  if (!hasBreakdown) return null;
+
   const toggleOpen = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (hasBreakdown) {
-      setIsOpen((prev) => !prev);
-    }
+    setIsOpen((prev) => !prev);
   };
 
   return (
@@ -49,25 +50,18 @@ export function HotelScoreBadge({ scorePct, criteriaBreakdown = [], className = 
         type="button"
         onClick={toggleOpen}
         aria-expanded={isOpen}
-        aria-label={`Оценка соответствия ${scorePct}%. ${hasBreakdown ? "Нажмите для подробного обоснования" : ""}`}
-        className={`flex items-center gap-1.5 rounded-lg border border-border/80 bg-background/90 px-3 py-1.5 text-xs font-extrabold text-foreground shadow-lg backdrop-blur-md transition-all md:text-sm ${
-          hasBreakdown
-            ? "cursor-pointer hover:border-primary/60 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            : "cursor-default"
-        }`}
+        aria-label={`Оценка соответствия ${scorePct}%. Нажмите для подробного обоснования`}
+        className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-border/80 bg-background/90 px-3 py-1.5 text-xs font-extrabold text-foreground shadow-lg backdrop-blur-md transition-all hover:border-primary/60 hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-sm"
       >
         <HelpCircle className="h-4 w-4 shrink-0 text-primary" />
-        <span className="text-foreground">{scorePct}% совпадение</span>
-        {hasBreakdown && (
-          isOpen ? (
-            <ChevronUp className="h-3.5 w-3.5 text-muted-foreground transition-transform" />
-          ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform" />
-          )
+        {isOpen ? (
+          <ChevronUp className="h-3.5 w-3.5 text-muted-foreground transition-transform" />
+        ) : (
+          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground transition-transform" />
         )}
       </button>
 
-      {isOpen && hasBreakdown && (
+      {isOpen && (
         <div
           role="dialog"
           aria-label="Обоснование соответствия отеля"

@@ -73,7 +73,8 @@ describe("HotelDetailModal", () => {
 
     expect(screen.getByText("Гранд Отель Поляна")).toBeInTheDocument();
     expect(screen.getByText(/ул. Ачипсинская, 16/)).toBeInTheDocument();
-    expect(screen.getByText("98% совпадение")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Оценка соответствия/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(/% совпадение/)).not.toBeInTheDocument();
     expect(screen.getByText("Плюсы по отзывам гостей")).toBeInTheDocument();
     expect(
       screen.getByText(/Отличная звукоизоляция в номерах/)
