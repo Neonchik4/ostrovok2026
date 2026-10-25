@@ -1,7 +1,7 @@
 
 from pydantic import BaseModel, Field
 
-from .hotel_models import RoomType
+from .hotel_models import Coordinates, RoomType
 
 
 class ChatStreamRequest(BaseModel):
@@ -25,9 +25,59 @@ class ReceiptBreakdown(BaseModel):
     base_accommodation_cost_rub: int
     pet_deposit_rub: int
     resort_tax_rub: int
+    transfer_cost_rub: int = 0
+    flight_ticket_rub: int = 0
+    train_ticket_rub: int = 0
+    transport_ticket_rub: int = 0
+    ticket_price_per_person_rub: int = 0
+    tickets_count: int = 1
+    transport_type: str = "flight"  # flight | train
+    transport_name: str | None = None
     total_rub: int
+    total_with_transport_rub: int = 0
     is_free_cancellation: bool
     cancellation_deadline: str | None = None
+    transfer_note: str | None = None
+    arrival_warning: str | None = None
+
+class NearestHub(BaseModel):
+    hub_id: str
+    name: str
+    hub_type: str = "train_station"  # airport | train_station
+    distance_km: float
+    travel_time_min: int = 0
+    taxi_time_min: int = 0
+    taxi_cost_rub: int = 0
+
+class FlightTicketOption(BaseModel):
+    origin: str
+    destination: str
+    airline: str
+    flight_number: str | None = None
+    departure_at: str
+    arrival_at: str | None = None
+    price_rub: int
+    booking_url: str
+    duration_min: int | None = None
+    is_direct: bool = True
+
+class TrainTicketOption(BaseModel):
+    origin: str
+    destination: str
+    train_number: str | None = None
+    departure_at: str | None = None
+    arrival_at: str | None = None
+    price_from_rub: int
+    booking_url: str
+
+class TransportSummary(BaseModel):
+    origin_city: str = "Москва"
+    destination_city: str
+    recommended_flight: FlightTicketOption | None = None
+    cheapest_flight: FlightTicketOption | None = None
+    recommended_train: TrainTicketOption | None = None
+    arrival_time: str | None = None
+    preferred_mode: str = "both"
 
 class CriterionMatch(BaseModel):
     criterion: str
@@ -55,14 +105,28 @@ class HotelCardWidget(BaseModel):
     distance_to_ski_lift_m: int | None = None
     criteria_breakdown: list[CriterionMatch] = Field(default_factory=list)
     compromise_note: str | None = None
+    checkin_from: str = "14:00"
+    checkout_until: str = "12:00"
+    has_24h_front_desk: bool = False
+    has_early_checkin: bool = False
+    has_luggage_storage: bool = False
+    has_late_checkout: bool = False
+    nearest_hub: NearestHub | None = None
+    nearest_station: NearestHub | None = None
+    nearest_airport: NearestHub | None = None
+    coordinates: Coordinates | None = None
 
 class WidgetEvent(BaseModel):
     type: str = "hotel_grid"
     hotels: list[HotelCardWidget] = Field(default_factory=list)
     disambiguation_chips: list[str] = Field(default_factory=list)
+    transport_summary: TransportSummary | None = None
 
 class ExtractedSlots(BaseModel):
     city: str | None = None
+    candidate_cities: list[str] = Field(default_factory=list)
+    thematic_category: str | None = None
+    thematic_title: str | None = None
     area_type: str | None = None
     stars: int | None = None
     max_price_per_night_rub: int | None = None
@@ -76,6 +140,22 @@ class ExtractedSlots(BaseModel):
     max_distance_to_ski_lift_m: int | None = None
     guests_count: int | None = 2
     nights: int | None = 2
+    arrival_time: str | None = None
+    departure_time: str | None = None
+    needs_early_checkin: bool | None = None
+    needs_late_checkout: bool | None = None
+    needs_24h_front_desk: bool | None = None
+    needs_luggage_storage: bool | None = None
+    near_station: bool | None = None
+    near_airport: bool | None = None
+    max_distance_to_station_km: float | None = None
+    max_distance_to_airport_km: float | None = None
+    origin_city: str | None = None
+    total_trip_budget_rub: int | None = None
+    depart_date: str | None = None
+    include_flight: bool | None = None
+    include_train: bool | None = None
+    transport_preference: str | None = None
     semantic_query: str = ""
     disambiguation_suggestions: list[str] = Field(default_factory=list)
 

@@ -31,7 +31,12 @@ from .vector_store import (
 async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> tuple[list[HotelCardWidget], SearchTelemetry]:
     """Векторный поиск по ChromaDB с последующей жесткой фильтрацией и телеметрией."""
     dataset = get_hotels_dataset()
-    total_in_region = sum(1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower()))
+    if slots.city:
+        total_in_region = sum(1 for h in dataset if slots.city.lower() in h.city.lower())
+    elif slots.candidate_cities:
+        total_in_region = sum(1 for h in dataset if any(c.lower() in h.city.lower() for c in slots.candidate_cities))
+    else:
+        total_in_region = len(dataset)
 
     if not is_vector_ready():
         return search_in_memory_with_telemetry(dataset, slots)
@@ -40,6 +45,8 @@ async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> tuple[list[Hot
     query_parts = []
     if slots.city:
         query_parts.append(f"город {slots.city}")
+    elif slots.thematic_title:
+        query_parts.append(slots.thematic_title)
     if slots.area_type:
         query_parts.append(slots.area_type)
     if slots.pet_friendly:
@@ -86,7 +93,8 @@ async def _search_chroma_with_telemetry(slots: ExtractedSlots) -> tuple[list[Hot
     is_relaxed = False
     if not cards:
         cards = search_relaxed(dataset, slots)
-        is_relaxed = True
+        if cards:
+            is_relaxed = True
 
     top_score = cards[0].match_score_pct if cards else 0
     min_price = min((c.min_price_per_night_rub for c in cards), default=0)

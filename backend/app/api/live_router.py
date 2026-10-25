@@ -65,6 +65,6 @@ async def live_proxy_api(
         path=full_path,
         method=request.method,
         headers=dict(request.headers),
-        body=body,
+        content=body,
     )
     return Response(content=content, status_code=status, headers=headers)

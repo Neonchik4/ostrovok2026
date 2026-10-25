@@ -5,15 +5,24 @@ import React, { useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
 import { HotelDetailModal } from "@/features/hotel-details";
+import { TransportSummaryData } from "@/shared/api";
 import { Badge, Button } from "@/shared/ui";
+
+import { HotelTransportBanner } from "./HotelTransportBanner";
 
 interface HotelCanvasProps {
   hotels: Hotel[];
+  transportSummary?: TransportSummaryData | null;
   isStreaming: boolean;
   onSelectPrompt?: (prompt: string) => void;
 }
 
-export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt }: HotelCanvasProps) {
+export function HotelCanvas({
+  hotels,
+  transportSummary,
+  isStreaming: _isStreaming,
+  onSelectPrompt,
+}: HotelCanvasProps) {
   const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<Hotel | null>(null);
 
   return (
@@ -101,21 +110,29 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
             )}
           </div>
         ) : (
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {hotels.map((hotel) => (
-              <HotelCard
-                key={hotel.id}
-                hotel={hotel}
-                onSelect={(h) => setSelectedHotelForDetails(h)}
-              />
-            ))}
+          <div className="mx-auto max-w-7xl space-y-6">
+            {/* Карточка маршрута и билетов */}
+            {transportSummary && (transportSummary.recommended_flight || transportSummary.recommended_train) && (
+              <HotelTransportBanner transport={transportSummary} />
+            )}
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {hotels.map((hotel) => (
+                <HotelCard
+                  key={hotel.id}
+                  hotel={hotel}
+                  onSelect={(h) => setSelectedHotelForDetails(h)}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Детальная модалка с реальными отзывами гостей */}
+      {/* Детальная модалка с реальными отзывами гостей и графиком состыковки */}
       <HotelDetailModal
         hotel={selectedHotelForDetails}
+        transport={transportSummary}
         onClose={() => setSelectedHotelForDetails(null)}
       />
     </main>

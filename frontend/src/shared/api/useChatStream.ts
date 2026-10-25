@@ -44,6 +44,49 @@ export interface CriterionMatch {
   is_positive: boolean;
 }
 
+export interface NearestHubData {
+  hub_id: string;
+  name: string;
+  hub_type: "airport" | "train_station";
+  distance_km: number;
+  travel_time_min: number;
+  taxi_time_min: number;
+  taxi_cost_rub: number;
+}
+
+export interface FlightTicketData {
+  origin: string;
+  destination: string;
+  airline: string;
+  flight_number?: string;
+  departure_at: string;
+  arrival_at?: string;
+  price_rub: number;
+  booking_url: string;
+  duration_min?: number;
+  is_direct: boolean;
+}
+
+export interface TrainTicketData {
+  origin: string;
+  destination: string;
+  train_number?: string;
+  departure_at?: string;
+  arrival_at?: string;
+  price_from_rub: number;
+  booking_url: string;
+}
+
+export interface TransportSummaryData {
+  origin_city: string;
+  destination_city: string;
+  recommended_flight?: FlightTicketData;
+  cheapest_flight?: FlightTicketData;
+  recommended_train?: TrainTicketData;
+  arrival_time?: string;
+  preferred_mode?: string;
+}
+
 export interface HotelData {
   id: string;
   name: string;
@@ -73,17 +116,42 @@ export interface HotelData {
     base_accommodation_cost_rub: number;
     pet_deposit_rub: number;
     resort_tax_rub: number;
+    transfer_cost_rub?: number;
+    flight_ticket_rub?: number;
+    train_ticket_rub?: number;
+    transport_ticket_rub?: number;
+    ticket_price_per_person_rub?: number;
+    tickets_count?: number;
+    transport_type?: "flight" | "train";
+    transport_name?: string;
     total_rub: number;
+    total_with_transport_rub?: number;
     is_free_cancellation: boolean;
     cancellation_deadline?: string;
+    transfer_note?: string;
+    arrival_warning?: string;
   };
   distance_to_beach_m?: number;
   distance_to_ski_lift_m?: number;
+  checkin_from?: string;
+  checkout_until?: string;
+  has_24h_front_desk?: boolean;
+  has_early_checkin?: boolean;
+  has_luggage_storage?: boolean;
+  nearest_hub?: NearestHubData;
+  nearest_station?: NearestHubData;
+  nearest_airport?: NearestHubData;
+  coordinates?: {
+    lat: number;
+    lon: number;
+  };
   amenities?: Record<string, boolean>;
   reviews?: ReviewItem[];
   reviews_summary?: ReviewsSummary;
   criteria_breakdown?: CriterionMatch[];
   compromise_note?: string;
+  master_id?: number;
+  slug?: string;
 }
 
 export interface UseChatStreamOptions {
@@ -97,6 +165,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   const [thoughts, setThoughts] = useState<ThoughtItem[]>([]);
   const [hotels, setHotels] = useState<HotelData[]>([]);
   const [chips, setChips] = useState<string[]>([]);
+  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -230,6 +299,9 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                 if (Array.isArray(data.disambiguation_chips)) {
                   setChips(data.disambiguation_chips);
                 }
+                if (data.transport_summary) {
+                  setTransportSummary(data.transport_summary);
+                }
               }
             } else if (event === "done") {
               setIsThinking(false);
@@ -264,6 +336,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     thoughts,
     hotels,
     chips,
+    transportSummary,
     isStreaming,
     isThinking,
     error,

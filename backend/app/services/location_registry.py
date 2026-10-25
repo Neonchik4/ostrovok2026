@@ -47,6 +47,19 @@ def _load_locations_data() -> list[dict[str, object]]:
         {"canonical": "Зеленоградск", "patterns": [r"зеленоградск\w*"]},
         {"canonical": "Мурманск", "patterns": [r"мурманск\w*", r"териберк\w*"]},
         {"canonical": "Самара", "patterns": [r"самар\w*"]},
+        {"canonical": "Ижевск", "patterns": [r"ижевск\w*", r"удмурти\w*"]},
+        {"canonical": "Уфа", "patterns": [r"уф\w*", r"башкири\w*", r"башкортостан\w*"]},
+        {"canonical": "Пермь", "patterns": [r"перм\w*"]},
+        {"canonical": "Тюмень", "patterns": [r"тюмен\w*"]},
+        {"canonical": "Челябинск", "patterns": [r"челябинск\w*", r"челяб\w*"]},
+        {"canonical": "Красноярск", "patterns": [r"красноярск\w*", r"краснояр\w*"]},
+        {"canonical": "Новосибирск", "patterns": [r"новосибирск\w*", r"новосиб\w*", r"нск\b"]},
+        {"canonical": "Омск", "patterns": [r"омск\w*"]},
+        {"canonical": "Ростов-на-Дону", "patterns": [r"ростов[- ]на[- ]дону", r"ростов\w*"]},
+        {"canonical": "Волгоград", "patterns": [r"волгоград\w*"]},
+        {"canonical": "Воронеж", "patterns": [r"воронеж\w*"]},
+        {"canonical": "Ярославль", "patterns": [r"ярославл\w*"]},
+        {"canonical": "Саратов", "patterns": [r"саратов\w*"]},
     ]
 
 def _init_patterns() -> None:

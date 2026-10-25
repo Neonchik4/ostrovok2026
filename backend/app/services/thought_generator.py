@@ -23,6 +23,9 @@ def build_deterministic_reasoning(user_message: str, slots: ExtractedSlots) -> s
     parts = []
     if slots.city:
         parts.append(f"Анализирую запрос на размещение в регионе {slots.city}.")
+    elif slots.thematic_title:
+        cand_str = f" ({', '.join(slots.candidate_cities)})" if slots.candidate_cities else ""
+        parts.append(f"Анализирую подборку курортов по направлению «{slots.thematic_title}»{cand_str}.")
     else:
         parts.append(f"Анализирую запрос пользователя: «{user_message}».")
 
@@ -41,6 +44,16 @@ def build_deterministic_reasoning(user_message: str, slots: ExtractedSlots) -> s
         reqs.append(f"категория от {slots.stars} звезд")
     if slots.max_price_per_night_rub:
         reqs.append(f"ограничение бюджета до {slots.max_price_per_night_rub:,} ₽/ночь".replace(",", " "))
+    if slots.arrival_time:
+        reqs.append(f"время прибытия {slots.arrival_time} (состыковка с графиком заезда и проверка стойки 24/7)")
+    if slots.departure_time:
+        reqs.append(f"время выезда {slots.departure_time} (состыковка с расчетным часом check-out и проверка камеры хранения)")
+    elif slots.needs_late_checkout:
+        reqs.append("поздний выезд (проверка опции позднего check-out и камеры хранения багажа)")
+    if slots.near_station:
+        reqs.append("шаговая доступность или быстрый трансфер до Ж/Д вокзала")
+    if slots.near_airport:
+        reqs.append("удобный трансфер и близость к аэропорту")
 
     if reqs:
         parts.append(f"Ключевые критерии отбора: {', '.join(reqs)}.")

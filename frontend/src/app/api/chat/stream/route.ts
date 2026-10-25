@@ -3,12 +3,32 @@ import { NextRequest } from "next/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
+async function fetchUpstreamWithRetry(
+  url: string,
+  init: RequestInit,
+  maxRetries = 6,
+  delayMs = 600
+): Promise<Response> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fetch(url, init);
+    } catch (err) {
+      lastErr = err;
+      if (attempt < maxRetries - 1) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  throw lastErr;
+}
+
 export async function POST(req: NextRequest) {
   const backendUrl = process.env.BACKEND_URL || "http://127.0.0.1:8000";
   const body = await req.text();
 
   try {
-    const upstream = await fetch(`${backendUrl}/api/chat/stream`, {
+    const upstream = await fetchUpstreamWithRetry(`${backendUrl}/api/chat/stream`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -55,7 +75,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
   try {
-    const upstream = await fetch(`${backendUrl}/api/chat/stream?${searchParams.toString()}`, {
+    const upstream = await fetchUpstreamWithRetry(`${backendUrl}/api/chat/stream?${searchParams.toString()}`, {
       method: "GET",
       headers: {
         Accept: "text/event-stream",
