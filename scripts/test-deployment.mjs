@@ -84,7 +84,7 @@ test("frontend uses standalone output and receives no Gemini keys", () => {
 
 test("build contexts exclude secrets, local dependencies and caches", () => {
   for (const path of [".dockerignore", "frontend/.dockerignore"]) {
-    const ignore = read(path);
+    const ignore = read(path).replace(/\r\n/g, "\n");
     for (const entry of ["**/.git", "**/node_modules", "**/.venv", "**/.next", "**/.env", "**/__pycache__"]) {
       assert.ok(ignore.split("\n").includes(entry), `${path} must exclude ${entry}`);
     }
