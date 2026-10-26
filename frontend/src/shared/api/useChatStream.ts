@@ -84,6 +84,7 @@ export interface HotelData {
   reviews_summary?: ReviewsSummary;
   criteria_breakdown?: CriterionMatch[];
   compromise_note?: string;
+  checkout_url?: string;
 }
 
 export interface UseChatStreamOptions {

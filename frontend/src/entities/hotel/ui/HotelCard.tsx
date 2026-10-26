@@ -145,6 +145,16 @@ export function HotelCard({ hotel, onSelect }: HotelCardProps) {
               Подробнее
             </Button>
           )}
+          {hotel.checkout_url && (
+            <a
+              href={hotel.checkout_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+            >
+              Забронировать
+            </a>
+          )}
         </div>
       </div>
     </Card>

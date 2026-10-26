@@ -1,10 +1,12 @@
-
 from ..schemas.chat import CriterionMatch, ExtractedSlots, HotelCardWidget, SearchTelemetry
 from ..schemas.hotel_models import HotelFullSchema, RoomType
+from .checkout_service import build_ostrovok_checkout_url
 from .receipt_calc import calculate_receipt
 
 
-def compute_calibrated_match_score(raw_similarity: float, hotel: HotelFullSchema, slots: ExtractedSlots) -> int:
+def compute_calibrated_match_score(
+    raw_similarity: float, hotel: HotelFullSchema, slots: ExtractedSlots
+) -> int:
     """
     Качественная калибровка Match Score:
     1. raw_similarity: косинусное сходство (от 0.30 до 0.85)
@@ -30,7 +32,10 @@ def compute_calibrated_match_score(raw_similarity: float, hotel: HotelFullSchema
         bonus += 3.0
     if slots.spa and hotel.amenities.spa:
         bonus += 2.5
-    if slots.max_price_per_night_rub and hotel.min_price_per_night_rub <= slots.max_price_per_night_rub:
+    if (
+        slots.max_price_per_night_rub
+        and hotel.min_price_per_night_rub <= slots.max_price_per_night_rub
+    ):
         bonus += 3.5
     if hotel.rating >= 9.0:
         bonus += 2.0
@@ -40,6 +45,7 @@ def compute_calibrated_match_score(raw_similarity: float, hotel: HotelFullSchema
     final_pct = int(round(base_score + bonus))
     return max(65, min(97, final_pct))
 
+
 def matches_scalar_filters(hotel: HotelFullSchema, slots: ExtractedSlots) -> bool:
     """Проверяет жесткие скалярные фильтры для отеля."""
     if slots.city and slots.city.lower() not in hotel.city.lower():
@@ -48,7 +54,10 @@ def matches_scalar_filters(hotel: HotelFullSchema, slots: ExtractedSlots) -> boo
         return False
     if slots.min_rating and hotel.rating < slots.min_rating:
         return False
-    if slots.max_price_per_night_rub and hotel.min_price_per_night_rub > slots.max_price_per_night_rub:
+    if (
+        slots.max_price_per_night_rub
+        and hotel.min_price_per_night_rub > slots.max_price_per_night_rub
+    ):
         return False
     # Цена неизвестна (0 + data_quality.has_real_prices=false): бюджет подтвердить нельзя
     if slots.max_price_per_night_rub and hotel.min_price_per_night_rub <= 0:
@@ -61,10 +70,9 @@ def matches_scalar_filters(hotel: HotelFullSchema, slots: ExtractedSlots) -> boo
         return False
     return True
 
+
 def evaluate_criteria_breakdown(
-    hotel: HotelFullSchema,
-    slots: ExtractedSlots,
-    is_relaxed: bool = False
+    hotel: HotelFullSchema, slots: ExtractedSlots, is_relaxed: bool = False
 ) -> tuple[list[CriterionMatch], str | None]:
     """
     Разбивает Match Score на конкретные подтверждённые критерии:
@@ -78,150 +86,184 @@ def evaluate_criteria_breakdown(
     # 1. Город / Локация
     if slots.city:
         if slots.city.lower() in hotel.city.lower():
-            breakdown.append(CriterionMatch(
-                criterion="Локация",
-                status="code_verified",
-                evidence=f"{hotel.city} (совпадает с «{slots.city}»)",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Локация",
+                    status="code_verified",
+                    evidence=f"{hotel.city} (совпадает с «{slots.city}»)",
+                    is_positive=True,
+                )
+            )
         else:
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            breakdown.append(CriterionMatch(
-                criterion="Локация",
-                status=status,
-                evidence=f"{hotel.city} (вместо «{slots.city}»)",
-                is_positive=False,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Локация",
+                    status=status,
+                    evidence=f"{hotel.city} (вместо «{slots.city}»)",
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append(f"Другой город ({hotel.city})")
 
     # 2. Бюджет / Цена
     if slots.max_price_per_night_rub:
         if 0 < hotel.min_price_per_night_rub <= slots.max_price_per_night_rub:
-            ev = f"{hotel.min_price_per_night_rub:,} ₽/ночь <= {slots.max_price_per_night_rub:,} ₽".replace(",", " ")
-            breakdown.append(CriterionMatch(
-                criterion="Бюджет",
-                status="code_verified",
-                evidence=ev,
-                is_positive=True,
-            ))
+            ev = f"{hotel.min_price_per_night_rub:,} ₽/ночь <= {slots.max_price_per_night_rub:,} ₽".replace(
+                ",", " "
+            )
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Бюджет",
+                    status="code_verified",
+                    evidence=ev,
+                    is_positive=True,
+                )
+            )
         elif hotel.min_price_per_night_rub > slots.max_price_per_night_rub:
             diff = hotel.min_price_per_night_rub - slots.max_price_per_night_rub
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            ev = f"Превышение на {diff:,} ₽ ({hotel.min_price_per_night_rub:,} ₽ при лимите {slots.max_price_per_night_rub:,} ₽)".replace(",", " ")
-            breakdown.append(CriterionMatch(
-                criterion="Бюджет",
-                status=status,
-                evidence=ev,
-                is_positive=False,
-            ))
+            ev = f"Превышение на {diff:,} ₽ ({hotel.min_price_per_night_rub:,} ₽ при лимите {slots.max_price_per_night_rub:,} ₽)".replace(
+                ",", " "
+            )
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Бюджет",
+                    status=status,
+                    evidence=ev,
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append(f"Бюджет превышен на {diff:,} ₽".replace(",", " "))
         else:
-            breakdown.append(CriterionMatch(
-                criterion="Бюджет",
-                status="code_verified",
-                evidence="Цена уточняется при бронировании",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Бюджет",
+                    status="code_verified",
+                    evidence="Цена уточняется при бронировании",
+                    is_positive=True,
+                )
+            )
 
     # 3. Питомцы
     if slots.pet_friendly:
         if hotel.amenities.pet_friendly:
-            breakdown.append(CriterionMatch(
-                criterion="Питомцы",
-                status="code_verified",
-                evidence="Размещение с животными разрешено",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Питомцы",
+                    status="code_verified",
+                    evidence="Размещение с животными разрешено",
+                    is_positive=True,
+                )
+            )
         else:
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            breakdown.append(CriterionMatch(
-                criterion="Питомцы",
-                status=status,
-                evidence="Размещение с животными не подтверждено",
-                is_positive=False,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Питомцы",
+                    status=status,
+                    evidence="Размещение с животными не подтверждено",
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append("Без подтверждения питомцев")
 
     # 4. Подогреваемый бассейн
     if slots.heated_pool:
         if hotel.amenities.heated_pool:
-            breakdown.append(CriterionMatch(
-                criterion="Бассейн",
-                status="code_verified",
-                evidence="Подогреваемый теплый бассейн в наличии",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Бассейн",
+                    status="code_verified",
+                    evidence="Подогреваемый теплый бассейн в наличии",
+                    is_positive=True,
+                )
+            )
         else:
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            breakdown.append(CriterionMatch(
-                criterion="Бассейн",
-                status=status,
-                evidence="Подогреваемый бассейн не заявлен",
-                is_positive=False,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Бассейн",
+                    status=status,
+                    evidence="Подогреваемый бассейн не заявлен",
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append("Без теплого бассейна")
 
     # 5. СПА
     if slots.spa:
         if hotel.amenities.spa:
-            breakdown.append(CriterionMatch(
-                criterion="СПА-центр",
-                status="code_verified",
-                evidence="СПА, сауна или банный комплекс в наличии",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="СПА-центр",
+                    status="code_verified",
+                    evidence="СПА, сауна или банный комплекс в наличии",
+                    is_positive=True,
+                )
+            )
         else:
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            breakdown.append(CriterionMatch(
-                criterion="СПА-центр",
-                status=status,
-                evidence="СПА-комплекс отсутствует",
-                is_positive=False,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="СПА-центр",
+                    status=status,
+                    evidence="СПА-комплекс отсутствует",
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append("Без СПА")
 
     # 6. Звездность
     if slots.stars:
         if hotel.stars >= slots.stars:
-            breakdown.append(CriterionMatch(
-                criterion="Категория",
-                status="code_verified",
-                evidence=f"{hotel.stars}★ (запрошено от {slots.stars}★)",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Категория",
+                    status="code_verified",
+                    evidence=f"{hotel.stars}★ (запрошено от {slots.stars}★)",
+                    is_positive=True,
+                )
+            )
         else:
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            breakdown.append(CriterionMatch(
-                criterion="Категория",
-                status=status,
-                evidence=f"{hotel.stars}★ (ниже запрошенных {slots.stars}★)",
-                is_positive=False,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Категория",
+                    status=status,
+                    evidence=f"{hotel.stars}★ (ниже запрошенных {slots.stars}★)",
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append(f"Категория {hotel.stars}★ вместо {slots.stars}★")
 
     # 7. Рейтинг
     if slots.min_rating:
         if hotel.rating >= slots.min_rating:
-            breakdown.append(CriterionMatch(
-                criterion="Рейтинг гостей",
-                status="code_verified",
-                evidence=f"{hotel.rating:.1f} из 10 (порог {slots.min_rating:.1f})",
-                is_positive=True,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Рейтинг гостей",
+                    status="code_verified",
+                    evidence=f"{hotel.rating:.1f} из 10 (порог {slots.min_rating:.1f})",
+                    is_positive=True,
+                )
+            )
         else:
             status = "relaxed_compromise" if is_relaxed else "code_verified"
-            breakdown.append(CriterionMatch(
-                criterion="Рейтинг гостей",
-                status=status,
-                evidence=f"{hotel.rating:.1f} из 10 (ниже порога {slots.min_rating:.1f})",
-                is_positive=False,
-            ))
+            breakdown.append(
+                CriterionMatch(
+                    criterion="Рейтинг гостей",
+                    status=status,
+                    evidence=f"{hotel.rating:.1f} из 10 (ниже порога {slots.min_rating:.1f})",
+                    is_positive=False,
+                )
+            )
             if is_relaxed:
                 compromises.append(f"Рейтинг {hotel.rating:.1f} < {slots.min_rating:.1f}")
 
@@ -232,39 +274,48 @@ def evaluate_criteria_breakdown(
         if matched_tags:
             evidence_str = f"Семантически совпали теги: {', '.join(matched_tags[:3])}"
         else:
-            evidence_str = f"Семантическое соответствие описанию и отзывам по теме «{slots.semantic_query}»"
+            evidence_str = (
+                f"Семантическое соответствие описанию и отзывам по теме «{slots.semantic_query}»"
+            )
 
-        breakdown.append(CriterionMatch(
-            criterion="Атмосфера и пожелания",
-            status="semantic_match",
-            evidence=evidence_str,
-            is_positive=True,
-        ))
+        breakdown.append(
+            CriterionMatch(
+                criterion="Атмосфера и пожелания",
+                status="semantic_match",
+                evidence=evidence_str,
+                is_positive=True,
+            )
+        )
 
     # Базовые подтверждения, если фильтров не было
     if not breakdown:
-        breakdown.append(CriterionMatch(
-            criterion="Рейтинг",
-            status="code_verified",
-            evidence=f"Оценка гостей {hotel.rating:.1f} ({hotel.reviews_count} отзывов)",
-            is_positive=True,
-        ))
-        breakdown.append(CriterionMatch(
-            criterion="Локация",
-            status="code_verified",
-            evidence=f"{hotel.city}, {hotel.area or 'центр'}",
-            is_positive=True,
-        ))
+        breakdown.append(
+            CriterionMatch(
+                criterion="Рейтинг",
+                status="code_verified",
+                evidence=f"Оценка гостей {hotel.rating:.1f} ({hotel.reviews_count} отзывов)",
+                is_positive=True,
+            )
+        )
+        breakdown.append(
+            CriterionMatch(
+                criterion="Локация",
+                status="code_verified",
+                evidence=f"{hotel.city}, {hotel.area or 'центр'}",
+                is_positive=True,
+            )
+        )
 
     primary_compromise = "; ".join(compromises) if (is_relaxed and compromises) else None
     return breakdown, primary_compromise
+
 
 def build_hotel_card(
     hotel: HotelFullSchema,
     score: float,
     slots: ExtractedSlots,
     is_relaxed: bool = False,
-    override_compromise: str | None = None
+    override_compromise: str | None = None,
 ) -> HotelCardWidget:
     """Формирует карточку отеля с честным расчетом чека и разложением соответствия."""
     rooms = hotel.room_types
@@ -273,12 +324,13 @@ def build_hotel_card(
     pets = 1 if slots.pet_friendly else 0
 
     suitable_rooms = [
-        r for r in rooms
-        if (r.capacity.max_total_guests if r.capacity else 2) >= guests
+        r for r in rooms if (r.capacity.max_total_guests if r.capacity else 2) >= guests
     ]
     chosen_room = suitable_rooms[0] if suitable_rooms else (rooms[0] if rooms else None)
 
-    receipt_target_room = chosen_room or RoomType(name="Стандартный номер", price_per_night_rub=hotel.min_price_per_night_rub)
+    receipt_target_room = chosen_room or RoomType(
+        name="Стандартный номер", price_per_night_rub=hotel.min_price_per_night_rub
+    )
     receipt = calculate_receipt(receipt_target_room, hotel.policies, nights, guests, pets)
 
     if score > 1.0:
@@ -291,6 +343,13 @@ def build_hotel_card(
     breakdown, comp_note = evaluate_criteria_breakdown(hotel, slots, is_relaxed=is_relaxed)
     if override_compromise:
         comp_note = override_compromise
+
+    room_id = chosen_room.room_id if chosen_room else None
+    checkout_url = build_ostrovok_checkout_url(
+        hotel,
+        guests=guests,
+        room_id=room_id,
+    )
 
     return HotelCardWidget(
         id=hotel.id,
@@ -312,11 +371,17 @@ def build_hotel_card(
         distance_to_ski_lift_m=hotel.location_details.distance_to_ski_lift_m,
         criteria_breakdown=breakdown,
         compromise_note=comp_note,
+        checkout_url=checkout_url,
     )
 
-def search_in_memory_with_telemetry(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> tuple[list[HotelCardWidget], SearchTelemetry]:
+
+def search_in_memory_with_telemetry(
+    dataset: list[HotelFullSchema], slots: ExtractedSlots
+) -> tuple[list[HotelCardWidget], SearchTelemetry]:
     """Детерминированный in-memory поиск и ранжирование отелей с подробной телеметрией."""
-    total_in_region = sum(1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower()))
+    total_in_region = sum(
+        1 for h in dataset if (not slots.city or slots.city.lower() in h.city.lower())
+    )
     scored_hotels: list[tuple[int, HotelFullSchema]] = []
     scalar_matched = 0
 
@@ -357,9 +422,13 @@ def search_in_memory_with_telemetry(dataset: list[HotelFullSchema], slots: Extra
     )
     return cards, telemetry
 
-def search_in_memory(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> list[HotelCardWidget]:
+
+def search_in_memory(
+    dataset: list[HotelFullSchema], slots: ExtractedSlots
+) -> list[HotelCardWidget]:
     cards, _ = search_in_memory_with_telemetry(dataset, slots)
     return cards
+
 
 def search_relaxed(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> list[HotelCardWidget]:
     """
@@ -382,7 +451,10 @@ def search_relaxed(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> lis
         if slots.stars and h.stars >= slots.stars:
             match_pct += 4
 
-        if slots.max_price_per_night_rub and h.min_price_per_night_rub > slots.max_price_per_night_rub:
+        if (
+            slots.max_price_per_night_rub
+            and h.min_price_per_night_rub > slots.max_price_per_night_rub
+        ):
             diff = h.min_price_per_night_rub - slots.max_price_per_night_rub
             penalty = int(min(15, (diff / max(slots.max_price_per_night_rub, 1000)) * 10))
             match_pct -= penalty

@@ -3,11 +3,14 @@ import os
 
 from fastapi import APIRouter, HTTPException
 
+from ..services.checkout_service import build_ostrovok_checkout_url
 from ..services.vector_store import get_hotel_by_id
 
 router = APIRouter(prefix="/hotels", tags=["Hotels"])
 
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+ROOT_DIR = os.path.dirname(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 HOTELS_DIR = os.path.join(ROOT_DIR, "outputs", "hotels")
 
 
@@ -21,7 +24,10 @@ async def get_hotel_details(hotel_id: str):
     if os.path.exists(sharded_path):
         try:
             with open(sharded_path, encoding="utf-8") as f:
-                return json.load(f)
+                data = json.load(f)
+                if not data.get("checkout_url"):
+                    data["checkout_url"] = build_ostrovok_checkout_url(data)
+                return data
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Ошибка чтения данных отеля: {e}")
 
@@ -30,4 +36,7 @@ async def get_hotel_details(hotel_id: str):
     if not hotel:
         raise HTTPException(status_code=404, detail=f"Отель '{hotel_id}' не найден")
 
-    return hotel.model_dump()
+    dump = hotel.model_dump()
+    if not dump.get("checkout_url"):
+        dump["checkout_url"] = build_ostrovok_checkout_url(hotel)
+    return dump

@@ -1,23 +1,29 @@
-
 from pydantic import BaseModel, Field
 
 from .hotel_models import RoomType
 
 
 class ChatStreamRequest(BaseModel):
-    message: str = Field(..., description="Текстовый или расшифрованный голосовой запрос пользователя")
+    message: str = Field(
+        ..., description="Текстовый или расшифрованный голосовой запрос пользователя"
+    )
     conversation_id: str | None = Field(default=None, description="Идентификатор диалога")
-    disambiguation_selection: str | None = Field(default=None, description="Выбранный чипс быстрого уточнения")
+    disambiguation_selection: str | None = Field(
+        default=None, description="Выбранный чипс быстрого уточнения"
+    )
     nights: int | None = Field(default=2, description="Количество ночей")
     guests: int | None = Field(default=2, description="Количество гостей")
     pets: int | None = Field(default=0, description="Количество питомцев")
+
 
 class ThoughtEvent(BaseModel):
     step: str
     text: str
 
+
 class TokenEvent(BaseModel):
     content: str
+
 
 class ReceiptBreakdown(BaseModel):
     nights: int
@@ -29,11 +35,13 @@ class ReceiptBreakdown(BaseModel):
     is_free_cancellation: bool
     cancellation_deadline: str | None = None
 
+
 class CriterionMatch(BaseModel):
     criterion: str
     status: str = Field(..., description="code_verified | semantic_match | relaxed_compromise")
     evidence: str
     is_positive: bool = True
+
 
 class HotelCardWidget(BaseModel):
     id: str
@@ -55,11 +63,14 @@ class HotelCardWidget(BaseModel):
     distance_to_ski_lift_m: int | None = None
     criteria_breakdown: list[CriterionMatch] = Field(default_factory=list)
     compromise_note: str | None = None
+    checkout_url: str | None = None
+
 
 class WidgetEvent(BaseModel):
     type: str = "hotel_grid"
     hotels: list[HotelCardWidget] = Field(default_factory=list)
     disambiguation_chips: list[str] = Field(default_factory=list)
+
 
 class ExtractedSlots(BaseModel):
     city: str | None = None
@@ -78,6 +89,7 @@ class ExtractedSlots(BaseModel):
     nights: int | None = 2
     semantic_query: str = ""
     disambiguation_suggestions: list[str] = Field(default_factory=list)
+
 
 class SearchTelemetry(BaseModel):
     engine: str = "ChromaDB (HNSW)"

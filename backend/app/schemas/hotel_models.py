@@ -7,15 +7,18 @@ class Coordinates(BaseModel):
     lat: float
     lon: float
 
+
 class PoiDistance(BaseModel):
     name: str
     distance_m: int
     category: str | None = None
 
+
 class RoomCapacity(BaseModel):
     max_adults: int = 2
     max_children: int = 0
     max_total_guests: int = 2
+
 
 class RoomType(BaseModel):
     room_id: str | None = None
@@ -33,6 +36,7 @@ class RoomType(BaseModel):
     cancellation_rule: str | None = None
     images: list[str] = Field(default_factory=list)
 
+
 class LocationDetails(BaseModel):
     distance_to_center_km: float | None = None
     distance_to_beach_m: int | None = None
@@ -42,6 +46,7 @@ class LocationDetails(BaseModel):
     nearest_beaches: list[PoiDistance] = Field(default_factory=list)
     nearest_ski_lifts: list[PoiDistance] = Field(default_factory=list)
     nearest_subways: list[PoiDistance] = Field(default_factory=list)
+
 
 class Amenities(BaseModel):
     pet_friendly: bool = False
@@ -70,10 +75,12 @@ class Amenities(BaseModel):
     sea_view: bool = False
     mountain_view: bool = False
 
+
 class CancellationPolicy(BaseModel):
     is_free_cancellation: bool = False
     free_cancellation_deadline_hours: int = 24
     penalty_rub: int = 0
+
 
 class PetPolicy(BaseModel):
     allowed: bool = False
@@ -84,6 +91,7 @@ class PetPolicy(BaseModel):
     allowed_types: list[str] = Field(default_factory=list)
     restrictions_note: str | None = None
 
+
 class Policies(BaseModel):
     check_in_time: str = "14:00"
     check_out_time: str = "12:00"
@@ -92,6 +100,7 @@ class Policies(BaseModel):
     min_stay_nights: int = 1
     cancellation: CancellationPolicy = Field(default_factory=CancellationPolicy)
     pets: PetPolicy = Field(default_factory=PetPolicy)
+
 
 class ReviewsSummary(BaseModel):
     score_cleanliness: float = 0.0
@@ -104,6 +113,7 @@ class ReviewsSummary(BaseModel):
     valid_reviews_count: int = 0
     traveller_distribution: dict[str, float] = Field(default_factory=dict)
 
+
 class TopReview(BaseModel):
     author: str = ""
     date: str = ""
@@ -113,12 +123,14 @@ class TopReview(BaseModel):
     room: str = ""
     traveller_type: str = "other"
 
+
 class DataQuality(BaseModel):
     has_real_reviews: bool = False
     has_real_prices: bool = True
     has_real_rating: bool = True
     rooms_derived: bool = True
     policies_derived: bool = True
+
 
 class HotelFullSchema(BaseModel):
     id: str
@@ -158,3 +170,4 @@ class HotelFullSchema(BaseModel):
     country_name: str = "Россия"
     country_code: str = "RU"
     search_region_center_distance_m: int | None = None
+    checkout_url: str | None = None

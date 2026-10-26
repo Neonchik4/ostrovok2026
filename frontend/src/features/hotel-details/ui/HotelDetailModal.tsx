@@ -196,6 +196,16 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
           </div>
 
           <div className="flex gap-3">
+            {currentHotel.checkout_url && (
+              <a
+                href={currentHotel.checkout_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:bg-primary/90"
+              >
+                Забронировать на Ostrovok.ru
+              </a>
+            )}
             <Button
               variant="outline"
               onClick={onClose}
