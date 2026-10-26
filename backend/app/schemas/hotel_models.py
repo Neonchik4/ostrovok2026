@@ -74,6 +74,9 @@ class Amenities(BaseModel):
     room_service: bool = False
     sea_view: bool = False
     mountain_view: bool = False
+    has_24h_front_desk: bool = False
+    has_early_checkin: bool = False
+    has_luggage_storage: bool = False
 
 
 class CancellationPolicy(BaseModel):
@@ -95,6 +98,11 @@ class PetPolicy(BaseModel):
 class Policies(BaseModel):
     check_in_time: str = "14:00"
     check_out_time: str = "12:00"
+    checkin_from: str = "14:00"
+    checkout_until: str = "12:00"
+    has_24h_front_desk: bool = False
+    has_early_checkin: bool = False
+    has_luggage_storage: bool = False
     early_check_in_available: bool = False
     late_check_out_available: bool = False
     min_stay_nights: int = 1
@@ -155,6 +163,11 @@ class HotelFullSchema(BaseModel):
     top_reviews: list[TopReview] = Field(default_factory=list)
     total_ostrovok_reviews: int = 0
     data_quality: DataQuality = Field(default_factory=DataQuality)
+    checkin_from: str = "14:00"
+    checkout_until: str = "12:00"
+    has_24h_front_desk: bool = False
+    has_early_checkin: bool = False
+    has_luggage_storage: bool = False
 
     # Полнофункциональные поля Островка для боевой готовности
     master_id: int | None = None

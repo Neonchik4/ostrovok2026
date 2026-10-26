@@ -1,5 +1,22 @@
-import { CriterionMatch,HotelData, ReviewItem, ReviewsSummary } from "@/shared/api";
+import {
+  CriterionMatch,
+  FlightTicketData,
+  HotelData,
+  NearestHubData,
+  ReviewItem,
+  ReviewsSummary,
+  TrainTicketData,
+  TransportSummaryData,
+} from "@/shared/api";
 
 export type Hotel = HotelData;
-export type { CriterionMatch,ReviewItem, ReviewsSummary };
+export type {
+  CriterionMatch,
+  FlightTicketData,
+  NearestHubData,
+  ReviewItem,
+  ReviewsSummary,
+  TrainTicketData,
+  TransportSummaryData,
+};
 

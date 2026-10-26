@@ -2,25 +2,29 @@
 
 import {
   AlertCircle,
+  ExternalLink,
   Loader2,
   MapPin,
   Star,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-import { Hotel, HotelScoreBadge } from "@/entities/hotel";
+import { getOstrovokBookingUrl, Hotel, HotelScoreBadge } from "@/entities/hotel";
+import { TransportSummaryData } from "@/shared/api";
 import { formatPrice } from "@/shared/lib";
 import { Button, Card, ModalCloseButton } from "@/shared/ui";
 
 import { HotelAspectsSummary } from "./HotelAspectsSummary";
 import { HotelReviewsList } from "./HotelReviewsList";
+import { HotelTravelTimeline } from "./HotelTravelTimeline";
 
 interface HotelDetailModalProps {
   hotel: Hotel | null;
+  transport?: TransportSummaryData | null;
   onClose: () => void;
 }
 
-export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
+export function HotelDetailModal({ hotel, transport, onClose }: HotelDetailModalProps) {
   const [detailedHotel, setDetailedHotel] = useState<Hotel | null>(hotel);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
@@ -160,6 +164,9 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
             )}
           </div>
 
+          {/* Поминутный график состыковки транспорта, трансфера и заселения */}
+          <HotelTravelTimeline hotel={currentHotel} transport={transport} />
+
           {/* Описание отеля */}
           {currentHotel.description && (
             <div className="rounded-xl border border-border bg-background/50 p-4 text-xs leading-relaxed text-muted-foreground">
@@ -184,7 +191,7 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
         </div>
 
         {/* Футер с ценой и действием */}
-        <div className="flex items-center justify-between border-t border-border bg-card/90 p-5 px-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border bg-card/90 p-5 px-6">
           <div>
             <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
               от
@@ -195,7 +202,7 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
             {currentHotel.checkout_url && (
               <a
                 href={currentHotel.checkout_url}
@@ -213,6 +220,15 @@ export function HotelDetailModal({ hotel, onClose }: HotelDetailModalProps) {
             >
               Закрыть
             </Button>
+            <a
+              href={getOstrovokBookingUrl(currentHotel)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <span>Забронировать на Островке</span>
+              <ExternalLink className="h-4 w-4" />
+            </a>
           </div>
         </div>
       </Card>

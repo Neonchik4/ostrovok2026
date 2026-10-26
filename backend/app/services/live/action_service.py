@@ -69,6 +69,10 @@ class LiveActionService:
         city = "Сочи" if ("сочи" in u or "адлер" in u) else ("Санкт-Петербург" if ("питер" in u or "петербург" in u) else "Москва")
         has_pool = any(w in u for w in ["бассейн", "поплавать"])
         has_breakfast = any(w in u for w in ["завтрак", "поесть"])
+        has_station = any(w in u for w in ["вокзал", "ж/д", "жд", "станци"])
+        has_airport = any(w in u for w in ["аэропорт"])
+        has_24h = any(w in u for w in ["круглосуточн", "24 часа", "ночн", "стойк"])
+        has_early = any(w in u for w in ["ранн", "утром"])
         is_luxury = any(w in u for w in ["люкс", "шикануть", "премиум", "5 звезд"])
 
         p = persona if persona in ["bro", "assistant", "concierge"] else ("concierge" if is_luxury else "bro")
@@ -95,6 +99,12 @@ class LiveActionService:
             steps.append(DOMAction(action="toggle_filter", value="бассейн", label="Фильтр: Бассейн"))
         if has_breakfast:
             steps.append(DOMAction(action="toggle_filter", value="завтрак", label="Фильтр: Завтрак"))
+        if has_station:
+            steps.append(DOMAction(action="toggle_filter", value="у вокзала", label="Фильтр: Рядом с вокзалом"))
+        if has_airport:
+            steps.append(DOMAction(action="toggle_filter", value="у аэропорта", label="Фильтр: Рядом с аэропортом"))
+        if has_24h or has_early:
+            steps.append(DOMAction(action="toggle_filter", value="круглосуточная стойка", label="Фильтр: Круглосуточная стойка 24/7"))
 
         speech = f"Применяю параметры поездки: {', '.join(s.label for s in steps) if steps else city}."
         return LiveActionResponse(

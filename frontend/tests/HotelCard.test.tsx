@@ -88,4 +88,56 @@ describe("HotelCard", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     expect(screen.getByText("Проживание с питомцами разрешено")).toBeInTheDocument();
   });
+
+  it("renders flight ticket option and full trip budget when present", () => {
+    const hotelWithTransport: Hotel = {
+      ...mockHotel,
+      receipt: {
+        ...mockHotel.receipt!,
+        flight_ticket_rub: 5200,
+        total_with_transport_rub: 31400,
+      },
+    };
+    render(<HotelCard hotel={hotelWithTransport} />);
+
+    expect(screen.getByText(/Билет на рейс:/)).toBeInTheDocument();
+    expect(screen.getByText(/Вся поездка под ключ:/)).toBeInTheDocument();
+  });
+
+  it("renders train ticket and working Ostrovok booking link without 404", () => {
+    const hotelWithTrain: Hotel = {
+      ...mockHotel,
+      receipt: {
+        ...mockHotel.receipt!,
+        train_ticket_rub: 3600,
+        transport_type: "train",
+        total_with_transport_rub: 29800,
+      },
+    };
+    render(<HotelCard hotel={hotelWithTrain} />);
+
+    expect(screen.getByText(/Ж\/Д билет:/)).toBeInTheDocument();
+    expect(screen.queryByText(/Билет на рейс:/)).not.toBeInTheDocument();
+    const ostrovokLink = screen.getByTitle(/Забронировать на Ostrovok.ru/);
+    expect(ostrovokLink).toHaveAttribute(
+      "href",
+      expect.stringContaining("https://ostrovok.ru/hotel/russia/?q=")
+    );
+  });
+
+  it("renders direct link to exact selected hotel when master_id and slug are present", () => {
+    const hotelWithDirectLink: Hotel = {
+      ...mockHotel,
+      id: "azimut_hotel_smolenskaya_moscow",
+      master_id: 8744391,
+      slug: "russia/moscow",
+    };
+    render(<HotelCard hotel={hotelWithDirectLink} />);
+
+    const ostrovokLink = screen.getByTitle(/Забронировать на Ostrovok.ru/);
+    expect(ostrovokLink).toHaveAttribute(
+      "href",
+      "https://ostrovok.ru/hotel/russia/moscow/mid8744391/azimut_hotel_smolenskaya_moscow/"
+    );
+  });
 });

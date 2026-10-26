@@ -45,18 +45,38 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
 
     # Проверяем явную смену города
     if current.city and current.city.lower() != (prev.city or "").lower():
-        # Явная смена направления -> сбрасываем старые специфические фильтры
-        return current.model_copy()
+        # Явная смена направления -> сбрасываем старые специфические фильтры отеля, но сохраняем маршрут и бюджет
+        merged_new = current.model_copy()
+        if not merged_new.origin_city and prev.origin_city:
+            merged_new.origin_city = prev.origin_city
+        if not merged_new.total_trip_budget_rub and prev.total_trip_budget_rub:
+            merged_new.total_trip_budget_rub = prev.total_trip_budget_rub
+        if not merged_new.transport_preference and prev.transport_preference:
+            merged_new.transport_preference = prev.transport_preference
+        return merged_new
 
-    # Сохраняем или обновляем город
+    # Сохраняем или обновляем город и тематические направления
     if current.city:
         merged.city = current.city
+        merged.candidate_cities = []
+        merged.thematic_category = None
+        merged.thematic_title = None
+    elif current.thematic_category:
+        merged.thematic_category = current.thematic_category
+        merged.thematic_title = current.thematic_title
+        merged.candidate_cities = current.candidate_cities
+        merged.area_type = current.area_type
+        merged.city = None
 
     # Обновляем числовые параметры при явном указании
     if current.stars is not None:
         merged.stars = current.stars
     if current.max_price_per_night_rub is not None:
         merged.max_price_per_night_rub = current.max_price_per_night_rub
+    if current.total_trip_budget_rub is not None:
+        merged.total_trip_budget_rub = current.total_trip_budget_rub
+    if current.depart_date is not None:
+        merged.depart_date = current.depart_date
     if current.min_rating is not None:
         merged.min_rating = current.min_rating
     if current.guests_count and current.guests_count != 2:
@@ -75,6 +95,34 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
         merged.breakfast_included = current.breakfast_included
     if current.free_cancellation is not None:
         merged.free_cancellation = current.free_cancellation
+
+    # Логистика и транспорт (Backend 1 & 2)
+    if current.arrival_time:
+        merged.arrival_time = current.arrival_time
+    if current.departure_time:
+        merged.departure_time = current.departure_time
+    if current.needs_early_checkin is not None:
+        merged.needs_early_checkin = current.needs_early_checkin
+    if current.needs_late_checkout is not None:
+        merged.needs_late_checkout = current.needs_late_checkout
+    if current.needs_24h_front_desk is not None:
+        merged.needs_24h_front_desk = current.needs_24h_front_desk
+    if current.needs_luggage_storage is not None:
+        merged.needs_luggage_storage = current.needs_luggage_storage
+    if current.near_station is not None:
+        merged.near_station = current.near_station
+    if current.near_airport is not None:
+        merged.near_airport = current.near_airport
+    if current.max_distance_to_station_km is not None:
+        merged.max_distance_to_station_km = current.max_distance_to_station_km
+    if current.origin_city:
+        merged.origin_city = current.origin_city
+    if current.include_flight is not None:
+        merged.include_flight = current.include_flight
+    if current.include_train is not None:
+        merged.include_train = current.include_train
+    if current.transport_preference is not None:
+        merged.transport_preference = current.transport_preference
 
     # Семантический запрос: объединяем контекст
     if current.semantic_query:

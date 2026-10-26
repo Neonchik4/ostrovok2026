@@ -4,18 +4,36 @@ import { Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
 import React, { useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
+import { HotelDetailView } from "@/features/hotel-details";
+import { TransportSummaryData } from "@/shared/api";
 import { Badge, Button } from "@/shared/ui";
 
-import { HotelCanvasDetailView } from "./HotelCanvasDetailView";
+import { HotelTransportBanner } from "./HotelTransportBanner";
 
 interface HotelCanvasProps {
   hotels: Hotel[];
+  transportSummary?: TransportSummaryData | null;
   isStreaming: boolean;
   onSelectPrompt?: (prompt: string) => void;
 }
 
-export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt }: HotelCanvasProps) {
-  const [selectedHotelForDetails, setSelectedHotelForDetails] = useState<Hotel | null>(null);
+export function HotelCanvas({
+  hotels,
+  transportSummary,
+  isStreaming: _isStreaming,
+  onSelectPrompt,
+}: HotelCanvasProps) {
+  const [mode, setMode] = useState<"list" | "detail">("list");
+  const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
+
+  const handleSelectHotel = (hotel: Hotel) => {
+    setSelectedHotel(hotel);
+    setMode("detail");
+  };
+
+  const handleBackToList = () => {
+    setMode("list");
+  };
 
   return (
     <main className="flex h-full flex-1 min-w-0 flex-col overflow-hidden bg-background">
@@ -27,10 +45,10 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
               <Building2 className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">
-              {selectedHotelForDetails ? "Детали отеля" : "Витрина отелей"}
+{mode === "detail" && selectedHotel ? selectedHotel.name : "Витрина отелей"}
             </h1>
           </div>
-          {hotels.length > 0 && !selectedHotelForDetails && (
+          {mode === "list" && hotels.length > 0 && (
             <Badge
               variant="outline"
               className="border-border bg-card px-3 py-1 text-sm font-semibold text-primary shadow-sm"
@@ -44,10 +62,11 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
 
       {/* Основной контент */}
       <div className="flex-1 min-h-0 overflow-y-auto p-8 hotel-canvas-scroll">
-        {selectedHotelForDetails ? (
-          <HotelCanvasDetailView
-            hotel={selectedHotelForDetails}
-            onBack={() => setSelectedHotelForDetails(null)}
+{mode === "detail" && selectedHotel ? (
+          <HotelDetailView
+            hotel={selectedHotel}
+            transport={transportSummary}
+            onBack={handleBackToList}
           />
         ) : hotels.length === 0 ? (
           <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center space-y-6 text-center text-muted-foreground">
@@ -107,14 +126,21 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
             )}
           </div>
         ) : (
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {hotels.map((hotel) => (
-              <HotelCard
-                key={hotel.id}
-                hotel={hotel}
-                onSelect={(h) => setSelectedHotelForDetails(h)}
-              />
-            ))}
+          <div className="mx-auto max-w-7xl space-y-6">
+            {/* Карточка маршрута и билетов */}
+            {transportSummary && (transportSummary.recommended_flight || transportSummary.recommended_train) && (
+              <HotelTransportBanner transport={transportSummary} />
+            )}
+
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {hotels.map((hotel) => (
+                <HotelCard
+                  key={hotel.id}
+                  hotel={hotel}
+                  onSelect={handleSelectHotel}
+                />
+              ))}
+            </div>
           </div>
         )}
       </div>

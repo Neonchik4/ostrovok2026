@@ -54,6 +54,7 @@ class Settings(BaseModel):
     STUDIO_TEAM_TOKEN: str = Field(default_factory=lambda: os.getenv("STUDIO_TEAM_TOKEN", ""))
     DATABASE_URL: str = Field(default_factory=lambda: os.getenv("DATABASE_URL", ""))
     DB_ADMIN_TOKEN: str = Field(default_factory=lambda: os.getenv("DB_ADMIN_TOKEN", ""))
+    TRAVELPAYOUTS_TOKEN: str = Field(default_factory=lambda: os.getenv("TRAVELPAYOUTS_TOKEN", ""))
     
     # Dataset & Vector DB Paths
     BASE_DIR: Path = BASE_DIR

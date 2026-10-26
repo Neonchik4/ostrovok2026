@@ -16,6 +16,7 @@ def fast_test_stream_env(monkeypatch):
     Вся бизнес-логика (FastAPI, SSE, слоты, фильтрация отелей, чеки, память) тестируется на 100%.
     """
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "TRAVELPAYOUTS_TOKEN", "")
     
     original_sleep = asyncio.sleep
     async def _fast_sleep(delay, *args, **kwargs):

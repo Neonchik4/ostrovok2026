@@ -141,4 +141,67 @@ describe("HotelDetailModal", () => {
     expect(screen.getByRole("dialog", { name: /Обоснование соответствия отеля/i })).toBeInTheDocument();
     expect(screen.getByText("Подогреваемый бассейн в наличии")).toBeInTheDocument();
   });
+
+  it("renders travel timeline with transport, transfer, and check-in times without 404", async () => {
+    const mockTransport = {
+      origin_city: "Анапа",
+      destination_city: "Москва",
+      preferred_mode: "train",
+      arrival_time: "08:15",
+      recommended_train: {
+        origin: "Анапа",
+        destination: "Москва",
+        train_number: "011Э «Анапа — Москва»",
+        departure_at: "2026-10-26T14:40:00",
+        arrival_at: "2026-10-27T08:15:00",
+        price_from_rub: 3600,
+        booking_url: "https://www.tutu.ru/poezda/rasp_d.php?nnst1=2064188&nnst2=2000000",
+      },
+    };
+    await act(async () => {
+      render(
+        <HotelDetailModal
+          hotel={mockHotel}
+          transport={mockTransport}
+          onClose={vi.fn()}
+        />
+      );
+    });
+
+    expect(screen.getByText(/Поминутный график поездки: Анапа → Москва/)).toBeInTheDocument();
+    expect(screen.getByText(/Ж\/Д маршрут/)).toBeInTheDocument();
+    expect(screen.getByText("14:40")).toBeInTheDocument();
+    expect(screen.getByText("08:15")).toBeInTheDocument();
+    expect(screen.getByText(/Выезд из отеля \(Check-out\)/)).toBeInTheDocument();
+    expect(screen.getAllByText(/камере хранения отеля/i).length).toBeGreaterThanOrEqual(1);
+    const ostrovokBtn = screen.getByRole("link", { name: /Забронировать на Островке/i });
+    expect(ostrovokBtn).toHaveAttribute(
+      "href",
+      expect.stringContaining("https://ostrovok.ru/hotel/russia/?q=")
+    );
+  });
+
+  it("renders direct link to exact selected hotel in detail modal when master_id is present", async () => {
+    const hotelWithDirectLink: Hotel = {
+      ...mockHotel,
+      id: "azimut_hotel_smolenskaya_moscow",
+      master_id: 8744391,
+      slug: "russia/moscow",
+    };
+    vi.spyOn(global, "fetch").mockImplementationOnce(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(hotelWithDirectLink),
+      } as Response)
+    );
+    await act(async () => {
+      render(<HotelDetailModal hotel={hotelWithDirectLink} onClose={vi.fn()} />);
+    });
+
+    const ostrovokBtn = screen.getByRole("link", { name: /Забронировать на Островке/i });
+    expect(ostrovokBtn).toHaveAttribute(
+      "href",
+      "https://ostrovok.ru/hotel/russia/moscow/mid8744391/azimut_hotel_smolenskaya_moscow/"
+    );
+  });
 });

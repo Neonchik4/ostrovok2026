@@ -1,16 +1,14 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
-import React from "react";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { Hotel } from "@/entities/hotel";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import { HotelCanvas } from "@/widgets/HotelCanvas";
+import { Hotel } from "@/entities/hotel";
 
-describe("HotelCanvas (Inline Hotel Detail View without Modal)", () => {
+describe("HotelCanvas Mode Switching (Frontend 1)", () => {
   beforeEach(() => {
     vi.spyOn(global, "fetch").mockImplementation(() =>
       Promise.resolve({
         ok: true,
-        json: () => Promise.resolve(mockHotel),
+        json: () => Promise.resolve(mockHotels[0]),
       } as Response)
     );
   });
@@ -19,79 +17,66 @@ describe("HotelCanvas (Inline Hotel Detail View without Modal)", () => {
     vi.restoreAllMocks();
   });
 
-  const mockHotel: Hotel = {
-    id: "hotel-polyana-1",
-    name: "Гранд Отель Поляна",
-    city: "Красная Поляна",
-    stars: 5,
-    area: "Эстосадок",
-    area_type: "mountain",
-    address: "ул. Ачипсинская, 16",
-    rating: 4.9,
-    reviews_count: 320,
-    image_urls: ["https://images.unsplash.com/photo-1566073771259-6a8506099945"],
-    match_score_pct: 98,
-    tags: ["спа", "бассейн", "дог-френдли"],
-    min_price_per_night_rub: 12000,
-    checkout_url: "https://ostrovok.ru/hotel/russia/krasnaya_polyana/grand_hotel_polyana/?dates=2026-11-10-2026-11-12&guests=2",
-    suitable_room: {
-      name: "Делюкс с видом на горы",
-      price_per_night_rub: 12000,
-      bed_setup: "1 King Size",
-      area_sqm: 45,
+  const mockHotels: Hotel[] = [
+    {
+      id: "hotel-1",
+      name: "Отель Лазурный",
+      city: "Сочи",
+      stars: 4,
+      rating: 8.8,
+      reviews_count: 140,
+      image_urls: ["/hotels/sea/1.jpg"],
+      match_score_pct: 92,
+      min_price_per_night_rub: 7500,
     },
-    receipt: {
-      nights: 2,
-      price_per_night_rub: 12000,
-      base_accommodation_cost_rub: 24000,
-      pet_deposit_rub: 2000,
-      resort_tax_rub: 200,
-      total_rub: 26200,
-      is_free_cancellation: true,
-      cancellation_deadline: "Бесплатная отмена за 48 ч до заезда",
+    {
+      id: "hotel-2",
+      name: "Горный Рассвет",
+      city: "Сочи",
+      stars: 5,
+      rating: 9.1,
+      reviews_count: 220,
+      image_urls: ["/hotels/mountains/1.jpg"],
+      match_score_pct: 88,
+      min_price_per_night_rub: 11000,
     },
-  };
+  ];
 
-  it("renders empty state when hotels list is empty", () => {
-    render(<HotelCanvas hotels={[]} isStreaming={false} />);
-    expect(screen.getByText("Здесь появятся найденные отели")).toBeInTheDocument();
+  it("renders list mode by default with found hotels", () => {
+    render(<HotelCanvas hotels={mockHotels} isStreaming={false} />);
+
+    expect(screen.getByText("Отель Лазурный")).toBeInTheDocument();
+    expect(screen.getByText("Горный Рассвет")).toBeInTheDocument();
+    expect(screen.getByText(/Найдено 2 отеля/)).toBeInTheDocument();
+    // No detail view yet
+    expect(screen.queryByTestId("hotel-detail-view")).not.toBeInTheDocument();
+    // Modal is completely absent
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("renders hotel cards in grid mode", () => {
-    render(<HotelCanvas hotels={[mockHotel]} isStreaming={false} />);
-    expect(screen.getByText("Гранд Отель Поляна")).toBeInTheDocument();
-    expect(screen.getByText("Подробнее")).toBeInTheDocument();
-    expect(screen.getByText("Витрина отелей")).toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
+  it("switches to detail mode when a hotel is selected and back to list mode on back button", async () => {
+    render(<HotelCanvas hotels={mockHotels} isStreaming={false} />);
 
-  it("opens inline detail view inside canvas without opening modal dialog", async () => {
-    render(<HotelCanvas hotels={[mockHotel]} isStreaming={false} />);
-
+    // Click on the first hotel card
+    const firstHotel = screen.getByText("Отель Лазурный");
     await act(async () => {
-      fireEvent.click(screen.getByText("Подробнее"));
+      fireEvent.click(firstHotel);
     });
 
-    expect(screen.getByText("Детали отеля")).toBeInTheDocument();
-    expect(screen.getByText("Назад к отелям")).toBeInTheDocument();
-    const bookLink = screen.getByRole("link", { name: /Забронировать/i });
-    expect(bookLink).toHaveAttribute("href", mockHotel.checkout_url);
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
+    // Detail mode is rendered inline
+    expect(screen.getByTestId("hotel-detail-view")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Назад к вариантам/i })).toBeInTheDocument();
+    // Still no modal dialog
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-  it("returns to grid view when clicking back button", async () => {
-    render(<HotelCanvas hotels={[mockHotel]} isStreaming={false} />);
-
+    // Click back button
     await act(async () => {
-      fireEvent.click(screen.getByText("Подробнее"));
-    });
-    expect(screen.getByText("Назад к отелям")).toBeInTheDocument();
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Назад к отелям"));
+      fireEvent.click(screen.getByRole("button", { name: /Назад к вариантам/i }));
     });
 
-    expect(screen.getByText("Витрина отелей")).toBeInTheDocument();
-    expect(screen.getByText("Подробнее")).toBeInTheDocument();
+    // Back to list mode
+    expect(screen.queryByTestId("hotel-detail-view")).not.toBeInTheDocument();
+    expect(screen.getByText("Отель Лазурный")).toBeInTheDocument();
+    expect(screen.getByText("Горный Рассвет")).toBeInTheDocument();
   });
 });

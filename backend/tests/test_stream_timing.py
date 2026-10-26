@@ -12,6 +12,7 @@ from app.services.llm_cascade import _mock_extract_slots
 @pytest.fixture(autouse=True)
 def fast_timing_env(monkeypatch):
     monkeypatch.setattr(settings, "GEMINI_API_KEY", "")
+    monkeypatch.setattr(settings, "TRAVELPAYOUTS_TOKEN", "")
 
 
 def test_stream_first_thought_is_immediate():

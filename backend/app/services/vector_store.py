@@ -117,7 +117,12 @@ def warmup_models() -> None:
     if not _is_gemini_vector:
         try:
             from sentence_transformers import SentenceTransformer
-            _embedding_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+            try:
+                os.environ["HF_HUB_OFFLINE"] = "1"
+                _embedding_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
+            except Exception:
+                os.environ.pop("HF_HUB_OFFLINE", None)
+                _embedding_model = SentenceTransformer("sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2")
             print("[Embedding] SentenceTransformer инициализирован успешно.")
         except Exception as e:
             print(f"[Embedding Warning] Не удалось загрузить SentenceTransformer: {e}")
