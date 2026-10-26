@@ -157,7 +157,10 @@ jobs:
               fi
             }
 
-            compose pull
+            # Pull images sequentially to stay comfortably within the 10GB VM disk limit
+            compose pull traefik
+            compose pull frontend
+            compose pull backend
             compose up -d --remove-orphans
             docker image prune -f
             docker builder prune -a -f || true

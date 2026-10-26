@@ -15,7 +15,10 @@ RUN apt-get update \
 WORKDIR /app
 COPY pyproject.toml uv.lock .python-version ./
 # The lock selects CPU-only PyTorch on Linux and excludes development tools.
-RUN uv sync --locked --no-dev --no-cache
+RUN uv sync --locked --no-dev --no-cache \
+    && rm -rf /app/.venv/lib/python3.11/site-packages/torch/test \
+    && rm -rf /app/.venv/lib/python3.11/site-packages/torch/include \
+    && find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 
 RUN groupadd --gid 10001 app \
     && useradd --uid 10001 --gid app --create-home app \
