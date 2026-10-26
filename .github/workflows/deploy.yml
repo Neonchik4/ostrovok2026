@@ -165,9 +165,17 @@ jobs:
               fi
             }
 
-            # Pull images sequentially to stay comfortably within the 10GB VM disk limit
+            # Pull lightweight images first (zero downtime rollout for frontend & traefik)
             compose pull traefik
             compose pull frontend
+            compose up -d --no-deps frontend
+
+            # Free up disk for backend image extraction on 10GB VM
+            compose stop backend || true
+            compose rm -f backend || true
+            docker image prune -a -f || true
+
+            # Pull and restart backend with maximum disk headroom
             compose pull backend
             compose up -d --remove-orphans
             docker system prune -f
