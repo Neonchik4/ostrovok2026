@@ -4,8 +4,9 @@ import { Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
 import React, { useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
-import { HotelDetailModal } from "@/features/hotel-details";
 import { Badge, Button } from "@/shared/ui";
+
+import { HotelCanvasDetailView } from "./HotelCanvasDetailView";
 
 interface HotelCanvasProps {
   hotels: Hotel[];
@@ -26,10 +27,10 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
               <Building2 className="h-6 w-6" />
             </div>
             <h1 className="text-xl font-black tracking-tight text-foreground md:text-2xl">
-              Витрина отелей
+              {selectedHotelForDetails ? "Детали отеля" : "Витрина отелей"}
             </h1>
           </div>
-          {hotels.length > 0 && (
+          {hotels.length > 0 && !selectedHotelForDetails && (
             <Badge
               variant="outline"
               className="border-border bg-card px-3 py-1 text-sm font-semibold text-primary shadow-sm"
@@ -43,7 +44,12 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
 
       {/* Основной контент */}
       <div className="flex-1 min-h-0 overflow-y-auto p-8 hotel-canvas-scroll">
-        {hotels.length === 0 ? (
+        {selectedHotelForDetails ? (
+          <HotelCanvasDetailView
+            hotel={selectedHotelForDetails}
+            onBack={() => setSelectedHotelForDetails(null)}
+          />
+        ) : hotels.length === 0 ? (
           <div className="mx-auto flex h-full max-w-xl flex-col items-center justify-center space-y-6 text-center text-muted-foreground">
             <div className="rounded-3xl border border-border bg-card p-5 text-primary shadow-xl">
               <HotelIcon className="h-14 w-14 stroke-[1.5]" />
@@ -112,12 +118,6 @@ export function HotelCanvas({ hotels, isStreaming: _isStreaming, onSelectPrompt 
           </div>
         )}
       </div>
-
-      {/* Детальная модалка с реальными отзывами гостей */}
-      <HotelDetailModal
-        hotel={selectedHotelForDetails}
-        onClose={() => setSelectedHotelForDetails(null)}
-      />
     </main>
   );
 }
