@@ -31,9 +31,10 @@ describe("HotelScoreBadge", () => {
     },
   ];
 
-  it("renders match score percentage correctly", () => {
-    render(<HotelScoreBadge scorePct={96} />);
-    expect(screen.getByText("96% совпадение")).toBeInTheDocument();
+  it("exposes match score via aria-label without visible score text", () => {
+    render(<HotelScoreBadge scorePct={96} criteriaBreakdown={mockBreakdown} />);
+    expect(screen.getByLabelText(/Оценка соответствия 96%/)).toBeInTheDocument();
+    expect(screen.queryByText(/% совпадение/)).not.toBeInTheDocument();
   });
 
   it("toggles criteria breakdown popover on click", () => {
@@ -49,7 +50,8 @@ describe("HotelScoreBadge", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     // Contains breakdown sections
-    expect(screen.getByText("Обоснование Match Score")).toBeInTheDocument();
+    expect(screen.getByText("Почему Вам это подходит?")).toBeInTheDocument();
+    expect(screen.queryByText("94%")).not.toBeInTheDocument();
     expect(screen.getByText("8 500 ₽/ночь <= 10 000 ₽")).toBeInTheDocument();
     expect(screen.getByText("Размещение с животными разрешено")).toBeInTheDocument();
     expect(screen.getByText("Семантическое совпадение с отзывами гостей")).toBeInTheDocument();
@@ -77,11 +79,13 @@ describe("HotelScoreBadge", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("does not toggle if criteriaBreakdown is empty", () => {
-    render(<HotelScoreBadge scorePct={85} criteriaBreakdown={[]} />);
+  it("renders nothing if criteriaBreakdown is empty", () => {
+    const { container } = render(<HotelScoreBadge scorePct={85} criteriaBreakdown={[]} />);
+    expect(container).toBeEmptyDOMElement();
+  });
 
-    const button = screen.getByRole("button");
-    fireEvent.click(button);
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  it("renders nothing if criteriaBreakdown is missing", () => {
+    const { container } = render(<HotelScoreBadge scorePct={85} />);
+    expect(container).toBeEmptyDOMElement();
   });
 });
