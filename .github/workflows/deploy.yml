@@ -129,27 +129,36 @@ jobs:
               echo "$GHCR_READ_TOKEN" | docker login "$REGISTRY" -u "$GHCR_USER" --password-stdin
             fi
 
-            # Set domain in .env if provided via secret or fallback to host IP nip.io
+            # Update DOMAIN in .env if provided, without overwriting secrets
             if [ -n "${DOMAIN:-}" ]; then
-              echo "DOMAIN=${DOMAIN}" > .env
-            elif [ ! -f .env ]; then
-              echo "DOMAIN=158.160.228.85.nip.io" > .env
+              if [ -f .env ]; then
+                if grep -q '^DOMAIN=' .env; then
+                  sed -i "s|^DOMAIN=.*|DOMAIN=${DOMAIN}|" .env
+                else
+                  echo "DOMAIN=${DOMAIN}" >> .env
+                fi
+              else
+                echo "DOMAIN=${DOMAIN}" > .env
+              fi
+            fi
+
+            # Ensure ACME_EMAIL is present in .env
+            if [ -f .env ] && ! grep -q '^ACME_EMAIL=' .env; then
+              echo "ACME_EMAIL=admin@158.160.227.34.nip.io" >> .env
             fi
 
             export GHCR_OWNER IMAGE_TAG
-            if docker compose version >/dev/null 2>&1; then
-              COMPOSE="docker compose -f docker-compose.yml -f docker-compose.deploy.yml"
-            else
-              COMPOSE="docker-compose -f docker-compose.yml -f docker-compose.deploy.yml"
-            fi
 
-            # Production application secrets come from the host's Doppler `prd`
-            # service token; the compose file only references ${VAR} placeholders.
-            if command -v doppler >/dev/null 2>&1; then
-              COMPOSE="doppler run --project ostrovok2026 --config prd -- $COMPOSE"
-            fi
+            compose() {
+              if docker compose version >/dev/null 2>&1; then
+                docker compose -f docker-compose.yml -f docker-compose.deploy.yml "$@"
+              else
+                docker-compose -f docker-compose.yml -f docker-compose.deploy.yml "$@"
+              fi
+            }
 
-            $COMPOSE pull
-            $COMPOSE up -d --remove-orphans
+            compose pull
+            compose up -d --remove-orphans
             docker image prune -f
-            $COMPOSE ps
+            docker builder prune -a -f || true
+            compose ps
