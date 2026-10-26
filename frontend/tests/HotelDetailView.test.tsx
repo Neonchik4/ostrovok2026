@@ -55,7 +55,7 @@ describe("HotelDetailView (Frontend 1)", () => {
     expect(screen.getByTestId("hotel-detail-view")).toBeInTheDocument();
     expect(screen.getByText("Марриотт Красдар")).toBeInTheDocument();
     expect(screen.getByText(/ул. Красная, 120/)).toBeInTheDocument();
-    expect(screen.getByText("95% совпадение")).toBeInTheDocument();
+    expect(screen.queryByText(/% совпадение/)).not.toBeInTheDocument();
     expect(screen.getByText("Доступные номера и тарифы")).toBeInTheDocument();
     expect(screen.getByText("Стандартный двухместный номер")).toBeInTheDocument();
     expect(screen.getByText("Логистика и заселение")).toBeInTheDocument();
