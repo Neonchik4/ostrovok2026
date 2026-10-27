@@ -368,3 +368,22 @@ async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
 
     return mock_extract_slots(user_message)
 
+
+# Чипсы быстрого ответа про город отправления (Issue #40, F06 «Только нужные вопросы»).
+
+ORIGIN_CLARIFICATION_CHIPS = ["Из Москвы", "Из Санкт-Петербурга", "Другой город"]
+
+
+def flag_missing_origin_slots(slots: ExtractedSlots) -> ExtractedSlots:
+    """
+    Детекция недостающего ключевого слота origin_city (Issue #40).
+
+    Если цель поездки понятна (город назначения или тематика), но город
+    отправления неизвестен — выставляется флаг needs_origin_clarification.
+    По нему response_generator задает проактивный вопрос про логистику,
+    а workflow подменяет чипсы на быстрые ответы с городами.
+    """
+    destination_known = bool(slots.city or slots.thematic_category or slots.candidate_cities)
+    slots.needs_origin_clarification = bool(destination_known and not slots.origin_city)
+    return slots
+

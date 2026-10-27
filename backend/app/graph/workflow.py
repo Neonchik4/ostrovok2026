@@ -22,6 +22,7 @@ from ..services.offline_mode import OFFLINE_MODE_MESSAGE, is_offline_mode, note_
 from ..services.route_extractor import default_chips
 from ..services.run_logger import WorkflowRunLogger
 from ..services.session_memory import merge_slots, session_memory
+from ..services.slot_extractor import ORIGIN_CLARIFICATION_CHIPS, flag_missing_origin_slots
 from ..services.transport_service import search_transport_options
 
 
@@ -96,6 +97,8 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             new_slots.pet_friendly = True
 
         slots: ExtractedSlots = merge_slots(prev_slots, new_slots)
+        # Проактивный slot-filling: детекция недостающего города отправления (Issue #40)
+        slots = flag_missing_origin_slots(slots)
         session_memory.save_slots(conv_id, slots)
         logger.log_slots(slots)
 
@@ -307,13 +310,17 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
             
         # 7. Стриминг виджета (event: widget)
-        chips_to_send = slots.disambiguation_suggestions or default_chips(
-            message.lower(),
-            origin=slots.origin_city,
-            city=slots.city,
-            transport_pref=slots.transport_preference,
-            depart_date=slots.depart_date,
-        )
+        # Slot-filling: при неизвестном городе выезда чипсы подменяются быстрыми ответами
+        if slots.needs_origin_clarification:
+            chips_to_send = list(ORIGIN_CLARIFICATION_CHIPS)
+        else:
+            chips_to_send = slots.disambiguation_suggestions or default_chips(
+                message.lower(),
+                origin=slots.origin_city,
+                city=slots.city,
+                transport_pref=slots.transport_preference,
+                depart_date=slots.depart_date,
+            )
         logger.log_chips(chips_to_send)
 
         widget_payload = {
