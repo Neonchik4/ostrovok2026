@@ -34,26 +34,33 @@ def calculate_receipt(
     safe_train = max(0, train_ticket_rub)
     
     # Извлечение цены за ночь
-    if isinstance(room, RoomType):
+    if hasattr(room, "price_per_night_rub"):
         price_per_night = room.price_per_night_rub
+    elif isinstance(room, Mapping) or hasattr(room, "get"):
+        price_per_night = int(room.get("price_per_night_rub", 0))  # type: ignore
     else:
-        price_per_night = int(room.get("price_per_night_rub", 0)) # type: ignore
+        price_per_night = 0
         
     base_cost = price_per_night * safe_nights
     
     # Извлечение политик для питомцев
-    if isinstance(policies, Policies):
+    if hasattr(policies, "pets") and hasattr(policies, "cancellation"):
         deposit = policies.pets.deposit_rub if safe_pets > 0 else 0
         daily_fee = policies.pets.daily_fee_rub if safe_pets > 0 else 0
         is_free = policies.cancellation.is_free_cancellation
         deadline_hours = policies.cancellation.free_cancellation_deadline_hours
-    else:
+    elif isinstance(policies, Mapping) or hasattr(policies, "get"):
         pets_data = policies.get("pets", {})
         deposit = int(pets_data.get("deposit_rub", 0)) if (isinstance(pets_data, dict) and safe_pets > 0) else 0 # type: ignore
         daily_fee = int(pets_data.get("daily_fee_rub", 0)) if (isinstance(pets_data, dict) and safe_pets > 0) else 0 # type: ignore
         cancellation_data = policies.get("cancellation", {})
         is_free = bool(cancellation_data.get("is_free_cancellation", False)) if isinstance(cancellation_data, dict) else False # type: ignore
         deadline_hours = int(cancellation_data.get("free_cancellation_deadline_hours", 24)) if isinstance(cancellation_data, dict) else 24 # type: ignore
+    else:
+        deposit = 0
+        daily_fee = 0
+        is_free = False
+        deadline_hours = 24
 
     total_pet_cost = deposit + (daily_fee * safe_nights * safe_pets)
     resort_tax = 50 * safe_guests * safe_nights

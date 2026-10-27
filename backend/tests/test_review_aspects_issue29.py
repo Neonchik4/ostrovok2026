@@ -1,14 +1,13 @@
 import pytest
+from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
 
-from backend.app.schemas.chat import ExtractedSlots
-from backend.app.services.hotel_filters import build_hotel_card
-from backend.app.services.response_generator import build_deterministic_concierge_response
-from backend.app.services.session_memory import merge_slots
-from backend.app.services.slot_extractor import mock_extract_slots
-from backend.app.services.tag_reviews import (
-    build_hotel_review_summary,
-)
-from backend.app.services.vector_store import get_hotels_dataset, init_dataset
+from app.schemas.chat import ExtractedSlots
+from app.services.hotel_filters import build_hotel_card
+from app.services.response_generator import build_deterministic_concierge_response
+from app.services.session_memory import merge_slots
+from app.services.slot_extractor import mock_extract_slots
+from app.services.tag_reviews import build_hotel_review_summary
+from app.services.vector_store import get_hotels_dataset, init_dataset
 
 
 @pytest.fixture(scope="module", autouse=True)
@@ -69,7 +68,7 @@ def test_multi_turn_preserves_city_on_review_inquiry():
 
 
 def test_concierge_response_for_review_inquiry():
-    dataset = get_hotels_dataset()
+    dataset = get_hotels_dataset() or get_synthetic_test_hotels()
     assert len(dataset) > 0
     hotel = dataset[0]
 
@@ -90,7 +89,7 @@ def test_concierge_response_for_review_inquiry():
 
 
 def test_build_hotel_card_populates_review_summary():
-    dataset = get_hotels_dataset()
+    dataset = get_hotels_dataset() or get_synthetic_test_hotels()
     hotel = dataset[0]
     slots = ExtractedSlots(city=hotel.city)
     card = build_hotel_card(hotel, 88.0, slots)

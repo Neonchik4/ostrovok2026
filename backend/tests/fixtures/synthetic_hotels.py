@@ -11,6 +11,7 @@ from app.schemas.hotel_models import (
     Policies,
     ReviewsSummary,
     RoomType,
+    TopReview,
 )
 
 
@@ -66,6 +67,17 @@ def get_synthetic_test_hotels() -> list[HotelFullSchema]:
                 score_location=9.5,
                 positive_highlights=["Отличный теплый бассейн", "Приветливый персонал с собакой"],
             ),
+            top_reviews=[
+                TopReview(
+                    author="Сергей",
+                    date="2026-07-20",
+                    rating=9.5,
+                    plus="Отличный теплый бассейн и вежливый персонал на ресепшен",
+                    minus="Парковка платная",
+                    room="Люкс с видом на море",
+                    traveller_type="couple",
+                )
+            ],
             coordinates=Coordinates(lat=43.5855, lon=39.7231),
         ),
         HotelFullSchema(
