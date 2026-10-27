@@ -54,6 +54,8 @@ def build_deterministic_reasoning(user_message: str, slots: ExtractedSlots) -> s
         reqs.append("шаговая доступность или быстрый трансфер до Ж/Д вокзала")
     if slots.near_airport:
         reqs.append("удобный трансфер и близость к аэропорту")
+    if slots.is_review_inquiry:
+        reqs.append("аспектный анализ отзывов гостей (выделение проверенных плюсов и критических минусов)")
 
     if reqs:
         parts.append(f"Ключевые критерии отбора: {', '.join(reqs)}.")

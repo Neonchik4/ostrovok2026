@@ -3,6 +3,7 @@ from ..schemas.hotel_models import HotelFullSchema, RoomType
 from .checkout_service import build_ostrovok_checkout_url
 from .logistics_validator import validate_arrival_checkin_match, validate_departure_checkout_match
 from .receipt_calc import calculate_receipt
+from .tag_reviews import build_hotel_review_summary
 from .travel_time_calc import find_nearest_hubs_for_coords
 
 
@@ -502,6 +503,7 @@ def build_hotel_card(
         nearest_station=station_hub,
         nearest_airport=airport_hub,
         coordinates=hotel.coordinates,
+        review_summary=build_hotel_review_summary(hotel),
     )
 
 

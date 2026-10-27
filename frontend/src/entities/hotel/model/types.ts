@@ -2,6 +2,7 @@ import {
   CriterionMatch,
   FlightTicketData,
   HotelData,
+  HotelReviewSummaryData,
   NearestHubData,
   ReviewItem,
   ReviewsSummary,
@@ -13,6 +14,7 @@ export type Hotel = HotelData;
 export type {
   CriterionMatch,
   FlightTicketData,
+  HotelReviewSummaryData,
   NearestHubData,
   ReviewItem,
   ReviewsSummary,

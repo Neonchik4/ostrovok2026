@@ -60,6 +60,23 @@ def build_deterministic_concierge_response(
     min_cost = min((getattr(h, "min_price_per_night_rub", 0) for h in hotels), default=0)
     top_names = [f"«{getattr(h, 'name', '')}»" for h in hotels[:2] if getattr(h, "name", None)]
 
+    # Обработка разговорного интента review_inquiry (Issue #29)
+    if slots.is_review_inquiry and hotels:
+        top_h = hotels[0]
+        rs = getattr(top_h, "review_summary", None)
+        if not rs:
+            from .tag_reviews import build_hotel_review_summary
+            rs = build_hotel_review_summary(top_h)
+        pros_text = "; ".join(rs.pros[:3]) if rs.pros else "высокий уровень комфорта и удобное расположение"
+        cons_text = "; ".join(rs.cons[:2]) if rs.cons else "критических минусов гости не выделили"
+        rating_val = f"{rs.rating:.1f}" if rs.rating else f"{getattr(top_h, 'rating', 8.5):.1f}"
+        rev_cnt = rs.reviews_count or getattr(top_h, "reviews_count", 0)
+        return (
+            f"По отзывам гостей для «{top_h.name}» (рейтинг {rating_val}, {rev_cnt} отзывов):\n"
+            f"Главные плюсы: {pros_text}.\n"
+            f"Нюансы и минусы: {cons_text}."
+        )
+
     parts = []
 
     # 1. Статус фильтрации и параметров
@@ -192,6 +209,12 @@ async def generate_concierge_response_stream(
             amenities.append(f"Match {h.match_score_pct}%")
         if getattr(h, "min_price_per_night_rub", None):
             amenities.append(f"от {h.min_price_per_night_rub:,} ₽".replace(",", " "))
+        rs = getattr(h, "review_summary", None)
+        if rs and (rs.pros or rs.cons):
+            p_text = f"плюсы: {'; '.join(rs.pros[:3])}" if rs.pros else ""
+            c_text = f"минусы: {'; '.join(rs.cons[:2])}" if rs.cons else ""
+            rev_details = ", ".join(filter(None, [p_text, c_text]))
+            amenities.append(f"отзывы {rs.rating}★ ({rev_details})")
         hotel_summaries.append(f"• «{getattr(h, 'name', '')}» ({getattr(h, 'city', '')}, {', '.join(amenities)})")
 
     hotels_context = "\n".join(hotel_summaries) if hotel_summaries else "Отели не найдены"
@@ -250,10 +273,17 @@ async def generate_concierge_response_stream(
             f"Рекомендуемые курорты/направления: {cand_list}. Порекомендуй подходящие курорты и предложи гостю выбрать желаемое направление."
         )
 
+    review_inquiry_note = ""
+    if slots.is_review_inquiry:
+        review_inquiry_note = (
+            "\nВажно: гость спрашивает про отзывы, репутацию, плюсы и минусы отеля. "
+            "Дай емкую и объективную выжимку мнений гостей на основе предоставленных данных (плюсы и минусы) без галлюцинаций."
+        )
+
     prompt_text = (
         f"{SYSTEM_CONCIERGE_PROMPT}\n\n"
         f"Запрос пользователя: «{safe_message}»\n"
-        f"Параметры: {route_info}, {slots.guests_count or 2} гостей, {slots.nights or 2} ночей.{thematic_note}{budget_note}{transport_pref_note}{logistics_prompt_note}{missing_note}\n"
+        f"Параметры: {route_info}, {slots.guests_count or 2} гостей, {slots.nights or 2} ночей.{thematic_note}{budget_note}{transport_pref_note}{logistics_prompt_note}{review_inquiry_note}{missing_note}\n"
         f"Найденные отели (всего {len(hotels)} шт.):\n{hotels_context}\n\n"
         f"Ответ агента:"
     )

@@ -135,4 +135,7 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
     if current.disambiguation_suggestions:
         merged.disambiguation_suggestions = current.disambiguation_suggestions
 
+    merged.intent = current.intent
+    merged.is_review_inquiry = current.is_review_inquiry
+
     return merged

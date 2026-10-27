@@ -122,6 +122,24 @@ export function HotelCard({ hotel, onSelect }: HotelCardProps) {
             )}
           </div>
 
+          {/* Выжимка отзывов гостей (review_summary) */}
+          {hotel.review_summary && (hotel.review_summary.pros.length > 0 || hotel.review_summary.cons.length > 0) && (
+            <div className="space-y-1.5 rounded-xl border border-border/80 bg-background/50 p-2.5 text-xs">
+              {hotel.review_summary.pros.slice(0, 2).map((pro, idx) => (
+                <div key={`pro-${idx}`} className="flex items-start gap-1.5 text-success">
+                  <span className="font-bold text-success">+</span>
+                  <span className="line-clamp-1">{pro}</span>
+                </div>
+              ))}
+              {hotel.review_summary.cons.slice(0, 1).map((con, idx) => (
+                <div key={`con-${idx}`} className="flex items-start gap-1.5 text-warning">
+                  <span className="font-bold text-warning">-</span>
+                  <span className="line-clamp-1">{con}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Рекомендованный номер */}
           {hotel.suitable_room && (
             <div className="space-y-1.5 rounded-xl border border-border/90 bg-background/60 p-3.5 text-sm">

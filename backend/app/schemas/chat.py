@@ -93,6 +93,13 @@ class CriterionMatch(BaseModel):
     is_positive: bool = True
 
 
+class HotelReviewSummary(BaseModel):
+    rating: float = 0.0
+    reviews_count: int = 0
+    pros: list[str] = Field(default_factory=list)
+    cons: list[str] = Field(default_factory=list)
+
+
 class HotelCardWidget(BaseModel):
     id: str
     name: str
@@ -124,6 +131,7 @@ class HotelCardWidget(BaseModel):
     nearest_station: NearestHub | None = None
     nearest_airport: NearestHub | None = None
     coordinates: Coordinates | None = None
+    review_summary: HotelReviewSummary | None = None
 
 class WidgetEvent(BaseModel):
     type: str = "hotel_grid"
@@ -168,6 +176,8 @@ class ExtractedSlots(BaseModel):
     transport_preference: str | None = None
     semantic_query: str = ""
     disambiguation_suggestions: list[str] = Field(default_factory=list)
+    intent: str = "search"
+    is_review_inquiry: bool = False
 
 
 class SearchTelemetry(BaseModel):
