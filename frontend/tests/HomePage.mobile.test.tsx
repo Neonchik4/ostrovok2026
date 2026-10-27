@@ -5,6 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 import HomePage from "../src/app/page";
 import { encodeTripState } from "../src/features/share-trip";
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), prefetch: vi.fn() }),
+}));
+
 vi.mock("@/shared/api", async (importOriginal) => {
   const actual = await importOriginal<Record<string, unknown>>();
   return {
