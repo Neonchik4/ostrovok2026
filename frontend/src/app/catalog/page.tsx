@@ -1,11 +1,10 @@
 "use client";
 
-import { Bot, LayoutGrid } from "lucide-react";
-import Link from "next/link";
 import React, { useState } from "react";
 
 import { GhostAction, GhostAgent } from "@/features/ghost-agent";
 import { useChatStream } from "@/shared/api";
+import { AppHeader } from "@/widgets/AppHeader";
 import { ClassicSerp, FilterState } from "@/widgets/ClassicSerp";
 
 const initialCatalogFilters: FilterState = {
@@ -78,34 +77,8 @@ export default function CatalogPage() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
-      {/* Верхняя навигационная панель переключения экранов */}
-      <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-black tracking-tight text-foreground">
-            Островок 2026
-          </span>
-          <span className="rounded-md border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-            3-Колоночный Каталог
-          </span>
-        </div>
-
-        <nav aria-label="Переключатель экранов" className="flex items-center rounded-xl border border-border bg-background p-1 shadow-sm">
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1 text-xs font-bold text-muted-foreground transition-all hover:text-foreground"
-          >
-            <Bot className="h-3.5 w-3.5" />
-            <span>AI Консьерж</span>
-          </Link>
-          <Link
-            href="/catalog"
-            className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1 text-xs font-bold text-primary-foreground shadow"
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            <span>Каталог Островка</span>
-          </Link>
-        </nav>
-      </header>
+      {/* Единая шапка с переключателем экранов */}
+      <AppHeader title="Каталог Островка" />
 
       {/* 3-колоночный симулятор Островка (Фильтры + Список + Карта) */}
       <div className="flex-1 min-h-0 overflow-hidden">

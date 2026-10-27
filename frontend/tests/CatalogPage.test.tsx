@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import CatalogPage from "@/app/catalog/page";
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/catalog",
+  useRouter: () => ({ push: vi.fn(), prefetch: vi.fn() }),
+}));
 
 // Mock useChatStream hook
 vi.mock("@/shared/api", () => ({
@@ -47,12 +52,23 @@ describe("CatalogPage 3-Column Simulator (Frontend 3)", () => {
   });
 
   it("renders 3-column layout: filters, hotels list, and map", () => {
-    render(<CatalogPage />);
+    const { container } = render(<CatalogPage />);
+
+    // Unified header
+    const header = screen.getByRole("banner");
+    expect((container.firstChild as HTMLElement).firstElementChild).toBe(header);
+    expect(header).toHaveClass("h-14");
+    expect(within(header).getByAltText("Островок")).toHaveAttribute("src", "/ostrovok-mark.png");
+    expect(within(header).getByRole("heading", { name: "Каталог Островка" })).toBeInTheDocument();
+    expect(screen.queryByText("Островок 2026")).not.toBeInTheDocument();
 
     // Screen navigation
-    expect(screen.getByText("Островок 2026")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /AI Консьерж/i })).toHaveAttribute("href", "/");
-    expect(screen.getByRole("link", { name: /Каталог Островка/i })).toHaveAttribute("href", "/catalog");
+    expect(screen.getAllByRole("navigation", { name: "Переключатель экранов" })).toHaveLength(1);
+    expect(within(header).getByRole("switch")).toHaveAttribute("aria-checked", "true");
+    expect(within(header).getByRole("button", { name: "Каталог Островка" })).toHaveAttribute(
+      "aria-current",
+      "page"
+    );
 
     // Column 1: Filters
     expect(screen.getByRole("complementary", { name: /Фильтры каталога/i })).toBeInTheDocument();
