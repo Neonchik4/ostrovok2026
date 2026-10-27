@@ -1,4 +1,6 @@
+import re
 import time
+from datetime import datetime, timedelta
 
 from ..schemas.chat import ExtractedSlots
 
@@ -64,9 +66,10 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
     elif current.thematic_category:
         merged.thematic_category = current.thematic_category
         merged.thematic_title = current.thematic_title
-        merged.candidate_cities = current.candidate_cities
-        merged.area_type = current.area_type
-        merged.city = None
+        if not prev.city:
+            merged.candidate_cities = current.candidate_cities
+            merged.area_type = current.area_type
+            merged.city = None
 
     # Обновляем числовые параметры при явном указании
     if current.stars is not None:
@@ -75,15 +78,54 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
         merged.max_price_per_night_rub = current.max_price_per_night_rub
     if current.total_trip_budget_rub is not None:
         merged.total_trip_budget_rub = current.total_trip_budget_rub
-    if current.depart_date is not None:
+    # Проверяем относительный сдвиг дат: 'на 2 дня позже', 'на день позже', 'на 2 дня раньше'
+    m_shift = re.search(
+        r"(?:на\s+)?(\d+|один|два|три)\s+(?:дн[яей]|дня|день)\s+(позже|раньше)",
+        (current.semantic_query or "").lower(),
+    )
+    if m_shift and prev.depart_date:
+        w = m_shift.group(1)
+        w_map = {"один": 1, "два": 2, "три": 3}
+        days_delta = w_map.get(w, int(w) if w.isdigit() else 1)
+        if m_shift.group(2) == "раньше":
+            days_delta = -days_delta
+        try:
+            prev_dt = datetime.strptime(prev.depart_date, "%Y-%m-%d")
+            merged.depart_date = (prev_dt + timedelta(days=days_delta)).strftime("%Y-%m-%d")
+        except Exception:
+            pass
+    elif current.depart_date is not None:
         merged.depart_date = current.depart_date
         if current.nights:
             merged.nights = current.nights
+
     if current.min_rating is not None:
         merged.min_rating = current.min_rating
-    if current.guests_count and current.guests_count != 2:
+
+    # Обновление гостей с сохранением при уточнениях
+    query_lower = (current.semantic_query or "").lower()
+    has_explicit_guests = bool(
+        re.search(
+            r"\b(?:двоих|вдвоем|двое|парой|один|соло|одного|одному|\d+\s*(?:человек\w*|гост\w*|взросл\w*|персон\w*))\b",
+            query_lower,
+        )
+    )
+    if current.guests_count and (current.guests_count != 2 or has_explicit_guests):
         merged.guests_count = current.guests_count
-    if current.nights and current.nights != 2:
+
+    # Обновление ночей с сохранением при уточнениях
+    query_no_shift = re.sub(
+        r"\b(?:на\s+)?(?:\d+|один|два|три)\s+(?:дн[яей]|дня|день)\s+(?:позже|раньше)\b",
+        "",
+        query_lower,
+    )
+    has_explicit_nights = bool(
+        re.search(
+            r"\b(?:\d+\s*(?:ноч\w*|дн\w*|сут\w*)|пару\s+дней|две\s+ночи|два\s+дня|недел\w*|выходн\w*|выхи)\b",
+            query_no_shift,
+        )
+    )
+    if current.nights and (current.nights != 2 or has_explicit_nights) and not m_shift:
         merged.nights = current.nights
 
     # Булевы удобства: накапливаем

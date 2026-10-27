@@ -19,11 +19,11 @@ _ORIG_STOP_WORDS = {"дома", "отеля", "аэропорта", "вокза�
 _ORIG_PAT = re.compile(
     r"(?:\b(?:из|изо|откуда\s*:?|(?:вылет|выезд|старт|отправление)\s+(?:из|с|со)|"
     r"(?:буду\s+)?(?:лететь|лечу|полечу|ехать|еду|поеду|отправлюсь)\s+(?:из|с|со)|"
-    r"(?:билеты|рейс|поезд|самолет)\s+(?:из|с|со)|с|со))\s+([а-яё\-]+(?:\s+[а-яё\-]+)?)",
+    r"(?:билеты|рейс|поезд|самолет)\s+(?:из|с|со)))\s+([а-яё\-]+(?:\s+[а-яё\-]+)?)",
     re.IGNORECASE,
 )
 _DEST_PAT = re.compile(
-    r"(?:\bкуда\s*:?|\bпоездка\s+(?:в|во|на)\b|\bбилеты\s+(?:в|во|на)\b|\bв\b|\bво\b|\bдо\b|\bна\b)\s*([а-яё\-]+(?:\s+[а-яё\-]+)?)",
+    r"(?:\bкуда\s*:?|\bпоездка\s+(?:в|во|на)\b|\bбилеты\s+(?:в|во|на)\b|\bв\b|\bво\b|\bдо\b|\bна\b)\s+([а-яё\-]+(?:\s+(?!(?:в|во|на|до|из|с|со|по|для|от|к)\b)[а-яё\-]+)?)",
     re.IGNORECASE,
 )
 
@@ -118,12 +118,22 @@ def extract_route_cities(text: str) -> tuple[str | None, str | None]:
         if c1 and c2 and c1 != c2:
             return c1, c2
 
-    # 2. Пункт отправления (из, с, со, вылет из, лететь с ...)
-    m_from = _ORIG_PAT.search(lower)
+    # 1.5. Формат 'с Город1 в Город2'
+    m_s_v = re.search(r"\bс\s+([а-яё\-]+)\s+(?:в|во|до)\s+([а-яё\-]+)", lower)
+    if m_s_v:
+        c1 = match_city(m_s_v.group(1))
+        c2 = match_city(m_s_v.group(2))
+        if c1 and c2 and c1 != c2:
+            return c1, c2
+
+    # 2. Пункт отправления (из, вылет из, лететь с ...)
+    # Исключаем локальный трансфер из аэропорта/вокзала города назначения
+    from_text = re.sub(r"\bтрансфер\s+(?:из|от|с|до)\s+[^.\n]+", " ", lower)
+    m_from = _ORIG_PAT.search(from_text)
     if m_from:
         raw_from = m_from.group(1).strip()
         matched_orig = match_city(raw_from)
-        if not matched_orig and " " in raw_from:
+        if not matched_orig and " " in raw_from and not raw_from.startswith(("аэропорт", "вокзал")):
             for part in raw_from.split():
                 matched_orig = match_city(part)
                 if matched_orig:
@@ -132,13 +142,12 @@ def extract_route_cities(text: str) -> tuple[str | None, str | None]:
             orig = matched_orig
         else:
             w1 = raw_from.split()[0]
-            if w1 not in _ORIG_STOP_WORDS and len(w1) >= 4 and not lower.startswith("с " + w1):
-                # Только надежные существительные не из стоп-слов
+            if w1 not in _ORIG_STOP_WORDS and len(w1) >= 4 and re.search(r"\b(?:из|изо)\s+" + re.escape(w1), lower):
+                # Только надежные существительные после 'из/изо'
                 orig = w1.capitalize()
 
     # 3. Пункт назначения (куда, в, во, до, на, поездка в, билеты в)
-    m_to = _DEST_PAT.search(lower)
-    if m_to:
+    for m_to in _DEST_PAT.finditer(lower):
         raw_to = m_to.group(1).strip()
         matched = match_city(raw_to)
         if not matched and " " in raw_to:
@@ -148,6 +157,7 @@ def extract_route_cities(text: str) -> tuple[str | None, str | None]:
                     break
         if matched and matched != orig:
             dest = matched
+            break
 
     # 4. Если пункт назначения не найден по предлогам и пункт отправления НЕ был единственным городом
     if not dest and not orig:
@@ -159,14 +169,23 @@ def extract_route_cities(text: str) -> tuple[str | None, str | None]:
 
 
 _RU_MONTHS = {
-    "янв": 1, "фев": 2, "мар": 3, "апр": 4, "ма": 5, "июн": 6,
-    "июл": 7, "авг": 8, "сен": 9, "окт": 10, "ноя": 11, "дек": 12,
+    "янв": 1, "фев": 2, "мар": 3, "апр": 4, "май": 5, "мае": 5, "мая": 5,
+    "июн": 6, "июл": 7, "авг": 8, "сен": 9, "окт": 10, "ноя": 11, "дек": 12,
 }
+_MONTH_PAT = r"(?:янв\w*|фев\w*|мар\w*|апр\w*|ма[еяй]\w*|июн\w*|июл\w*|авг\w*|сен\w*|окт\w*|ноя\w*|дек\w*)"
+
+
+def _match_ru_month(word: str) -> int | None:
+    w = word.lower()
+    for prefix, m_num in _RU_MONTHS.items():
+        if w.startswith(prefix) or prefix in w:
+            return m_num
+    return None
 
 
 def extract_depart_date(text: str) -> str | None:
     """Извлечение даты поездки: сегодня, завтра, послезавтра, точные даты и диапазоны (с 28 по 30)."""
-    lower = text.lower()
+    lower = re.sub(r"\b24/7\b", " ", text.lower())
     now = datetime.now(UTC)
     if re.search(r"\bсегодня\b|\bна\s+сегодня\b", lower):
         return now.strftime("%Y-%m-%d")
@@ -187,50 +206,66 @@ def extract_depart_date(text: str) -> str | None:
         except ValueError:
             pass
 
-    found_month = None
-    for prefix, m_num in _RU_MONTHS.items():
-        if prefix in lower:
-            found_month = m_num
-            break
+    # 0.5. Диапазон с 'и' или запятой: '18 и 19 сентября 2026', '20, 21, 22 сентября'
+    m_range_and = re.search(
+        rf"\b(\d{{1,2}})\s*(?:и|,)\s*(?:\d{{1,2}}\s*(?:и|,)\s*)*\d{{1,2}}\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?",
+        lower,
+    )
+    if m_range_and:
+        d1 = int(m_range_and.group(1))
+        m_num = _match_ru_month(m_range_and.group(2))
+        y = int(m_range_and.group(3)) if m_range_and.group(3) else (now.year if m_num and m_num >= now.month else now.year + 1)
+        if m_num and 1 <= d1 <= 31:
+            try:
+                return datetime(y, m_num, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
 
-    # Диапазоны дат: 'с 28 по 30', 'от 5 до 8 ноября', '28-30 октября'
-    m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})(?:\s*([а-яё]+))?", lower)
-    if not m_range:
-        m_range = re.search(r"\b(\d{1,2})\s*[-—]\s*(\d{1,2})(?:\s*([а-яё]+))?\b", lower)
-    if not m_range:
-        # Одиночная дата с месяцем: '28 октября'
-        m_single = re.search(r"\b(\d{1,2})\s+([а-яё]+)\b", lower)
-        if m_single:
-            word = m_single.group(2)
-            for prefix, m_num in _RU_MONTHS.items():
-                if prefix in word:
-                    d = int(m_single.group(1))
-                    y = now.year if m_num >= now.month else now.year + 1
-                    try:
-                        return datetime(y, m_num, d, tzinfo=UTC).strftime("%Y-%m-%d")
-                    except ValueError:
-                        pass
+    # 1. Диапазон с явным месяцем: 'с 10 по 15 июля', 'от 5 до 8 ноября 2026'
+    m_range_short = re.search(
+        rf"(?:с|от|даты:?)\s+(\d{{1,2}})\s*(?:по|до|-|—)\s*(\d{{1,2}})\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?",
+        lower,
+    )
+    if m_range_short:
+        d1 = int(m_range_short.group(1))
+        m_num = _match_ru_month(m_range_short.group(3))
+        y = int(m_range_short.group(4)) if m_range_short.group(4) else (now.year if m_num and m_num >= now.month else now.year + 1)
+        if m_num and 1 <= d1 <= 31:
+            try:
+                return datetime(y, m_num, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
 
+    # 2. Поиск всех вхождений 'число месяц [год]' в тексте (например: '1 июля ... 14 июля 2027', '20 января 2027')
+    date_matches = list(re.finditer(rf"\b(\d{{1,2}})\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?", lower))
+    if date_matches:
+        year_in_any = None
+        for dm in date_matches:
+            if dm.group(3):
+                year_in_any = int(dm.group(3))
+                break
+        if not year_in_any:
+            m_yr = re.search(r"\b(202[5-9]|203[0-9])\b", lower)
+            if m_yr:
+                year_in_any = int(m_yr.group(1))
+
+        first_dm = date_matches[0]
+        d1 = int(first_dm.group(1))
+        m1 = _match_ru_month(first_dm.group(2))
+        y1 = int(first_dm.group(3)) if first_dm.group(3) else (year_in_any or (now.year if m1 and m1 >= now.month else now.year + 1))
+        if m1 and 1 <= d1 <= 31:
+            try:
+                return datetime(y1, m1, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+
+    # 3. Диапазоны дат без указания месяца: 'с 28 по 30'
+    m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-|—)\s*(\d{1,2})", lower)
     if m_range:
         d1 = int(m_range.group(1))
-        word_after = m_range.group(3) or ""
-        month = found_month
-        if not month:
-            for prefix, m_num in _RU_MONTHS.items():
-                if prefix in word_after:
-                    month = m_num
-                    break
-        if not month:
-            if d1 >= now.day - 2:
-                month = now.month
-                year = now.year
-            else:
-                month = now.month + 1 if now.month < 12 else 1
-                year = now.year if now.month < 12 else now.year + 1
-        else:
-            year = now.year if month >= now.month else now.year + 1
-
-        if 1 <= d1 <= 31 and 1 <= month <= 12:
+        month = now.month if d1 >= now.day - 2 else (now.month + 1 if now.month < 12 else 1)
+        year = now.year if (month >= now.month) else now.year + 1
+        if 1 <= d1 <= 31:
             try:
                 return datetime(year, month, d1, tzinfo=UTC).strftime("%Y-%m-%d")
             except ValueError:
