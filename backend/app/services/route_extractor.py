@@ -245,7 +245,7 @@ def extract_transport_preference(text: str) -> tuple[bool | None, bool | None, s
     Возвращает (include_flight, include_train, preference: 'train' | 'flight' | 'both')
     """
     lower = text.lower()
-    has_train = bool(re.search(r"\bпоезд|\bпоездом|\bпоезде|\bж/?д\b|\bржд\b|\bэлектричк", lower))
+    has_train = bool(re.search(r"\bпоезд|\bпоездом|\bпоезде|\bж/?д\b|\bржд\b|\bэлектричк|\bласточк", lower))
     has_flight = bool(re.search(r"\bсамолет|\bавиа|\bперелет|\bполет|\bлечу\b|\bлететь\b|\bполечу\b|\bрейс", lower))
 
     if has_train and not has_flight:

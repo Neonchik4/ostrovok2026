@@ -91,7 +91,9 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
 
     # Количество гостей
     guests = 2
-    m_guests = re.search(r"(?:для|на|нас)\s*(\d+)", lower)
+    m_guests = re.search(r"(?:для|на|нас)\s*(\d+)\s*(?:человек\w*|гост\w*|взросл\w*|персон\w*)", lower)
+    if not m_guests:
+        m_guests = re.search(r"(?:для|на|нас)\s*(\d+)(?!\s*(?:ноч|дн|сут|к\b|тыс|руб|р|₽|%|\*|звезд))", lower)
     if m_guests:
         guests = int(m_guests.group(1))
     elif "вдвоем" in lower or "двоих" in lower:

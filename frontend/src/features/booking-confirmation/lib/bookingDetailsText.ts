@@ -8,6 +8,7 @@ export interface BookingDetailsInput {
   guests: number;
   totalLabel: string;
   checkoutUrl: string;
+  postBookingRequests?: string[];
 }
 
 /**
@@ -15,7 +16,7 @@ export interface BookingDetailsInput {
  * Честная формулировка: явно указано, что бронь учебная и деньги не списываются.
  */
 export function buildBookingDetailsText(input: BookingDetailsInput): string {
-  return [
+  const lines = [
     `Демо-бронь ${input.orderNumber}`,
     `Отель: ${input.hotelName} (${input.city})`,
     `Номер: ${input.roomName}`,
@@ -23,6 +24,13 @@ export function buildBookingDetailsText(input: BookingDetailsInput): string {
     `Выезд: ${input.checkoutLabel}, до 12:00`,
     `Гости: ${input.guests}`,
     `Итого: ${input.totalLabel} (демо-бронь, без списания средств)`,
-    `Реальный чекаут на Ostrovok.ru: ${input.checkoutUrl}`,
-  ].join("\n");
+  ];
+
+  if (input.postBookingRequests && input.postBookingRequests.length > 0) {
+    lines.push(`Дополнительные услуги: ${input.postBookingRequests.join(", ")}`);
+  }
+
+  lines.push(`Реальный чекаут на Ostrovok.ru: ${input.checkoutUrl}`);
+
+  return lines.join("\n");
 }
