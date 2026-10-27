@@ -99,7 +99,7 @@ doppler secrets set DOMAIN=app.example.com --config prd
 
 ### Деплой на VPS (GHCR + GitHub Actions)
 
-Production-образы собираются в CI и публикуются как **приватные** пакеты в GitHub Container Registry (`release.yml`), а на сервер их раскатывает workflow `deploy.yml` по SSH — без ручной подтяжки и без сборки на самой VM. Пошаговый рунбук (создание VPS, статический IP, SSH, GHCR-логин, Doppler `prd`, GitHub-секреты, проверка и откат) — в [DEPLOY.md](DEPLOY.md).
+Production-образы собираются в CI и публикуются как **приватные** пакеты в GitHub Container Registry (`release.yml`), а на сервер их раскатывает workflow `deploy.yml` по SSH — без ручной подтяжки и без сборки на самой VM.
 
 ---
 
@@ -189,9 +189,8 @@ bun run dev
 
 ## Архитектура и правила для агентов
 
-* [BACKLOG.md](BACKLOG.md) — генеральный бэклог хакатона, дорожная карта и матрица ответственности команды.
-* [AGENTS.md](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/AGENTS.md) — главный архитектурный манифест проекта и стандарты команды.
-* [.agents/RULES.md](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/.agents/RULES.md) — свод операционных инженерных правил:
+* [AGENTS.md](AGENTS.md) — главный архитектурный манифест проекта и стандарты команды.
+* [.agents/RULES.md](.agents/RULES.md) — свод операционных инженерных правил:
   * `.agents/rules/frontend.md` — архитектура FSD, запрет HEX, Zero-Emoji;
   * `.agents/rules/backend.md` — модульность SRP, каскад моделей, детерминизм чека;
   * `.agents/rules/security-and-testing.md` — Secure by Design, TDD, запрет моков в рантайме;
