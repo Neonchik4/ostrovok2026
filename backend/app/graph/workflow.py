@@ -4,6 +4,14 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from ..schemas.chat import ChatStreamRequest, ExtractedSlots
+from ..services.guardrails import (
+    GUARDRAIL_INJECTION_RESPONSE,
+    GUARDRAIL_OFFTOPIC_RESPONSE,
+    GUARDRAIL_THOUGHT_INJECTION,
+    GUARDRAIL_THOUGHT_OFFTOPIC,
+    classify_request,
+    sanitize_outgoing,
+)
 from ..services.hotel_search_adapter import search_hotels_with_telemetry
 from ..services.llm_cascade import (
     build_deterministic_reasoning,
@@ -52,6 +60,31 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             note_offline_once()
             logger.log_thought("mode", OFFLINE_MODE_MESSAGE)
             yield _format_sse("mode", {"offline": True, "message": OFFLINE_MODE_MESSAGE})
+
+        # 1.5 Guardrails: детерминированная фильтрация инъекций и оффтопа до LLM (Issue #45).
+        # Каверзные запросы не достигают ни экстрактора слотов, ни генератора ответов.
+        verdict = classify_request(message)
+        if verdict in ("injection", "offtopic"):
+            guard_thought = GUARDRAIL_THOUGHT_INJECTION if verdict == "injection" else GUARDRAIL_THOUGHT_OFFTOPIC
+            guard_response = GUARDRAIL_INJECTION_RESPONSE if verdict == "injection" else GUARDRAIL_OFFTOPIC_RESPONSE
+            logger.log_thought("guardrails", guard_thought)
+            yield _format_sse("thought", {"step": "guardrails", "text": guard_thought})
+            words = guard_response.split(" ")
+            for i, word in enumerate(words):
+                chunk = word + (" " if i < len(words) - 1 else "")
+                logger.log_token(chunk)
+                yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
+            guard_chips = default_chips(message.lower())
+            logger.log_chips(guard_chips)
+            yield _format_sse("widget", {
+                "type": "hotel_grid",
+                "hotels": [],
+                "disambiguation_chips": guard_chips,
+                "transport_summary": None,
+            })
+            logger.finish(status="ok")
+            yield _format_sse("done", {"status": "ok"})
+            return
 
         # Извлечение интентов и слотов через каскад (Gemini 2.5 Flash / Flash Lite -> локальный экстрактор)
         new_slots: ExtractedSlots = await extract_slots_cascade(message)
@@ -267,10 +300,11 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             })
         await asyncio.sleep(0.2)
 
-        # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов)
+        # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов).
+        # Zero Secret Leakage: каждый исходящий чанк проходит фильтр утечек (Issue #45).
         async for chunk in generate_concierge_response_stream(message, slots, hotels, transport=transport):
             logger.log_token(chunk)
-            yield _format_sse("token", {"content": chunk})
+            yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
             
         # 7. Стриминг виджета (event: widget)
         chips_to_send = slots.disambiguation_suggestions or default_chips(
@@ -296,9 +330,10 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         
     except Exception as e:
         logger.finish(status="error", error=str(e))
-        yield _format_sse("thought", {"step": "error", "text": f"Ошибка обработки: {str(e)}"})
+        safe_error = sanitize_outgoing(str(e))
+        yield _format_sse("thought", {"step": "error", "text": f"Ошибка обработки: {safe_error}"})
         yield _format_sse("token", {"content": "Произошла ошибка при поиске отелей. Пожалуйста, попробуйте изменить запрос."})
-        yield _format_sse("done", {"status": "error", "error": str(e)})
+        yield _format_sse("done", {"status": "error", "error": safe_error})
 
 from ..services.text_helpers import (
     pluralize_guests as _pluralize_guests,
