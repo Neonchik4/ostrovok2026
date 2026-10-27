@@ -1,10 +1,9 @@
 "use client";
 
-import { Bot, LayoutGrid } from "lucide-react";
-import Link from "next/link";
 import React from "react";
 
 import { useChatStream } from "@/shared/api";
+import { AppHeader } from "@/widgets/AppHeader";
 import { ChatConcierge } from "@/widgets/ChatConcierge";
 import { HotelCanvas } from "@/widgets/HotelCanvas";
 
@@ -22,30 +21,11 @@ export default function HomePage() {
   } = useChatStream();
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-background">
-      {/* Переключатель экранов: AI Консьерж ( / ) <-> Каталог Островка ( /catalog ) */}
-      <nav
-        aria-label="Переключатель экранов"
-        className="fixed top-4 right-8 z-40 flex items-center rounded-xl border border-border bg-card/90 p-1 shadow-lg backdrop-blur-md"
-      >
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow"
-        >
-          <Bot className="h-3.5 w-3.5" />
-          <span>AI Консьерж</span>
-        </Link>
-        <Link
-          href="/catalog"
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:text-foreground"
-        >
-          <LayoutGrid className="h-3.5 w-3.5" />
-          <span>Каталог Островка</span>
-        </Link>
-      </nav>
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
+      <AppHeader title="Агент Островка" />
 
       {/* Основной контент: AI Сплит-чат (Чат-агент слева + Витрина отелей справа) */}
-      <div className="flex h-full w-full">
+      <div className="flex min-h-0 w-full flex-1">
         {/* Левая колонка (420px): Чат-агент */}
         <ChatConcierge
           messages={messages}

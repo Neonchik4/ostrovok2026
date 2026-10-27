@@ -3,6 +3,7 @@ export * from "./button";
 export * from "./card";
 export * from "./collapsible";
 export * from "./dialog";
+export * from "./ghost-toggle";
 export * from "./input";
 export * from "./logo";
 export * from "./modal-close-button";
