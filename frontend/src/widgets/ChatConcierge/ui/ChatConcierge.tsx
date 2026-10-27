@@ -1,14 +1,14 @@
 "use client";
 
-import { Database, Send, Square } from "lucide-react";
-import Link from "next/link";
+import { Send, Square } from "lucide-react";
 import React, { useState } from "react";
 
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
+import { OnboardingScenarioChips } from "@/features/onboarding-scenarios";
 import { QuickChips } from "@/features/quick-chips";
 import { VoiceInputButton } from "@/features/voice-input";
-import { Button, Input, Logo } from "@/shared/ui";
+import { Button, Input } from "@/shared/ui";
 
 import { ChatMessagesList } from "./ChatMessagesList";
 import { useChatAutoScroll } from "./useChatAutoScroll";
@@ -60,23 +60,6 @@ export function ChatConcierge({
 
   return (
     <aside className="flex h-full w-full lg:w-[480px] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-2xl">
-      {/* Шапка чата */}
-      <div className="flex h-20 shrink-0 items-center justify-between border-b border-border bg-card/90 px-5 backdrop-blur-md">
-        <div className="flex items-center gap-3">
-          <Logo variant="mark" size={40} className="rounded-xl shadow-md" />
-          <div>
-            <h2 className="text-base font-bold text-foreground">Агент Островка</h2>
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Link href="/studio">
-            <Button variant="ghost" size="sm" className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground">
-              <Database className="h-3.5 w-3.5 mr-1.5 text-primary" /> Studio
-            </Button>
-          </Link>
-        </div>
-      </div>
-
       {/* Список сообщений и мыслей */}
       <ChatMessagesList
         messages={messages}
@@ -86,6 +69,14 @@ export function ChatConcierge({
         scrollRef={scrollRef}
         messagesEndRef={messagesEndRef}
       />
+
+      {/* Чипсы стартовых сценариев: только до отправки первого сообщения (Issue #41) */}
+      {messages.length === 0 && thoughts.length === 0 && (
+        <OnboardingScenarioChips
+          disabled={isStreaming}
+          onSelectScenario={(query) => onSendMessage(query)}
+        />
+      )}
 
       {/* Быстрые чипсы уточнений */}
       {chips.length > 0 && (

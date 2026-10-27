@@ -142,9 +142,17 @@ jobs:
               fi
             fi
 
+            # Ensure host directories and permissions exist automatically on any new VM
+            mkdir -p outputs/chroma_db_v2 outputs/chroma_db_gemini letsencrypt
+            if [ ! -f letsencrypt/acme.json ]; then
+              touch letsencrypt/acme.json
+              chmod 600 letsencrypt/acme.json
+            fi
+            chmod -R 777 outputs/chroma_db_v2 outputs/chroma_db_gemini 2>/dev/null || true
+
             # Ensure ACME_EMAIL is present in .env
             if [ -f .env ] && ! grep -q '^ACME_EMAIL=' .env; then
-              echo "ACME_EMAIL=admin@158.160.227.34.nip.io" >> .env
+              echo "ACME_EMAIL=admin@${DOMAIN:-chto-to-drugoe.ru}" >> .env
             fi
 
             export GHCR_OWNER IMAGE_TAG
@@ -157,8 +165,19 @@ jobs:
               fi
             }
 
-            compose pull
+            # Pull lightweight images first (zero downtime rollout for frontend & traefik)
+            compose pull traefik
+            compose pull frontend
+            compose up -d --no-deps frontend
+
+            # Free up disk for backend image extraction on 10GB VM
+            compose stop backend || true
+            compose rm -f backend || true
+            docker image prune -a -f || true
+
+            # Pull and restart backend with maximum disk headroom
+            compose pull backend
             compose up -d --remove-orphans
-            docker image prune -f
+            docker system prune -f
             docker builder prune -a -f || true
             compose ps

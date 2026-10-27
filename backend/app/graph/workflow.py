@@ -4,15 +4,25 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from ..schemas.chat import ChatStreamRequest, ExtractedSlots
+from ..services.guardrails import (
+    GUARDRAIL_INJECTION_RESPONSE,
+    GUARDRAIL_OFFTOPIC_RESPONSE,
+    GUARDRAIL_THOUGHT_INJECTION,
+    GUARDRAIL_THOUGHT_OFFTOPIC,
+    classify_request,
+    sanitize_outgoing,
+)
 from ..services.hotel_search_adapter import search_hotels_with_telemetry
 from ..services.llm_cascade import (
     build_deterministic_reasoning,
     extract_slots_cascade,
     generate_concierge_response_stream,
 )
+from ..services.offline_mode import OFFLINE_MODE_MESSAGE, is_offline_mode, note_offline_once
 from ..services.route_extractor import default_chips
 from ..services.run_logger import WorkflowRunLogger
 from ..services.session_memory import merge_slots, session_memory
+from ..services.slot_extractor import ORIGIN_CLARIFICATION_CHIPS, flag_missing_origin_slots
 from ..services.transport_service import search_transport_options
 
 
@@ -44,6 +54,39 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         logger.log_thought("reasoning", init_thought)
         yield _format_sse("thought", {"step": "reasoning", "text": init_thought})
 
+        # 0. Zero-Config Offline Mode: статусная плашка автономного режима (Issue #46).
+        # Отдаётся сразу после init-thought, чтобы не нарушать контракт
+        # «первое событие стрима — thought (reasoning)».
+        if is_offline_mode():
+            note_offline_once()
+            logger.log_thought("mode", OFFLINE_MODE_MESSAGE)
+            yield _format_sse("mode", {"offline": True, "message": OFFLINE_MODE_MESSAGE})
+
+        # 1.5 Guardrails: детерминированная фильтрация инъекций и оффтопа до LLM (Issue #45).
+        # Каверзные запросы не достигают ни экстрактора слотов, ни генератора ответов.
+        verdict = classify_request(message)
+        if verdict in ("injection", "offtopic"):
+            guard_thought = GUARDRAIL_THOUGHT_INJECTION if verdict == "injection" else GUARDRAIL_THOUGHT_OFFTOPIC
+            guard_response = GUARDRAIL_INJECTION_RESPONSE if verdict == "injection" else GUARDRAIL_OFFTOPIC_RESPONSE
+            logger.log_thought("guardrails", guard_thought)
+            yield _format_sse("thought", {"step": "guardrails", "text": guard_thought})
+            words = guard_response.split(" ")
+            for i, word in enumerate(words):
+                chunk = word + (" " if i < len(words) - 1 else "")
+                logger.log_token(chunk)
+                yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
+            guard_chips = default_chips(message.lower())
+            logger.log_chips(guard_chips)
+            yield _format_sse("widget", {
+                "type": "hotel_grid",
+                "hotels": [],
+                "disambiguation_chips": guard_chips,
+                "transport_summary": None,
+            })
+            logger.finish(status="ok")
+            yield _format_sse("done", {"status": "ok"})
+            return
+
         # Извлечение интентов и слотов через каскад (Gemini 2.5 Flash / Flash Lite -> локальный экстрактор)
         new_slots: ExtractedSlots = await extract_slots_cascade(message)
         if req.nights and req.nights != 2:
@@ -54,6 +97,8 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             new_slots.pet_friendly = True
 
         slots: ExtractedSlots = merge_slots(prev_slots, new_slots)
+        # Проактивный slot-filling: детекция недостающего города отправления (Issue #40)
+        slots = flag_missing_origin_slots(slots)
         session_memory.save_slots(conv_id, slots)
         logger.log_slots(slots)
 
@@ -258,19 +303,24 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
             })
         await asyncio.sleep(0.2)
 
-        # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов)
+        # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов).
+        # Zero Secret Leakage: каждый исходящий чанк проходит фильтр утечек (Issue #45).
         async for chunk in generate_concierge_response_stream(message, slots, hotels, transport=transport):
             logger.log_token(chunk)
-            yield _format_sse("token", {"content": chunk})
+            yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
             
         # 7. Стриминг виджета (event: widget)
-        chips_to_send = slots.disambiguation_suggestions or default_chips(
-            message.lower(),
-            origin=slots.origin_city,
-            city=slots.city,
-            transport_pref=slots.transport_preference,
-            depart_date=slots.depart_date,
-        )
+        # Slot-filling: при неизвестном городе выезда чипсы подменяются быстрыми ответами
+        if slots.needs_origin_clarification:
+            chips_to_send = list(ORIGIN_CLARIFICATION_CHIPS)
+        else:
+            chips_to_send = slots.disambiguation_suggestions or default_chips(
+                message.lower(),
+                origin=slots.origin_city,
+                city=slots.city,
+                transport_pref=slots.transport_preference,
+                depart_date=slots.depart_date,
+            )
         logger.log_chips(chips_to_send)
 
         widget_payload = {
@@ -287,9 +337,10 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         
     except Exception as e:
         logger.finish(status="error", error=str(e))
-        yield _format_sse("thought", {"step": "error", "text": f"Ошибка обработки: {str(e)}"})
+        safe_error = sanitize_outgoing(str(e))
+        yield _format_sse("thought", {"step": "error", "text": f"Ошибка обработки: {safe_error}"})
         yield _format_sse("token", {"content": "Произошла ошибка при поиске отелей. Пожалуйста, попробуйте изменить запрос."})
-        yield _format_sse("done", {"status": "error", "error": str(e)})
+        yield _format_sse("done", {"status": "error", "error": safe_error})
 
 from ..services.text_helpers import (
     pluralize_guests as _pluralize_guests,

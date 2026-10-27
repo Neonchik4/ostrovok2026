@@ -41,6 +41,11 @@ services:
       interval: 15s
       timeout: 5s
       retries: 3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks: [app]
 
   backend:
@@ -103,6 +108,11 @@ services:
       traefik.http.routers.ostrovok-api.priority: "20"
       traefik.http.routers.ostrovok-api.service: ostrovok-api
       traefik.http.services.ostrovok-api.loadbalancer.server.port: "8000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks: [app]
 
   frontend:
@@ -140,6 +150,11 @@ services:
       traefik.http.routers.ostrovok-web.priority: "10"
       traefik.http.routers.ostrovok-web.service: ostrovok-web
       traefik.http.services.ostrovok-web.loadbalancer.server.port: "3000"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks: [app]
 
 networks:

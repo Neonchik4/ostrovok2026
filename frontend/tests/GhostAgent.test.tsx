@@ -32,6 +32,49 @@ describe("Ghost Agent & Intent Router (Frontend 2)", () => {
     expect(res.action?.type).toBe("reset");
   });
 
+  it("parses star rating intents accurately", () => {
+    const res5 = parseGhostIntent("отель 5 звезд люкс");
+    expect(res5.handled).toBe(true);
+    expect(res5.action?.type).toBe("set_stars");
+    expect(res5.action?.value).toBe(5);
+
+    const res4 = parseGhostIntent("гостиница от 4 звезд");
+    expect(res4.handled).toBe(true);
+    expect(res4.action?.type).toBe("set_stars");
+    expect(res4.action?.value).toBe(4);
+  });
+
+  it("parses diverse amenity intents (breakfast, spa, pets, free cancellation)", () => {
+    const resBreakfast = parseGhostIntent("с бесплатным завтраком");
+    expect(resBreakfast.handled).toBe(true);
+    expect(resBreakfast.action?.key).toBe("breakfast");
+
+    const resSpa = parseGhostIntent("отель со спа и сауной");
+    expect(resSpa.handled).toBe(true);
+    expect(resSpa.action?.key).toBe("spa");
+
+    const resPets = parseGhostIntent("можно с собакой");
+    expect(resPets.handled).toBe(true);
+    expect(resPets.action?.key).toBe("pets");
+
+    const resCancel = parseGhostIntent("бесплатная отмена бронирования");
+    expect(resCancel.handled).toBe(true);
+    expect(resCancel.action?.key).toBe("freeCancellation");
+  });
+
+  it("parses top hotel selection intent accurately", () => {
+    const res = parseGhostIntent("покажи лучший отель");
+    expect(res.handled).toBe(true);
+    expect(res.action?.type).toBe("select_hotel");
+  });
+
+  it("routes complex unhandled queries to AI streaming prompt", () => {
+    const res = parseGhostIntent("романтический уикенд с видом на горы");
+    expect(res.handled).toBe(false);
+    expect(res.action?.type).toBe("prompt");
+    expect(res.action?.text).toBe("романтический уикенд с видом на горы");
+  });
+
   it("renders ThoughtLog with structured steps and tag badges", () => {
     const steps: ThoughtStep[] = [
       { id: "1", tag: "intent", text: "Распознан интент: бассейн", timestamp: 100 },

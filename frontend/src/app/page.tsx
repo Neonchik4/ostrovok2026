@@ -1,12 +1,11 @@
 "use client";
 
-import { Bot, LayoutGrid } from "lucide-react";
-import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 
 import { MobileBottomSheet, MobileFloatingBar } from "@/features/mobile-bottom-sheet";
 import { decodeTripState, ShareTripButton } from "@/features/share-trip";
 import { useChatStream } from "@/shared/api";
+import { AppHeader } from "@/widgets/AppHeader";
 import { ChatConcierge } from "@/widgets/ChatConcierge";
 import { HotelCanvas } from "@/widgets/HotelCanvas";
 
@@ -17,6 +16,7 @@ export default function HomePage() {
     hotels,
     chips,
     transportSummary,
+    offlineMode,
     isStreaming,
     isThinking,
     sendMessage,
@@ -65,43 +65,29 @@ export default function HomePage() {
       : undefined;
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-background">
-      {/* Навигационная панель и кнопка Поделиться (Share Deep-Link) */}
-      <nav
-        aria-label="Переключатель экранов"
-        className="fixed top-4 right-8 z-40 flex items-center gap-2 rounded-xl border border-border bg-card/90 p-1 shadow-lg backdrop-blur-md"
-      >
-        {hotels.length > 0 && (
-          <ShareTripButton
-            state={{
-              city: hotels[0]?.city,
-              selected_hotel_id: restoredHotelId || hotels[0]?.id,
-              nights: hotels[0]?.receipt?.nights,
-              guests: hotels[0]?.receipt?.tickets_count,
-              user_message: hotels[0] ? `Поездка в ${hotels[0].city}` : undefined,
-            }}
-            label="Поделиться"
-            size="sm"
-          />
-        )}
-        <Link
-          href="/"
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow"
-        >
-          <Bot className="h-3.5 w-3.5" />
-          <span>AI Консьерж</span>
-        </Link>
-        <Link
-          href="/catalog"
-          className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-muted-foreground transition-all hover:text-foreground"
-        >
-          <LayoutGrid className="h-3.5 w-3.5" />
-          <span>Каталог Островка</span>
-        </Link>
-      </nav>
+    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
+      <AppHeader
+        title="Агент Островка"
+        offlineNotice={offlineMode}
+        action={
+          hotels.length > 0 ? (
+            <ShareTripButton
+              state={{
+                city: hotels[0]?.city,
+                selected_hotel_id: restoredHotelId || hotels[0]?.id,
+                nights: hotels[0]?.receipt?.nights,
+                guests: hotels[0]?.receipt?.tickets_count,
+                user_message: hotels[0] ? `Поездка в ${hotels[0].city}` : undefined,
+              }}
+              label="Поделиться"
+              size="sm"
+            />
+          ) : undefined
+        }
+      />
 
-      {/* Основной контент: AI Сплит-чат (Чат слева + Витрина отелей справа) */}
-      <div className="flex h-full w-full">
+      {/* Основной контент: AI Сплит-чат (Чат-агент слева + Витрина отелей справа) */}
+      <div className="flex min-h-0 w-full flex-1">
         {/* Чат-агент: на мобильных экранах (<1024px) занимает 100% ширины, на десктопе 480px */}
         <ChatConcierge
           messages={messages}
@@ -119,7 +105,7 @@ export default function HomePage() {
             hotels={hotels}
             transportSummary={transportSummary}
             isStreaming={isStreaming}
-            onSelectPrompt={(prompt) => sendMessage(prompt)}
+            onSelectPrompt={(prompt) => void sendMessage(prompt)}
             initialSelectedHotelId={restoredHotelId}
           />
         </div>

@@ -11,11 +11,12 @@ import {
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
-import { Hotel, HotelReceiptPreview, HotelScoreBadge } from "@/entities/hotel";
+import { Hotel, HotelScoreBadge } from "@/entities/hotel";
 import { HotelAspectsSummary, HotelReviewsList } from "@/features/hotel-details";
-import { ShareTripButton } from "@/features/share-trip";
 import { formatPrice } from "@/shared/lib";
 import { Badge, Button, Card } from "@/shared/ui";
+
+import { ReceiptBookingCard } from "./ReceiptBookingCard";
 
 interface HotelCanvasDetailViewProps {
   hotel: Hotel;
@@ -228,29 +229,7 @@ export function HotelCanvasDetailView({ hotel, onBack }: HotelCanvasDetailViewPr
           )}
         </Card>
 
-        <Card className="rounded-2xl border-border bg-card p-5">
-          <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">
-            Прозрачный чек
-          </span>
-          <HotelReceiptPreview
-            receipt={currentHotel.receipt}
-            shareAction={
-              <ShareTripButton
-                state={{
-                  city: currentHotel.city,
-                  selected_hotel_id: currentHotel.id,
-                  nights: currentHotel.receipt?.nights,
-                  guests: currentHotel.receipt?.tickets_count,
-                  stars: currentHotel.stars,
-                  max_price_per_night_rub: currentHotel.min_price_per_night_rub,
-                  user_message: `Отель «${currentHotel.name}» в ${currentHotel.city}`,
-                }}
-                label="Поделиться"
-                size="sm"
-              />
-            }
-          />
-        </Card>
+        <ReceiptBookingCard hotel={currentHotel} />
       </div>
 
       {/* Аспектный анализ отзывов AI агентом */}

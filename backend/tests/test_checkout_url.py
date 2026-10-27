@@ -71,6 +71,48 @@ def test_build_ostrovok_checkout_url_clamping():
     assert "guests=20" in url_high
 
 
+def test_build_ostrovok_checkout_url_canonical_with_location_slug():
+    """
+    Реальный формат датасета: slug хранит путь локации ("russia/sochi"),
+    а канонический URL отеля на Островке собирается как
+    /hotel/{slug}/mid{master_id}/{id}/. Задвоение пути недопустимо.
+    """
+    hotel_dict = {
+        "id": "8avenue_hotel",
+        "name": "Отель 8Авеню 4* by Provence",
+        "city": "Сочи",
+        "slug": "russia/sochi",
+        "master_id": 10595288,
+    }
+    url = build_ostrovok_checkout_url(
+        hotel=hotel_dict,
+        checkin="2026-11-03",
+        checkout="2026-11-05",
+        guests=2,
+    )
+    assert url == (
+        "https://ostrovok.ru/hotel/russia/sochi/mid10595288/8avenue_hotel/"
+        "?dates=2026-11-03-2026-11-05&guests=2"
+    )
+    assert "russia/sochi/russia" not in url
+
+
+def test_build_ostrovok_checkout_url_location_slug_without_master_id():
+    """
+    Location-слаг без master_id не должен дублировать путь:
+    используется транслитерированный слаг названия отеля.
+    """
+    hotel_dict = {
+        "id": "some_hotel",
+        "name": "Отель Уют",
+        "city": "Сочи",
+        "slug": "russia/sochi",
+    }
+    url = build_ostrovok_checkout_url(hotel=hotel_dict)
+    assert url.startswith("https://ostrovok.ru/hotel/russia/sochi/otel_uyut/")
+    assert "russia/sochi/russia" not in url
+
+
 def test_build_hotel_card_has_checkout_url():
     hotel = HotelFullSchema(
         id="h_test",
