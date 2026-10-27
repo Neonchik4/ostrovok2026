@@ -25,7 +25,8 @@
     "setup:back": "uv sync --locked",
     "setup": "bun run setup:front && bun run setup:back",
     "db:backup": "ssh yc-user@158.160.228.85 \"sudo /opt/ostrovok/scripts/backup.sh\"",
-    "db:seed": "bun run --cwd backend python -m app.db.seed"
+    "db:seed": "bun run --cwd backend python -m app.db.seed",
+    "sync:ostrovok": "git push ostrovok master:main master:master --force"
   },
   "devDependencies": {
     "concurrently": "^9.1.0"
