@@ -200,25 +200,30 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         "",
         duration_text,
     )
-    m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", duration_text)
-    if m_nights:
-        nights = int(m_nights.group(1))
-    elif re.search(r"\b(?:на\s+)?пару\s+дней\b|\bвыходн\w*|\bвыхи\b", duration_text):
-        nights = 2
-    elif re.search(r"\bна\s+(?:одну\s+)?ночь\b|\b1\s*(?:ночь|день|сут)", duration_text):
-        nights = 1
-    elif re.search(r"\bна\s+недел\w*|\bнедел[юеяи]\b|7\s+дней", duration_text) or "недел" in duration_text:
-        nights = 7
+    duration_text = re.sub(r"(?:выезд\s+(?:в|до)?\s*|до\s*|в\s*)?12\s+дня\b", " ", duration_text)
+    m_explicit_duration = re.search(r"\bна\s+(\d+)\s*(?:ноч|дн|сут)", duration_text)
+    if m_explicit_duration:
+        nights = int(m_explicit_duration.group(1))
     elif date_range_nights:
         nights = date_range_nights
     else:
-        m_range = re.search(r"(?:заезд|приезд|с|от)\s*(\d{1,2})(?:\s*[а-яё]+)?\s*(?:по|до|-|—|,?\s*выезд\s*(?:в|до)?)\s*(\d{1,2})", duration_text)
-        if not m_range:
-            m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})", duration_text)
-        if m_range:
-            d1, d2 = int(m_range.group(1)), int(m_range.group(2))
-            if 0 < d1 < d2 <= 31:
-                nights = d2 - d1
+        m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", duration_text)
+        if m_nights:
+            nights = int(m_nights.group(1))
+        elif re.search(r"\b(?:на\s+)?пару\s+дней\b|\bвыходн\w*|\bвыхи\b", duration_text):
+            nights = 2
+        elif re.search(r"\bна\s+(?:одну\s+)?ночь\b|\b1\s*(?:ночь|день|сут)", duration_text):
+            nights = 1
+        elif re.search(r"\bна\s+недел\w*|\bнедел[юеяи]\b|7\s+дней", duration_text) or "недел" in duration_text:
+            nights = 7
+        else:
+            m_range = re.search(r"(?:заезд|приезд|с|от)\s*(\d{1,2})(?:\s*[а-яё]+)?\s*(?:по|до|-|—|,?\s*выезд\s*(?:в|до)?)\s*(\d{1,2})", duration_text)
+            if not m_range:
+                m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})", duration_text)
+            if m_range:
+                d1, d2 = int(m_range.group(1)), int(m_range.group(2))
+                if 0 < d1 < d2 <= 31:
+                    nights = d2 - d1
     nights = max(1, min(90, nights))
 
     # Бюджет (общий на поездку или за ночь)
