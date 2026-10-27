@@ -37,6 +37,13 @@ export interface ReviewsSummary {
   traveller_distribution?: Record<string, number>;
 }
 
+export interface HotelReviewSummaryData {
+  rating: number;
+  reviews_count: number;
+  pros: string[];
+  cons: string[];
+}
+
 export interface CriterionMatch {
   criterion: string;
   status: "code_verified" | "semantic_match" | "relaxed_compromise";
@@ -147,7 +154,9 @@ export interface HotelData {
   };
   amenities?: Record<string, boolean>;
   reviews?: ReviewItem[];
+  top_reviews?: ReviewItem[];
   reviews_summary?: ReviewsSummary;
+  review_summary?: HotelReviewSummaryData;
   criteria_breakdown?: CriterionMatch[];
   compromise_note?: string;
   checkout_url?: string;

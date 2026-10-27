@@ -5,6 +5,7 @@ import React, { useState } from "react";
 
 import { Hotel, HotelReceiptPreview } from "@/entities/hotel";
 import { DemoBookingConfirmation } from "@/features/booking-confirmation";
+import { ShareTripButton } from "@/features/share-trip";
 import { Button, Card } from "@/shared/ui";
 
 interface ReceiptBookingCardProps {
@@ -12,18 +13,32 @@ interface ReceiptBookingCardProps {
 }
 
 /**
- * Карточка прозрачного чека с кнопкой оформления демо-брони (Issue #47).
- * Клик по кнопке бронирования в квитанции открывает экран подтверждения
- * демо-заказа с переходом на реальный чекаут Ostrovok.ru.
+ * Карточка прозрачного чека с кнопкой оформления демо-брони (Issue #47)
+ * и кнопкой шаринга поездки (Issue #36).
  */
 export function ReceiptBookingCard({ hotel }: ReceiptBookingCardProps) {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
 
   return (
     <Card className="rounded-2xl border-border bg-card p-5">
-      <span className="mb-1 block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-        Прозрачный чек
-      </span>
+      <div className="mb-1 flex items-center justify-between">
+        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
+          Прозрачный чек
+        </span>
+        <ShareTripButton
+          state={{
+            city: hotel.city,
+            selected_hotel_id: hotel.id,
+            nights: hotel.receipt?.nights,
+            guests: hotel.receipt?.tickets_count,
+            stars: hotel.stars,
+            max_price_per_night_rub: hotel.min_price_per_night_rub,
+            user_message: `Отель «${hotel.name}» в ${hotel.city}`,
+          }}
+          label="Поделиться"
+          size="sm"
+        />
+      </div>
       <HotelReceiptPreview receipt={hotel.receipt} />
       <Button
         variant="outline"

@@ -59,7 +59,7 @@ export function ChatConcierge({
   };
 
   return (
-    <aside className="flex h-full w-[480px] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-2xl">
+    <aside className="flex h-full w-full lg:w-[480px] shrink-0 flex-col overflow-hidden border-r border-border bg-card shadow-2xl">
       {/* Список сообщений и мыслей */}
       <ChatMessagesList
         messages={messages}

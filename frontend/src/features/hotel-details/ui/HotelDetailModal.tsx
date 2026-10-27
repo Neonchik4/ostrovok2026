@@ -3,7 +3,6 @@
 import {
   AlertCircle,
   ExternalLink,
-  Loader2,
   MapPin,
   Star,
 } from "lucide-react";
@@ -49,9 +48,14 @@ export function HotelDetailModal({ hotel, transport, onClose }: HotelDetailModal
       })
       .then((data) => {
         if (isSubscribed && data) {
+          const fetchedReviews = data.reviews || data.top_reviews || [];
           setDetailedHotel((prev) => ({
             ...(prev || hotel),
             ...data,
+            reviews:
+              fetchedReviews.length > 0
+                ? fetchedReviews
+                : prev?.reviews || hotel.reviews,
           }));
         }
       })
@@ -178,16 +182,14 @@ export function HotelDetailModal({ hotel, transport, onClose }: HotelDetailModal
           <HotelAspectsSummary summary={currentHotel.reviews_summary} />
 
           {/* Список реальных отзывов */}
-          {currentHotel.reviews && currentHotel.reviews.length > 0 ? (
-            <HotelReviewsList reviews={currentHotel.reviews} />
-          ) : isLoading ? (
-            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
-              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
-              Загрузка проверенных отзывов...
-            </div>
-          ) : (
-            <HotelReviewsList reviews={[]} />
-          )}
+          <HotelReviewsList
+            reviews={currentHotel.reviews || currentHotel.top_reviews}
+            isLoading={
+              isLoading &&
+              !currentHotel.reviews?.length &&
+              !currentHotel.top_reviews?.length
+            }
+          />
         </div>
 
         {/* Футер с ценой и действием */}

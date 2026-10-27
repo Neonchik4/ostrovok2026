@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 
+import { MobileBottomSheet, MobileFloatingBar } from "@/features/mobile-bottom-sheet";
+import { decodeTripState, ShareTripButton } from "@/features/share-trip";
 import { useChatStream } from "@/shared/api";
 import { AppHeader } from "@/widgets/AppHeader";
 import { ChatConcierge } from "@/widgets/ChatConcierge";
@@ -21,13 +23,72 @@ export default function HomePage() {
     stopStream,
   } = useChatStream();
 
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const [restoredHotelId, setRestoredHotelId] = useState<string | null>(null);
+  const hasRestoredRef = useRef(false);
+
+  // Восстановление контекста поездки из URL (?trip=...) (Issue #36)
+  useEffect(() => {
+    if (hasRestoredRef.current) return;
+    if (typeof window === "undefined") return;
+
+    const params = new URLSearchParams(window.location.search);
+    const tripToken = params.get("trip");
+    if (!tripToken) return;
+
+    const state = decodeTripState(tripToken);
+    if (!state) return;
+
+    hasRestoredRef.current = true;
+    if (state.selected_hotel_id) {
+      setRestoredHotelId(state.selected_hotel_id);
+    }
+
+    const prompt =
+      state.user_message ||
+      (state.city
+        ? `Отели в ${state.city}${state.guests ? ` на ${state.guests} гостей` : ""}`
+        : "");
+
+    if (prompt) {
+      void sendMessage(prompt, {
+        guests: state.guests,
+        nights: state.nights,
+        pets: state.pet_friendly ? 1 : 0,
+      });
+    }
+  }, [sendMessage]);
+
+  const minPrice =
+    hotels.length > 0
+      ? Math.min(...hotels.map((h) => h.min_price_per_night_rub))
+      : undefined;
+
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
-      <AppHeader title="Агент Островка" offlineNotice={offlineMode} />
+      <AppHeader
+        title="Агент Островка"
+        offlineNotice={offlineMode}
+        action={
+          hotels.length > 0 ? (
+            <ShareTripButton
+              state={{
+                city: hotels[0]?.city,
+                selected_hotel_id: restoredHotelId || hotels[0]?.id,
+                nights: hotels[0]?.receipt?.nights,
+                guests: hotels[0]?.receipt?.tickets_count,
+                user_message: hotels[0] ? `Поездка в ${hotels[0].city}` : undefined,
+              }}
+              label="Поделиться"
+              size="sm"
+            />
+          ) : undefined
+        }
+      />
 
       {/* Основной контент: AI Сплит-чат (Чат-агент слева + Витрина отелей справа) */}
       <div className="flex min-h-0 w-full flex-1">
-        {/* Левая колонка (420px): Чат-агент */}
+        {/* Чат-агент: на мобильных экранах (<1024px) занимает 100% ширины, на десктопе 480px */}
         <ChatConcierge
           messages={messages}
           thoughts={thoughts}
@@ -38,14 +99,43 @@ export default function HomePage() {
           onStopStream={stopStream}
         />
 
-        {/* Правая колонка (flex-1): Канвас отелей с инлайн детальным просмотром */}
+        {/* Десктопная витрина отелей (на экранах >=1024px) */}
+        <div className="hidden h-full flex-1 min-w-0 lg:flex">
+          <HotelCanvas
+            hotels={hotels}
+            transportSummary={transportSummary}
+            isStreaming={isStreaming}
+            onSelectPrompt={(prompt) => void sendMessage(prompt)}
+            initialSelectedHotelId={restoredHotelId}
+          />
+        </div>
+      </div>
+
+      {/* Мобильный плавающий бар с бейджем найденных отелей (Issue #37) */}
+      <MobileFloatingBar
+        hotelsCount={hotels.length}
+        minPrice={minPrice}
+        onOpen={() => setIsMobileSheetOpen(true)}
+      />
+
+      {/* Мобильная выезжающая шторка (Bottom Sheet) с выдачей отелей (Issue #37) */}
+      <MobileBottomSheet
+        isOpen={isMobileSheetOpen}
+        onClose={() => setIsMobileSheetOpen(false)}
+        title="Найденные отели"
+        badgeText={hotels.length > 0 ? `${hotels.length}` : undefined}
+      >
         <HotelCanvas
           hotels={hotels}
           transportSummary={transportSummary}
           isStreaming={isStreaming}
-          onSelectPrompt={(prompt) => sendMessage(prompt)}
+          onSelectPrompt={(prompt) => {
+            setIsMobileSheetOpen(false);
+            void sendMessage(prompt);
+          }}
+          initialSelectedHotelId={restoredHotelId}
         />
-      </div>
+      </MobileBottomSheet>
     </div>
   );
 }

@@ -11,10 +11,12 @@ interface AppHeaderProps {
   title: string;
   /** Сообщение Zero-Config Offline Mode из SSE-события mode (Issue #46). */
   offlineNotice?: string | null;
+  /** Дополнительное действие в шапке (например, кнопка Поделиться поездки). */
+  action?: React.ReactNode;
 }
 
 /** Единая шапка экранов фиксированной высоты 56px — без сдвига контента при смене роута. */
-export function AppHeader({ title, offlineNotice }: AppHeaderProps) {
+export function AppHeader({ title, offlineNotice, action }: AppHeaderProps) {
   return (
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-md">
       <div className="flex items-center gap-3">
@@ -23,7 +25,10 @@ export function AppHeader({ title, offlineNotice }: AppHeaderProps) {
         <StudioLink />
         <OfflineModeBadge message={offlineNotice} />
       </div>
-      <ScreenSwitch />
+      <div className="flex items-center gap-2.5">
+        {action}
+        <ScreenSwitch />
+      </div>
     </header>
   );
 }

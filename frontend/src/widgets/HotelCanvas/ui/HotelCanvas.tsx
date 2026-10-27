@@ -1,10 +1,11 @@
 "use client";
 
 import { Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
 import { HotelDetailView } from "@/features/hotel-details";
+import { ShareTripButton } from "@/features/share-trip";
 import { TransportSummaryData } from "@/shared/api";
 import { Badge, Button } from "@/shared/ui";
 
@@ -15,6 +16,7 @@ interface HotelCanvasProps {
   transportSummary?: TransportSummaryData | null;
   isStreaming: boolean;
   onSelectPrompt?: (prompt: string) => void;
+  initialSelectedHotelId?: string | null;
 }
 
 export function HotelCanvas({
@@ -22,9 +24,20 @@ export function HotelCanvas({
   transportSummary,
   isStreaming: _isStreaming,
   onSelectPrompt,
+  initialSelectedHotelId,
 }: HotelCanvasProps) {
   const [mode, setMode] = useState<"list" | "detail">("list");
   const [selectedHotel, setSelectedHotel] = useState<Hotel | null>(null);
+
+  useEffect(() => {
+    if (initialSelectedHotelId && hotels.length > 0) {
+      const match = hotels.find((h) => h.id === initialSelectedHotelId);
+      if (match) {
+        setSelectedHotel(match);
+        setMode("detail");
+      }
+    }
+  }, [initialSelectedHotelId, hotels]);
 
   const handleSelectHotel = (hotel: Hotel) => {
     setSelectedHotel(hotel);
@@ -58,6 +71,21 @@ export function HotelCanvas({
             </Badge>
           )}
         </div>
+
+        {hotels.length > 0 && (
+          <div className="flex items-center gap-3">
+            <ShareTripButton
+              state={{
+                city: hotels[0]?.city,
+                selected_hotel_id: selectedHotel?.id,
+                nights: hotels[0]?.receipt?.nights,
+                guests: hotels[0]?.receipt?.tickets_count,
+                user_message: hotels[0] ? `Поездка в ${hotels[0].city}` : undefined,
+              }}
+              size="sm"
+            />
+          </div>
+        )}
       </header>
 
       {/* Основной контент */}

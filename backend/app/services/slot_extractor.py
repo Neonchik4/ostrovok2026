@@ -33,6 +33,7 @@ SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экст�
   "nights": int | null,
   "arrival_time": "HH:MM" | null,
   "semantic_query": "строка с пожеланиями к атмосфере",
+  "intent": "search" | "review_inquiry",
   "disambiguation_suggestions": ["Хочу на поезде", "На самолете", "В эти выходные", "Бюджет до 50 000 ₽"]
 }
 Каждый чипс — короткая фраза-действие для быстрого уточнения (не вопрос!).
@@ -220,6 +221,13 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
     include_flight = inc_flight if inc_flight is not None else (True if re.search(r"перелет|самолет|авиабилет", lower) else None)
     include_train = inc_train if inc_train is not None else (True if re.search(r"поезд|жд билеты|ж/д билеты", lower) else None)
 
+    # Интент запроса отзывов (Issue #29)
+    is_review_inquiry = False
+    intent = "search"
+    if re.search(r"ч[её]\s+по\s+отзывам|как\w*\s+(?:там\s+)?отзыв|что\s+.*отзыв|какие\s+минус|какие\s+плюс|репутаци|мнения\s+гостей|выжимк\w*\s+отзыв|расскажи\s+про\s+отзывы|плюсы\s+и\s+минусы", lower):
+        is_review_inquiry = True
+        intent = "review_inquiry"
+
     chips = thematic.suggested_chips if (not city and thematic) else default_chips(
         lower,
         origin=origin_city,
@@ -260,6 +268,8 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         transport_preference=pref_transport,
         semantic_query=safe_text,
         disambiguation_suggestions=chips,
+        intent=intent,
+        is_review_inquiry=is_review_inquiry,
     )
 
 async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -> ExtractedSlots:
@@ -373,6 +383,8 @@ async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -
         transport_preference=pref_transport,
         semantic_query=data.get("semantic_query") or safe_message,
         disambiguation_suggestions=sanitize_chips(raw_chips),
+        intent=data.get("intent") or ("review_inquiry" if re.search(r"ч[её]\s+по\s+отзывам|как\w*\s+(?:там\s+)?отзыв|что\s+.*отзыв|какие\s+минус|какие\s+плюс|репутаци|мнения\s+гостей|выжимк\w*\s+отзыв|расскажи\s+про\s+отзывы|плюсы\s+и\s+минусы", lower) else "search"),
+        is_review_inquiry=bool(data.get("is_review_inquiry") or (data.get("intent") == "review_inquiry") or re.search(r"ч[её]\s+по\s+отзывам|как\w*\s+(?:там\s+)?отзыв|что\s+.*отзыв|какие\s+минус|какие\s+плюс|репутаци|мнения\s+гостей|выжимк\w*\s+отзыв|расскажи\s+про\s+отзывы|плюсы\s+и\s+минусы", lower)),
     )
 
 async def extract_slots_cascade(user_message: str) -> ExtractedSlots:
