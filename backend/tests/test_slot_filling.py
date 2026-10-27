@@ -18,7 +18,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import settings
 from app.main import app
-from app.schemas.chat import ChatStreamRequest, ExtractedSlots
+from app.schemas.chat import ExtractedSlots
 from app.services.session_memory import session_memory
 from app.services.slot_extractor import ORIGIN_CLARIFICATION_CHIPS, flag_missing_origin_slots
 
