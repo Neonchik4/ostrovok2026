@@ -22,14 +22,12 @@ from app.services.slot_extractor import (
 def test_few_shot_prompt_examples_structure():
     """Проверка структуры и валидности Few-Shot примеров в системном промпте."""
     assert "Примеры (Few-Shot)" in SYSTEM_EXTRACTOR_PROMPT
-    assert "Пример 1" in SYSTEM_EXTRACTOR_PROMPT
-    assert "Пример 2" in SYSTEM_EXTRACTOR_PROMPT
-    assert "Пример 3" in SYSTEM_EXTRACTOR_PROMPT
-    assert "Пример 4" in SYSTEM_EXTRACTOR_PROMPT
+    for idx in range(1, 9):
+        assert f"Пример {idx}" in SYSTEM_EXTRACTOR_PROMPT
 
     # Извлекаем все JSON блоки ответов из примеров и валидируем через ExtractedSlots
     json_blocks = re.findall(r"Ответ:\s*(\{[^\n]+\})", SYSTEM_EXTRACTOR_PROMPT)
-    assert len(json_blocks) >= 4, "Должно быть минимум 4 валидных JSON примера"
+    assert len(json_blocks) >= 8, "Должно быть минимум 8 валидных JSON примеров"
 
     for block in json_blocks:
         parsed = json.loads(block)
@@ -39,12 +37,10 @@ def test_few_shot_prompt_examples_structure():
 
 def test_few_shot_dialogue_two_messages():
     """Тестирование цепочки из 2 сообщений (начало + уточнение фильтра)."""
-    # Сообщение 1: Начальный запрос
     t1 = mock_extract_slots("Ищем отель в Казани на 3 ночи")
     assert t1.city == "Казань"
     assert t1.nights == 3
 
-    # Сообщение 2: Добавление фильтра
     t2 = mock_extract_slots("только с завтраком")
     assert t2.breakfast_included is True
 
@@ -105,6 +101,73 @@ def test_few_shot_dialogue_five_messages():
         assert s.depart_date == expected_shifted
 
 
+def test_few_shot_dialogue_six_messages():
+    """Тестирование цепочки из 6 сообщений (+ запрос отзывов)."""
+    s = mock_extract_slots("Отель в Сочи на 4 человек с 10 по 15 июля")
+    s = merge_slots(s, mock_extract_slots("только с завтраком"))
+    s = merge_slots(s, mock_extract_slots("дешевле 8000 руб"))
+    s = merge_slots(s, mock_extract_slots("едем с собакой"))
+    s = merge_slots(s, mock_extract_slots("а если на 2 дня позже?"))
+    s = merge_slots(s, mock_extract_slots("чё по отзывам об этом отеле?"))
+
+    assert s.city == "Сочи"
+    assert s.guests_count == 4
+    assert s.breakfast_included is True
+    assert s.max_price_per_night_rub == 8000
+    assert s.pet_friendly is True
+    assert s.is_review_inquiry is True
+
+
+def test_few_shot_dialogue_seven_messages():
+    """Тестирование цепочки из 7 сообщений (+ логистика вокзала)."""
+    s = mock_extract_slots("Отель в Сочи на 4 человек с 10 по 15 июля")
+    s = merge_slots(s, mock_extract_slots("только с завтраком"))
+    s = merge_slots(s, mock_extract_slots("дешевле 8000 руб"))
+    s = merge_slots(s, mock_extract_slots("едем с собакой"))
+    s = merge_slots(s, mock_extract_slots("а если на 2 дня позже?"))
+    s = merge_slots(s, mock_extract_slots("чё по отзывам об этом отеле?"))
+    s = merge_slots(s, mock_extract_slots("сколько такси от вокзала?"))
+
+    assert s.city == "Сочи"
+    assert s.guests_count == 4
+    assert s.near_station is True
+    assert s.is_review_inquiry is False  # Сброшен флаг ревью на следующем ходе
+
+
+def test_few_shot_dialogue_eight_messages():
+    """Тестирование цепочки из 8 сообщений (+ ранний заезд)."""
+    s = mock_extract_slots("Отель в Сочи на 4 человек с 10 по 15 июля")
+    s = merge_slots(s, mock_extract_slots("только с завтраком"))
+    s = merge_slots(s, mock_extract_slots("дешевле 8000 руб"))
+    s = merge_slots(s, mock_extract_slots("едем с собакой"))
+    s = merge_slots(s, mock_extract_slots("а если на 2 дня позже?"))
+    s = merge_slots(s, mock_extract_slots("чё по отзывам об этом отеле?"))
+    s = merge_slots(s, mock_extract_slots("сколько такси от вокзала?"))
+    s = merge_slots(s, mock_extract_slots("можно заехать в 10 утра?"))
+
+    assert s.city == "Сочи"
+    assert s.arrival_time == "10:00"
+    assert s.needs_early_checkin is True
+
+
+def test_few_shot_dialogue_nine_messages():
+    """Тестирование цепочки из 9 сообщений (+ обоснование стоимости)."""
+    s = mock_extract_slots("Отель в Сочи на 4 человек с 10 по 15 июля")
+    s = merge_slots(s, mock_extract_slots("только с завтраком"))
+    s = merge_slots(s, mock_extract_slots("дешевле 8000 руб"))
+    s = merge_slots(s, mock_extract_slots("едем с собакой"))
+    s = merge_slots(s, mock_extract_slots("а если на 2 дня позже?"))
+    s = merge_slots(s, mock_extract_slots("чё по отзывам об этом отеле?"))
+    s = merge_slots(s, mock_extract_slots("сколько такси от вокзала?"))
+    s = merge_slots(s, mock_extract_slots("можно заехать в 10 утра?"))
+    s = merge_slots(s, mock_extract_slots("почему этот отель дороже?"))
+
+    assert s.city == "Сочи"
+    assert s.guests_count == 4
+    assert s.max_price_per_night_rub == 8000
+    assert s.pet_friendly is True
+
+
 def test_few_shot_dialogue_ten_messages():
     """Тестирование полной цепочки из 10 сообщений подряд без потери слотов."""
     history_prompts = [
@@ -152,6 +215,20 @@ def test_few_shot_dialogue_ten_messages():
     assert current_slots.pet_friendly is True
     assert current_slots.near_station is True
     assert current_slots.arrival_time == "10:00"
+
+
+def test_few_shot_cross_month_and_year_night_calculation():
+    """Тестирование расчета ночей через границы месяцев и через Новый год."""
+    s1 = mock_extract_slots("с 30 декабря 2026 по 5 января 2027")
+    assert s1.depart_date == "2026-12-30"
+    assert s1.nights == 6
+
+    s2 = mock_extract_slots("с 28 февраля по 5 марта")
+    assert s2.nights == 5
+
+    s3 = mock_extract_slots("25 ноября 2026 — 1 декабря 2026")
+    assert s3.depart_date == "2026-11-25"
+    assert s3.nights == 6
 
 
 def test_zero_emoji_in_few_shot_prompt():

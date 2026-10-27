@@ -12,7 +12,8 @@
       "nights": 2,
       "depart_date": "2027-02-14",
       "max_price_per_night_rub": 12000,
-      "breakfast_included": true
+      "breakfast_included": true,
+      "pet_friendly": false
     }
   },
   {
@@ -451,7 +452,8 @@
     "expected_verdict": "travel",
     "expected_intent": "search",
     "expected_slots": {
-      "max_price_per_night_rub": 7000
+      "max_price_per_night_rub": 7000,
+      "min_rating": 4.8
     }
   },
   {

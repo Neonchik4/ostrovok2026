@@ -184,24 +184,39 @@ async def test_multi_turn_five_turns_dialogue():
 
 @pytest.mark.asyncio
 async def test_destination_switch_clears_old_filters_preserves_route():
-    """Смена города сбрасывает специфические фильтры, но сохраняет город отправления и бюджет."""
+    """Смена города сбрасывает специфические фильтры, но сохраняет маршрут, даты, гостей и бюджет."""
     transport = ASGITransport(app=app)
     cid = "test_dest_switch"
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        # Шаг 1: Москва из Самары с бассейном и 5 звездами
-        await ac.post("/api/chat/stream", json={"message": "Из Самары в Москву 5 звезд с бассейном бюджет 50000", "conversation_id": cid})
+        # Шаг 1: Москва из Самары на 5 дней для 4 человек с собакой, 5 звезд с бассейном, бюджет 50000
+        await ac.post(
+            "/api/chat/stream",
+            json={
+                "message": "Из Самары в Москву с 10 по 15 июля для 4 человек с собакой 5 звезд с бассейном бюджет 50000",
+                "conversation_id": cid,
+            },
+        )
         s1 = session_memory.get_slots(cid)
         assert s1.city == "Москва"
         assert s1.origin_city == "Самара"
+        assert s1.guests_count == 4
+        assert s1.nights == 5
+        assert s1.pet_friendly is True
         assert s1.stars == 5
+        assert s1.heated_pool is True
 
         # Шаг 2: Смена города на Сочи
         await ac.post("/api/chat/stream", json={"message": "хочу в Сочи вместо Москвы", "conversation_id": cid})
         s2 = session_memory.get_slots(cid)
         assert s2.city == "Сочи"
         assert s2.origin_city == "Самара"  # Город отправления сохранен
+        assert s2.guests_count == 4  # Состав гостей сохранен
+        assert s2.nights == 5  # Длительность поездки сохранена
+        assert s2.depart_date is not None  # Дата поездки сохранена
+        assert s2.pet_friendly is True  # Питомец сохранен
         assert s2.total_trip_budget_rub == 50000  # Бюджет сохранен
         assert s2.stars is None  # Старый звездный фильтр сброшен
+        assert s2.heated_pool is None  # Старый фильтр бассейна сброшен
 
 
 @pytest.mark.asyncio
@@ -222,3 +237,87 @@ async def test_clamping_invariants_across_multi_turn():
         assert s2.guests_count == 20
         assert s2.nights == 90
         assert s2.breakfast_included is True
+
+
+@pytest.mark.asyncio
+async def test_multi_city_itinerary_dialogue_via_stream():
+    """Тестирование цепочки с составным маршрутом и переходом между городами."""
+    transport = ASGITransport(app=app)
+    cid = "test_multi_city"
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Шаг 1: Жилье в Махачкале на 2 ночи
+        r1 = await ac.post("/api/chat/stream", json={"message": "Нужно жилье в Махачкале на 2 ночи: 18 и 19 сентября 2026", "conversation_id": cid})
+        assert r1.status_code == 200
+        s1 = session_memory.get_slots(cid)
+        assert s1.city == "Дагестан (Махачкала)"
+        assert s1.nights == 2
+
+        # Шаг 2: Переход в Дербент на 3 ночи
+        r2 = await ac.post("/api/chat/stream", json={"message": "А потом в Дербенте на 3 ночи", "conversation_id": cid})
+        assert r2.status_code == 200
+        s2 = session_memory.get_slots(cid)
+        assert s2.city in ("Дагестан (Махачкала)", "Дербент", "Дагестан")
+        assert s2.nights == 3
+
+
+@pytest.mark.asyncio
+async def test_wheelchair_accessibility_and_amenity_preservation():
+    """Тестирование сохранения требований доступности (коляска, пандус, лифт) при диалоге."""
+    transport = ASGITransport(app=app)
+    cid = "test_accessibility"
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Шаг 1: Запрос на отель с доступностью для коляски
+        r1 = await ac.post(
+            "/api/chat/stream",
+            json={
+                "message": "У меня колесная инвалидная коляска — нужен отель в Питере с полной доступностью, лифт обязателен",
+                "conversation_id": cid,
+            },
+        )
+        assert r1.status_code == 200
+        s1 = session_memory.get_slots(cid)
+        assert s1.city == "Санкт-Петербург"
+        assert "коляска" in s1.semantic_query.lower() or "лифт" in s1.semantic_query.lower()
+
+        # Шаг 2: Уточнение бюджета
+        r2 = await ac.post("/api/chat/stream", json={"message": "дешевле 7000 руб за ночь", "conversation_id": cid})
+        assert r2.status_code == 200
+        s2 = session_memory.get_slots(cid)
+        assert s2.city == "Санкт-Петербург"
+        assert s2.max_price_per_night_rub == 7000
+        assert "коляска" in s2.semantic_query.lower() or "лифт" in s2.semantic_query.lower()
+
+
+@pytest.mark.asyncio
+async def test_date_shift_variations_across_dialogue():
+    """Тестирование относительных сдвигов дат: на 5 дней позже, на неделю позже, на день раньше."""
+    transport = ASGITransport(app=app)
+    cid = "test_date_shifts"
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Шаг 1: Заезд 10 июля на 5 ночей
+        await ac.post(
+            "/api/chat/stream",
+            json={"message": "Отель в Москве с 10 по 15 июля для 2 человек", "conversation_id": cid},
+        )
+        s1 = session_memory.get_slots(cid)
+        assert s1.city == "Москва"
+        assert s1.nights == 5
+        assert s1.depart_date == "2027-07-10"
+
+        # Шаг 2: на 5 дней позже -> 15 июля
+        await ac.post("/api/chat/stream", json={"message": "а если на 5 дней позже?", "conversation_id": cid})
+        s2 = session_memory.get_slots(cid)
+        assert s2.depart_date == "2027-07-15"
+        assert s2.nights == 5
+
+        # Шаг 3: на неделю позже -> 22 июля
+        await ac.post("/api/chat/stream", json={"message": "на неделю позже", "conversation_id": cid})
+        s3 = session_memory.get_slots(cid)
+        assert s3.depart_date == "2027-07-22"
+        assert s3.nights == 5
+
+        # Шаг 4: на день раньше -> 21 июля
+        await ac.post("/api/chat/stream", json={"message": "на день раньше", "conversation_id": cid})
+        s4 = session_memory.get_slots(cid)
+        assert s4.depart_date == "2027-07-21"
+        assert s4.nights == 5

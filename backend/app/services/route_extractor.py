@@ -183,16 +183,24 @@ def _match_ru_month(word: str) -> int | None:
     return None
 
 
-def extract_depart_date(text: str) -> str | None:
-    """Извлечение даты поездки: сегодня, завтра, послезавтра, точные даты и диапазоны (с 28 по 30)."""
+def extract_trip_dates(text: str) -> tuple[str | None, int | None]:
+    """
+    Извлечение даты заезда и продолжительности поездки (ночей):
+    - Одиночные даты, относительные дни ('сегодня', 'завтра');
+    - Диапазоны дат в одном месяце ('с 10 по 15 июля');
+    - Диапазоны дат через границу месяцев ('с 28 февраля по 5 марта', '25 ноября — 1 декабря');
+    - Диапазоны через Новый год ('с 30 декабря 2026 по 5 января 2027').
+    Возвращает (depart_date, nights).
+    """
     lower = re.sub(r"\b24/7\b", " ", text.lower())
     now = datetime.now(UTC)
+
     if re.search(r"\bсегодня\b|\bна\s+сегодня\b", lower):
-        return now.strftime("%Y-%m-%d")
+        return now.strftime("%Y-%m-%d"), None
     if re.search(r"\bзавтра\b|\bна\s+завтра\b", lower):
-        return (now + timedelta(days=1)).strftime("%Y-%m-%d")
+        return (now + timedelta(days=1)).strftime("%Y-%m-%d"), None
     if re.search(r"\bпослезавтра\b|\bна\s+послезавтра\b", lower):
-        return (now + timedelta(days=2)).strftime("%Y-%m-%d")
+        return (now + timedelta(days=2)).strftime("%Y-%m-%d"), None
 
     m_date = re.search(r"\b(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\b", lower)
     if m_date:
@@ -202,41 +210,48 @@ def extract_depart_date(text: str) -> str | None:
         if y < 100:
             y += 2000
         try:
-            return datetime(y, m, d, tzinfo=UTC).strftime("%Y-%m-%d")
+            return datetime(y, m, d, tzinfo=UTC).strftime("%Y-%m-%d"), None
         except ValueError:
             pass
 
-    # 0.5. Диапазон с 'и' или запятой: '18 и 19 сентября 2026', '20, 21, 22 сентября'
+    # 1. Диапазон с 'и' или запятой: '18 и 19 сентября 2026', '20, 21, 22 сентября'
     m_range_and = re.search(
-        rf"\b(\d{{1,2}})\s*(?:и|,)\s*(?:\d{{1,2}}\s*(?:и|,)\s*)*\d{{1,2}}\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?",
+        rf"\b(\d{{1,2}})\s*(?:и|,)\s*(?:\d{{1,2}}\s*(?:и|,)\s*)*(\d{{1,2}})\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?",
         lower,
     )
     if m_range_and:
         d1 = int(m_range_and.group(1))
-        m_num = _match_ru_month(m_range_and.group(2))
-        y = int(m_range_and.group(3)) if m_range_and.group(3) else (now.year if m_num and m_num >= now.month else now.year + 1)
+        d_last = int(m_range_and.group(2))
+        m_num = _match_ru_month(m_range_and.group(3))
+        y = int(m_range_and.group(4)) if m_range_and.group(4) else (now.year if m_num and m_num >= now.month else now.year + 1)
         if m_num and 1 <= d1 <= 31:
             try:
-                return datetime(y, m_num, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+                dt1 = datetime(y, m_num, d1, tzinfo=UTC)
+                nights = (d_last - d1) if d_last > d1 else None
+                return dt1.strftime("%Y-%m-%d"), nights
             except ValueError:
                 pass
 
-    # 1. Диапазон с явным месяцем: 'с 10 по 15 июля', 'от 5 до 8 ноября 2026'
+    # 2. Диапазон с явным месяцем: 'с 10 по 15 июля', 'от 5 до 8 ноября 2026'
     m_range_short = re.search(
         rf"(?:с|от|даты:?)\s+(\d{{1,2}})\s*(?:по|до|-|—)\s*(\d{{1,2}})\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?",
         lower,
     )
     if m_range_short:
         d1 = int(m_range_short.group(1))
+        d2 = int(m_range_short.group(2))
         m_num = _match_ru_month(m_range_short.group(3))
         y = int(m_range_short.group(4)) if m_range_short.group(4) else (now.year if m_num and m_num >= now.month else now.year + 1)
-        if m_num and 1 <= d1 <= 31:
+        if m_num and 1 <= d1 <= 31 and 1 <= d2 <= 31:
             try:
-                return datetime(y, m_num, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+                dt1 = datetime(y, m_num, d1, tzinfo=UTC)
+                dt2 = datetime(y, m_num, d2, tzinfo=UTC)
+                nights = (dt2 - dt1).days if dt2 > dt1 else None
+                return dt1.strftime("%Y-%m-%d"), nights
             except ValueError:
                 pass
 
-    # 2. Поиск всех вхождений 'число месяц [год]' в тексте (например: '1 июля ... 14 июля 2027', '20 января 2027')
+    # 3. Поиск всех вхождений 'число месяц [год]' в тексте (например: 'с 30 декабря 2026 по 5 января 2027')
     date_matches = list(re.finditer(rf"\b(\d{{1,2}})\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?", lower))
     if date_matches:
         year_in_any = None
@@ -249,29 +264,47 @@ def extract_depart_date(text: str) -> str | None:
             if m_yr:
                 year_in_any = int(m_yr.group(1))
 
-        first_dm = date_matches[0]
-        d1 = int(first_dm.group(1))
-        m1 = _match_ru_month(first_dm.group(2))
-        y1 = int(first_dm.group(3)) if first_dm.group(3) else (year_in_any or (now.year if m1 and m1 >= now.month else now.year + 1))
+        dm1 = date_matches[0]
+        d1 = int(dm1.group(1))
+        m1 = _match_ru_month(dm1.group(2))
+        y1 = int(dm1.group(3)) if dm1.group(3) else (year_in_any or (now.year if m1 and m1 >= now.month else now.year + 1))
         if m1 and 1 <= d1 <= 31:
             try:
-                return datetime(y1, m1, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+                dt1 = datetime(y1, m1, d1, tzinfo=UTC)
+                if len(date_matches) >= 2:
+                    dm2 = date_matches[1]
+                    d2 = int(dm2.group(1))
+                    m2 = _match_ru_month(dm2.group(2))
+                    y2 = int(dm2.group(3)) if dm2.group(3) else (y1 + 1 if m2 and m1 and m2 < m1 else y1)
+                    if m2 and 1 <= d2 <= 31:
+                        dt2 = datetime(y2, m2, d2, tzinfo=UTC)
+                        nights = (dt2 - dt1).days if dt2 > dt1 else None
+                        return dt1.strftime("%Y-%m-%d"), nights
+                return dt1.strftime("%Y-%m-%d"), None
             except ValueError:
                 pass
 
-    # 3. Диапазоны дат без указания месяца: 'с 28 по 30'
+    # 4. Диапазоны дат без указания месяца: 'с 28 по 30'
     m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-|—)\s*(\d{1,2})", lower)
     if m_range:
         d1 = int(m_range.group(1))
+        d2 = int(m_range.group(2))
         month = now.month if d1 >= now.day - 2 else (now.month + 1 if now.month < 12 else 1)
         year = now.year if (month >= now.month) else now.year + 1
         if 1 <= d1 <= 31:
             try:
-                return datetime(year, month, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+                nights = (d2 - d1) if d2 > d1 else None
+                return datetime(year, month, d1, tzinfo=UTC).strftime("%Y-%m-%d"), nights
             except ValueError:
                 pass
 
-    return None
+    return None, None
+
+
+def extract_depart_date(text: str) -> str | None:
+    """Извлечение даты поездки: сегодня, завтра, послезавтра, точные даты и диапазоны (с 28 по 30)."""
+    depart_date, _ = extract_trip_dates(text)
+    return depart_date
 
 
 def extract_transport_preference(text: str) -> tuple[bool | None, bool | None, str | None]:
@@ -280,8 +313,8 @@ def extract_transport_preference(text: str) -> tuple[bool | None, bool | None, s
     Возвращает (include_flight, include_train, preference: 'train' | 'flight' | 'both')
     """
     lower = text.lower()
-    has_train = bool(re.search(r"\bпоезд|\bпоездом|\bпоезде|\bж/?д\b|\bржд\b|\bэлектричк|\bласточк", lower))
-    has_flight = bool(re.search(r"\bсамолет|\bавиа|\bперелет|\bполет|\bлечу\b|\bлететь\b|\bполечу\b|\bрейс", lower))
+    has_train = bool(re.search(r"\bпоезд(?:а|у|ом|е|ов|ам|ами|ах)?\b|\bж/?д\b|\bржд\b|\bэлектричк\w*|\bласточк\w*", lower))
+    has_flight = bool(re.search(r"\bсамолет\w*|\bавиа\w*|\bперелет\w*|\bполет\w*|\bлечу\b|\bлететь\b|\bполечу\b|\bрейс\w*", lower))
 
     if has_train and not has_flight:
         return False, True, "train"

@@ -47,14 +47,41 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
 
     # Проверяем явную смену города
     if current.city and current.city.lower() != (prev.city or "").lower():
-        # Явная смена направления -> сбрасываем старые специфические фильтры отеля, но сохраняем маршрут и бюджет
+        # Явная смена направления -> сбрасываем старые специфические фильтры отеля, но сохраняем маршрут, даты, гостей и бюджет
         merged_new = current.model_copy()
         if not merged_new.origin_city and prev.origin_city:
             merged_new.origin_city = prev.origin_city
         if not merged_new.total_trip_budget_rub and prev.total_trip_budget_rub:
             merged_new.total_trip_budget_rub = prev.total_trip_budget_rub
+        if not merged_new.max_price_per_night_rub and prev.max_price_per_night_rub:
+            merged_new.max_price_per_night_rub = prev.max_price_per_night_rub
         if not merged_new.transport_preference and prev.transport_preference:
             merged_new.transport_preference = prev.transport_preference
+        if not merged_new.depart_date and prev.depart_date:
+            merged_new.depart_date = prev.depart_date
+
+        query_lower = (current.semantic_query or "").lower()
+        has_explicit_guests = bool(
+            re.search(
+                r"\b(?:двоих|вдвоем|двое|парой|один|соло|одного|одному|\d+\s*(?:человек\w*|гост\w*|взросл\w*|персон\w*))\b",
+                query_lower,
+            )
+        )
+        if not has_explicit_guests and prev.guests_count:
+            merged_new.guests_count = prev.guests_count
+
+        has_explicit_nights = bool(
+            re.search(
+                r"\b(?:\d+\s*(?:ноч\w*|дн\w*|сут\w*)|пару\s+дней|две\s+ночи|два\s+дня|недел\w*|выходн\w*|выхи)\b",
+                query_lower,
+            )
+        )
+        if not has_explicit_nights and prev.nights:
+            merged_new.nights = prev.nights
+
+        if merged_new.pet_friendly is None and prev.pet_friendly is not None:
+            merged_new.pet_friendly = prev.pet_friendly
+
         return merged_new
 
     # Сохраняем или обновляем город и тематические направления
@@ -78,15 +105,20 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
         merged.max_price_per_night_rub = current.max_price_per_night_rub
     if current.total_trip_budget_rub is not None:
         merged.total_trip_budget_rub = current.total_trip_budget_rub
-    # Проверяем относительный сдвиг дат: 'на 2 дня позже', 'на день позже', 'на 2 дня раньше'
+    # Проверяем относительный сдвиг дат: 'на 2 дня позже', 'на день позже', 'на 5 дней позже', 'на неделю позже', 'на день раньше'
     m_shift = re.search(
-        r"(?:на\s+)?(\d+|один|два|три)\s+(?:дн[яей]|дня|день)\s+(позже|раньше)",
+        r"(?:на\s+)?(?:(\d+|один|два|три|четыре|пять|шесть|семь)\s+)?(?:дней|дня|день|суток|недел\w*)\s+(позже|раньше)",
         (current.semantic_query or "").lower(),
     )
     if m_shift and prev.depart_date:
         w = m_shift.group(1)
-        w_map = {"один": 1, "два": 2, "три": 3}
-        days_delta = w_map.get(w, int(w) if w.isdigit() else 1)
+        w_map = {"один": 1, "два": 2, "три": 3, "четыре": 4, "пять": 5, "шесть": 6, "семь": 7}
+        if "недел" in (current.semantic_query or "").lower():
+            days_delta = 7
+        elif w:
+            days_delta = w_map.get(w, int(w) if w.isdigit() else 1)
+        else:
+            days_delta = 1
         if m_shift.group(2) == "раньше":
             days_delta = -days_delta
         try:
@@ -115,7 +147,7 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
 
     # Обновление ночей с сохранением при уточнениях
     query_no_shift = re.sub(
-        r"\b(?:на\s+)?(?:\d+|один|два|три)\s+(?:дн[яей]|дня|день)\s+(?:позже|раньше)\b",
+        r"\b(?:на\s+)?(?:\d+|один|два|три|четыре|пять|шесть|семь)?\s*(?:дней|дня|день|суток|сутк\w*|недел\w*)\s+(?:позже|раньше)\b",
         "",
         query_lower,
     )
