@@ -19,6 +19,7 @@
     "test:backend": "bun run test:back",
     "test:front": "bun run --cwd frontend test",
     "test:back": "bun run --cwd backend test",
+    "test:benchmark": "bun run --cwd backend test:benchmark",
     "test:deploy": "node --test scripts/test-deployment.mjs scripts/test-dev-guard.mjs",
     "build": "bun run --cwd frontend build",
     "setup:front": "bun install --frozen-lockfile && bun install --cwd frontend --frozen-lockfile",

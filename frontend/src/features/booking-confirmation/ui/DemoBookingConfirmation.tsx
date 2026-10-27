@@ -12,7 +12,7 @@ import {
 import React, { useMemo, useState } from "react";
 
 import { getOstrovokBookingUrl, type Hotel } from "@/entities/hotel";
-import { formatPrice } from "@/shared/lib";
+import { formatPrice, pluralizeGuests } from "@/shared/lib";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shared/ui";
 
 import { buildBookingDetailsText } from "../lib/bookingDetailsText";
@@ -38,7 +38,7 @@ export function DemoBookingConfirmation({
   hotel,
   open,
   onOpenChange,
-  guests = 2,
+  guests,
 }: DemoBookingConfirmationProps) {
   const [isCopied, setIsCopied] = useState(false);
   const [postBookingServices, setPostBookingServices] = useState<PostBookingServicesState>({
@@ -62,6 +62,7 @@ export function DemoBookingConfirmation({
     return list;
   }, [postBookingServices]);
 
+  const effectiveGuests = guests ?? hotel.receipt?.tickets_count ?? 2;
   const orderNumber = useMemo(() => generateDemoOrderNumber(hotel.id), [hotel.id]);
   const nights = hotel.receipt?.nights ?? 2;
   const dates = useMemo(() => getDemoBookingDates(nights), [nights]);
@@ -79,12 +80,12 @@ export function DemoBookingConfirmation({
         roomName,
         checkinLabel: dates.checkinLabel,
         checkoutLabel: dates.checkoutLabel,
-        guests,
+        guests: effectiveGuests,
         totalLabel: formatPrice(totalRub),
         checkoutUrl,
         postBookingRequests,
       }),
-    [orderNumber, hotel.name, hotel.city, roomName, dates, guests, totalRub, checkoutUrl, postBookingRequests]
+    [orderNumber, hotel.name, hotel.city, roomName, dates, effectiveGuests, totalRub, checkoutUrl, postBookingRequests]
   );
 
   if (!open) return null;
@@ -139,7 +140,7 @@ export function DemoBookingConfirmation({
           <div className="flex items-center justify-between border-t border-border/70 pt-2">
             <span className="flex items-center gap-2 text-muted-foreground">
               <Users className="h-4 w-4 text-primary" aria-hidden="true" />
-              {guests} гостя
+              {pluralizeGuests(effectiveGuests)}
             </span>
             <span className="flex items-center gap-2 font-bold text-foreground">
               <Wallet className="h-4 w-4 text-primary" aria-hidden="true" />

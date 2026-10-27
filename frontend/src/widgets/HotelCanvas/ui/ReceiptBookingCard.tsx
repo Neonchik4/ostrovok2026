@@ -53,6 +53,7 @@ export function ReceiptBookingCard({ hotel }: ReceiptBookingCardProps) {
         hotel={hotel}
         open={isConfirmationOpen}
         onOpenChange={setIsConfirmationOpen}
+        guests={hotel.receipt?.tickets_count}
       />
     </Card>
   );

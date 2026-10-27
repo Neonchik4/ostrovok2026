@@ -103,6 +103,7 @@ export function PostBookingActions({ state, onToggle }: PostBookingActionsProps)
                   variant={isActive ? "default" : "outline"}
                   onClick={() => onToggle(action.key)}
                   data-testid={action.testId}
+                  aria-pressed={isActive}
                   className={`h-8 shrink-0 text-xs font-semibold ${
                     isActive
                       ? "bg-primary text-primary-foreground hover:bg-primary/90"
@@ -122,6 +123,8 @@ export function PostBookingActions({ state, onToggle }: PostBookingActionsProps)
 
               {isActive && (
                 <div
+                  role="status"
+                  aria-live="polite"
                   data-testid={action.feedbackTestId}
                   className="mt-2.5 rounded-md border border-primary/30 bg-primary/15 px-2.5 py-1.5 text-xs text-primary"
                 >
