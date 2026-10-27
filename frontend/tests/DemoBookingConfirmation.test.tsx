@@ -98,6 +98,23 @@ describe("buildBookingDetailsText", () => {
     expect(text).toContain("https://ostrovok.ru/hotel/russia/sochi/grand_marine/");
     expect(text).toContain("демо");
   });
+
+  it("includes optional post-booking requests in the details text", () => {
+    const text = buildBookingDetailsText({
+      orderNumber: "OST-DEMO-2026-1234",
+      hotelName: "Гранд Отель Морской",
+      city: "Сочи",
+      roomName: "Делюкс с балконом",
+      checkinLabel: "3 ноя 2026",
+      checkoutLabel: "6 ноя 2026",
+      guests: 2,
+      totalLabel: "25 800 ₽",
+      checkoutUrl: "https://ostrovok.ru/hotel/russia/sochi/grand_marine/",
+      postBookingRequests: ["Ранний заезд / поздний выезд", "Проживание с питомцем"],
+    });
+
+    expect(text).toContain("Дополнительные услуги: Ранний заезд / поздний выезд, Проживание с питомцем");
+  });
 });
 
 describe("DemoBookingConfirmation modal", () => {
@@ -178,4 +195,60 @@ describe("DemoBookingConfirmation modal", () => {
     expect(copied).toContain("Гранд Отель Морской");
     expect(copied).toContain(baseHotel.checkout_url);
   });
+
+  it("renders post-booking actions and displays feedback on user interaction", async () => {
+    render(
+      <DemoBookingConfirmation hotel={baseHotel} open={true} onOpenChange={vi.fn()} />
+    );
+
+    expect(screen.getByText("Сервисы к поездке")).toBeInTheDocument();
+    expect(screen.getByText("Ранний заезд / поздний выезд")).toBeInTheDocument();
+    expect(screen.getByText("Проживание с питомцем")).toBeInTheDocument();
+    expect(screen.getByText("Трансфер в отель")).toBeInTheDocument();
+
+    const earlyBtn = screen.getByTestId("post-booking-early-checkin");
+    const petBtn = screen.getByTestId("post-booking-pet");
+    const transferBtn = screen.getByTestId("post-booking-transfer");
+
+    expect(earlyBtn).toHaveTextContent("Запросить");
+    expect(petBtn).toHaveTextContent("Добавить питомца");
+    expect(transferBtn).toHaveTextContent("Заказать трансфер");
+
+    // Click early check-in
+    fireEvent.click(earlyBtn);
+    expect(earlyBtn).toHaveTextContent("Запрос отправлен");
+    expect(screen.getByTestId("early-checkin-feedback")).toHaveTextContent(
+      "Запрос на ранний заезд или поздний выезд передан администратору отеля."
+    );
+    expect(screen.getByText("Выбрано услуг: 1")).toBeInTheDocument();
+
+    // Click pet
+    fireEvent.click(petBtn);
+    expect(petBtn).toHaveTextContent("Питомец добавлен");
+    expect(screen.getByTestId("pet-feedback")).toHaveTextContent(
+      "Проживание с домашним животным добавлено в заявку на бронирование."
+    );
+    expect(screen.getByText("Выбрано услуг: 2")).toBeInTheDocument();
+
+    // Click transfer
+    fireEvent.click(transferBtn);
+    expect(transferBtn).toHaveTextContent("Трансфер заказан");
+    expect(screen.getByTestId("transfer-feedback")).toHaveTextContent(
+      "Заявка на встречу принята. Служба трансфера свяжется перед заездом."
+    );
+    expect(screen.getByText("Выбрано услуг: 3")).toBeInTheDocument();
+
+    // Toggle off pet
+    fireEvent.click(petBtn);
+    expect(petBtn).toHaveTextContent("Добавить питомца");
+    expect(screen.queryByTestId("pet-feedback")).not.toBeInTheDocument();
+    expect(screen.getByText("Выбрано услуг: 2")).toBeInTheDocument();
+
+    // Copy to clipboard with active services
+    fireEvent.click(screen.getByRole("button", { name: /Скопировать детали брони/i }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledTimes(1));
+    const copied = writeText.mock.calls[0][0] as string;
+    expect(copied).toContain("Дополнительные услуги: Ранний заезд / поздний выезд, Трансфер в отель");
+  });
 });
+

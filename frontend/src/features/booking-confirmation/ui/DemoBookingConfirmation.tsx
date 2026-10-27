@@ -18,6 +18,7 @@ import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "@/shar
 import { buildBookingDetailsText } from "../lib/bookingDetailsText";
 import { getDemoBookingDates } from "../lib/demoBookingDates";
 import { generateDemoOrderNumber } from "../lib/demoOrderNumber";
+import { PostBookingActions, type PostBookingServicesState } from "./PostBookingActions";
 
 interface DemoBookingConfirmationProps {
   hotel: Hotel;
@@ -40,6 +41,26 @@ export function DemoBookingConfirmation({
   guests = 2,
 }: DemoBookingConfirmationProps) {
   const [isCopied, setIsCopied] = useState(false);
+  const [postBookingServices, setPostBookingServices] = useState<PostBookingServicesState>({
+    earlyCheckin: false,
+    pet: false,
+    transfer: false,
+  });
+
+  const handleToggleService = (key: keyof PostBookingServicesState) => {
+    setPostBookingServices((prev) => ({
+      ...prev,
+      [key]: !prev[key],
+    }));
+  };
+
+  const postBookingRequests = useMemo(() => {
+    const list: string[] = [];
+    if (postBookingServices.earlyCheckin) list.push("Ранний заезд / поздний выезд");
+    if (postBookingServices.pet) list.push("Проживание с питомцем");
+    if (postBookingServices.transfer) list.push("Трансфер в отель");
+    return list;
+  }, [postBookingServices]);
 
   const orderNumber = useMemo(() => generateDemoOrderNumber(hotel.id), [hotel.id]);
   const nights = hotel.receipt?.nights ?? 2;
@@ -61,8 +82,9 @@ export function DemoBookingConfirmation({
         guests,
         totalLabel: formatPrice(totalRub),
         checkoutUrl,
+        postBookingRequests,
       }),
-    [orderNumber, hotel.name, hotel.city, roomName, dates, guests, totalRub, checkoutUrl]
+    [orderNumber, hotel.name, hotel.city, roomName, dates, guests, totalRub, checkoutUrl, postBookingRequests]
   );
 
   if (!open) return null;
@@ -128,6 +150,11 @@ export function DemoBookingConfirmation({
             </span>
           </div>
         </div>
+
+        <PostBookingActions
+          state={postBookingServices}
+          onToggle={handleToggleService}
+        />
 
         <div className="space-y-3 rounded-xl border border-primary/40 bg-primary/10 p-4">
           <p className="text-sm leading-relaxed text-foreground">
