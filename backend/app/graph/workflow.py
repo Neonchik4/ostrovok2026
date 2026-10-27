@@ -10,6 +10,7 @@ from ..services.llm_cascade import (
     extract_slots_cascade,
     generate_concierge_response_stream,
 )
+from ..services.offline_mode import OFFLINE_MODE_MESSAGE, is_offline_mode, note_offline_once
 from ..services.route_extractor import default_chips
 from ..services.run_logger import WorkflowRunLogger
 from ..services.session_memory import merge_slots, session_memory
@@ -43,6 +44,14 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         init_thought = "Оцениваю параметры запроса и формирую критерии поиска..."
         logger.log_thought("reasoning", init_thought)
         yield _format_sse("thought", {"step": "reasoning", "text": init_thought})
+
+        # 0. Zero-Config Offline Mode: статусная плашка автономного режима (Issue #46).
+        # Отдаётся сразу после init-thought, чтобы не нарушать контракт
+        # «первое событие стрима — thought (reasoning)».
+        if is_offline_mode():
+            note_offline_once()
+            logger.log_thought("mode", OFFLINE_MODE_MESSAGE)
+            yield _format_sse("mode", {"offline": True, "message": OFFLINE_MODE_MESSAGE})
 
         # Извлечение интентов и слотов через каскад (Gemini 2.5 Flash / Flash Lite -> локальный экстрактор)
         new_slots: ExtractedSlots = await extract_slots_cascade(message)

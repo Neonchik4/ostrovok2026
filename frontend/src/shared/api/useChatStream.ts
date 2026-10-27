@@ -167,6 +167,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   const [hotels, setHotels] = useState<HotelData[]>([]);
   const [chips, setChips] = useState<string[]>([]);
   const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(null);
+  const [offlineMode, setOfflineMode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -293,6 +294,11 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                   m.id === assistantMsgId ? { ...m, content: m.content + chunk } : m
                 );
               });
+            } else if (event === "mode") {
+              // Zero-Config Offline Mode: статусная плашка автономного агента (Issue #46)
+              if (data.offline) {
+                setOfflineMode(data.message || "Демо-режим (автономный эвристический агент)");
+              }
             } else if (event === "widget") {
               setIsThinking(false);
               if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
@@ -338,6 +344,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     hotels,
     chips,
     transportSummary,
+    offlineMode,
     isStreaming,
     isThinking,
     error,
