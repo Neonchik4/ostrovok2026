@@ -25,9 +25,10 @@ interface ReceiptProps {
     transfer_note?: string;
     arrival_warning?: string;
   };
+  shareAction?: React.ReactNode;
 }
 
-export function HotelReceiptPreview({ receipt }: ReceiptProps) {
+export function HotelReceiptPreview({ receipt, shareAction }: ReceiptProps) {
   if (!receipt) return null;
 
   return (
@@ -44,7 +45,10 @@ export function HotelReceiptPreview({ receipt }: ReceiptProps) {
           <Info className="h-4 w-4 text-primary" />
           Детализация стоимости ({receipt.nights} {receipt.nights === 1 ? "ночь" : "ночи"}):
         </span>
-        <span className="text-base font-bold text-primary">{formatPrice(receipt.total_rub)}</span>
+        <div className="flex items-center gap-2">
+          {shareAction}
+          <span className="text-base font-bold text-primary">{formatPrice(receipt.total_rub)}</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-y-1.5 border-t border-border/80 pt-1.5 text-sm text-muted-foreground">
