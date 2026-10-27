@@ -63,7 +63,7 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         area_type = thematic.area_type
 
     # Питомцы
-    pet_friendly = True if re.search(r"собак|кошк|питомц|животн|псом|с догом", lower) else None
+    pet_friendly = True if re.search(r"собак|кошк|питомц|животн|псом|с догом|хорьк|хорек", lower) else None
 
     # Бассейн
     heated_pool = True if re.search(r"бассейн|теплый бассейн|подогрев", lower) else None
@@ -93,31 +93,34 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
     guests = 2
     m_guests = re.search(r"(?:для|на|нас)\s*(\d+)\s*(?:человек\w*|гост\w*|взросл\w*|персон\w*)", lower)
     if not m_guests:
+        m_guests = re.search(r"\b(\d+)\s*(?:человек\w*|гост\w*|взросл\w*|персон\w*)", lower)
+    if not m_guests:
         m_guests = re.search(r"(?:для|на|нас)\s*(\d+)(?!\s*(?:ноч|дн|сут|к\b|тыс|руб|р|₽|%|\*|звезд))", lower)
     if m_guests:
         guests = int(m_guests.group(1))
     elif "вдвоем" in lower or "двоих" in lower:
         guests = 2
-    elif "один" in lower or "одного" in lower:
+    elif "один" in lower or "одного" in lower or "одному" in lower or "одна" in lower:
         guests = 1
     guests = max(1, min(20, guests))
 
     # Ночи и даты поездки
     nights = 2
-    if "недел" in lower or "7 дней" in lower:
-        nights = 7
-    elif "выходн" in lower:
+    m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", lower)
+    if m_nights:
+        nights = int(m_nights.group(1))
+    elif "пару дней" in lower or "выходн" in lower or "выхи" in lower:
         nights = 2
+    elif re.search(r"\bна\s+недел|\bнедел[юеяи]\b|7\s+дней", lower) and "через неделю" not in lower:
+        nights = 7
+    elif "недел" in lower and "через неделю" not in lower:
+        nights = 7
     else:
-        m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", lower)
-        if m_nights:
-            nights = int(m_nights.group(1))
-        else:
-            m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})", lower)
-            if m_range:
-                d1, d2 = int(m_range.group(1)), int(m_range.group(2))
-                if 0 < d1 < d2 <= 31:
-                    nights = d2 - d1
+        m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})", lower)
+        if m_range:
+            d1, d2 = int(m_range.group(1)), int(m_range.group(2))
+            if 0 < d1 < d2 <= 31:
+                nights = d2 - d1
     nights = max(1, min(90, nights))
 
     # Бюджет (общий на поездку или за ночь)

@@ -55,7 +55,7 @@ _THEMES: list[ThematicDestination] = [
         suggested_chips=["Красная Поляна", "В Шерегеш", "На Алтай", "Отель у подъемника"],
         area_type="mountains",
         patterns=[
-            re.compile(r"\b(?:в|к|на|у)\s+гор[ыахеу]\b", re.IGNORECASE),
+            re.compile(r"\b(?:в|к|на|у|и)\s+гор[ыахеу]\b|\bгор[ыахеу]\b", re.IGNORECASE),
             re.compile(r"\bгорн\w*|\bвершин\w*", re.IGNORECASE),
             re.compile(r"\bгорнолыжн\w*|\bна\s+лыж\w*|\bкататься\s+на\s+лыж\w*|\bсноуборд\w*", re.IGNORECASE),
             re.compile(r"\bподъемник\w*|\bсклон\w*|\bтрасс\w*", re.IGNORECASE),
