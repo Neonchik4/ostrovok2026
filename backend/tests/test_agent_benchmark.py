@@ -37,8 +37,11 @@ BENCHMARK_PROMPTS = load_benchmark_prompts()
 
 
 def test_benchmark_dataset_integrity():
-    """Проверка структуры и полноты набора данных бенчмарка."""
+    """Проверка структуры, уникальности и полноты набора данных бенчмарка."""
     assert len(BENCHMARK_PROMPTS) == 20
+    unique_ids = {p["id"] for p in BENCHMARK_PROMPTS}
+    assert len(unique_ids) == 20, "Все ID промптов в бенчмарке обязаны быть уникальными"
+
     categories = {p["category"] for p in BENCHMARK_PROMPTS}
     expected_categories = {
         "complex_budget",
@@ -50,6 +53,16 @@ def test_benchmark_dataset_integrity():
         "aspect_reviews",
     }
     assert expected_categories.issubset(categories)
+
+    for item in BENCHMARK_PROMPTS:
+        assert isinstance(item.get("id"), str) and len(item["id"]) > 0
+        assert isinstance(item.get("prompt"), str) and len(item["prompt"]) > 0
+        assert item.get("expected_verdict") in {"travel", "injection", "offtopic"}
+        if item["expected_verdict"] == "travel":
+            assert item.get("expected_intent") in {"search", "review_inquiry"}
+            assert isinstance(item.get("expected_slots"), dict) and len(item["expected_slots"]) > 0
+        else:
+            assert item.get("expected_intent") is None
 
 
 @pytest.mark.parametrize("item", BENCHMARK_PROMPTS, ids=lambda x: x["id"])

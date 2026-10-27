@@ -250,5 +250,52 @@ describe("DemoBookingConfirmation modal", () => {
     const copied = writeText.mock.calls[0][0] as string;
     expect(copied).toContain("Дополнительные услуги: Ранний заезд / поздний выезд, Трансфер в отель");
   });
+
+  it("formats guests count with Russian pluralization rules", () => {
+    const { rerender } = render(
+      <DemoBookingConfirmation hotel={baseHotel} open={true} onOpenChange={vi.fn()} guests={1} />
+    );
+    expect(screen.getByText("1 гость")).toBeInTheDocument();
+
+    rerender(
+      <DemoBookingConfirmation hotel={baseHotel} open={true} onOpenChange={vi.fn()} guests={2} />
+    );
+    expect(screen.getByText("2 гостя")).toBeInTheDocument();
+
+    rerender(
+      <DemoBookingConfirmation hotel={baseHotel} open={true} onOpenChange={vi.fn()} guests={5} />
+    );
+    expect(screen.getByText("5 гостей")).toBeInTheDocument();
+  });
+
+  it("derives guests count from hotel receipt tickets_count when guests prop is omitted", () => {
+    const hotelWithTickets = {
+      ...baseHotel,
+      receipt: {
+        ...baseHotel.receipt!,
+        tickets_count: 3,
+      },
+    };
+
+    render(
+      <DemoBookingConfirmation hotel={hotelWithTickets} open={true} onOpenChange={vi.fn()} />
+    );
+    expect(screen.getByText("3 гостя")).toBeInTheDocument();
+  });
+
+  it("sets proper aria-pressed attributes on post-booking toggle buttons", () => {
+    render(
+      <DemoBookingConfirmation hotel={baseHotel} open={true} onOpenChange={vi.fn()} />
+    );
+
+    const earlyBtn = screen.getByTestId("post-booking-early-checkin");
+    expect(earlyBtn).toHaveAttribute("aria-pressed", "false");
+
+    fireEvent.click(earlyBtn);
+    expect(earlyBtn).toHaveAttribute("aria-pressed", "true");
+
+    fireEvent.click(earlyBtn);
+    expect(earlyBtn).toHaveAttribute("aria-pressed", "false");
+  });
 });
 

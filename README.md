@@ -212,7 +212,7 @@ bun run dev
 
 #### 1. Запуск бенчмарка в один клик
 ```bash
-bun run --cwd backend python -m pytest tests/test_agent_benchmark.py -v
+bun run test:benchmark
 ```
 *(Либо через uv из корня:* `uv run pytest backend/tests/test_agent_benchmark.py -v`*)*
 
