@@ -139,6 +139,21 @@ class TestOfftopicHandling:
         assert classify_request("спой анекдот") == "offtopic"
         assert classify_request("переведи текст на английский язык пожалуйста") == "offtopic"
 
+    @pytest.mark.parametrize(
+        "query",
+        [
+            "Какая сегодня погода?",
+            "Что мне сегодня поесть?",
+            "Напиши код на python сегодня",
+            "Расскажи про НЛО и уфологию",
+            "Преобразуй строку в нижний регистр",
+            "Построй мне теплицу для помидоров",
+            "В чем суть квантовой физики?",
+        ],
+    )
+    def test_offtopic_common_words_not_false_positive_travel(self, query: str):
+        assert classify_request(query) == "offtopic"
+
     def test_offtopic_returns_polite_redirect(self):
         async def _run():
             transport = ASGITransport(app=app)

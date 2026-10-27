@@ -21,6 +21,7 @@ from pathlib import Path
 import pytest
 
 from app.services.guardrails import classify_request
+from app.services.hotel_search_adapter import search_hotels_with_telemetry
 from app.services.slot_extractor import mock_extract_slots
 
 FIXTURES_PATH = Path(__file__).parent / "fixtures" / "stress_benchmark_prompts.json"
@@ -155,3 +156,49 @@ def test_stress_cohort_performance_breakdown():
             )
         avg_lat = sum(stats["latencies"]) / len(stats["latencies"])
         assert avg_lat < 50.0, f"Cohort {c_id} ({stats['name']}) latency too high: {avg_lat:.2f}ms"
+
+
+@pytest.mark.asyncio
+async def test_stress_search_adapters_behavior():
+    """
+    Проверка реакции поискового адаптера (hotel_search_adapter) на все 21 стресс-запрос:
+    - Отсутствие необработанных падений и исключений (Secure by Design);
+    - Парадоксальные запросы (5 звезд за 2000р) активируют smart relaxation;
+    - Запросы вне каталога (Ярославль) отдают 0 карточек без сбоя (graceful degradation);
+    - Эмоциональные тематические запросы (горы, тепло, природа) возвращают отели по кандидатам;
+    - Экстремальный размер группы (100 человек) клампится до 20;
+    - Попытка SQL-инъекции санитизируется и выполняет поиск по Москве.
+    """
+    for item in STRESS_PROMPTS:
+        verdict = classify_request(item["prompt"])
+        if verdict != "travel":
+            continue
+
+        slots = mock_extract_slots(item["prompt"])
+        cards, telem = await search_hotels_with_telemetry(slots)
+
+        assert isinstance(cards, list)
+        assert telem is not None
+
+        # Специфические проверки поведения адаптера
+        if item["id"] == "stress_conflict_01":
+            # 5 звезд за 2000р на неделю не существуют: релаксация ограничений обязана сработать
+            assert telem.is_relaxed is True, "Парадоксальный бюджет обязан приводить к релаксации"
+
+        elif item["id"] == "stress_calendar_02":
+            # Ярославль отсутствует в каталоге из 19 регионов: корректная пустая выдача
+            assert len(cards) == 0, "Город вне 19 направлений каталога должен возвращать 0 карточек"
+
+        elif item["id"] == "stress_boundary_02":
+            # 100 человек клампятся в 20 (Secure by Design)
+            assert slots.guests_count == 20
+
+        elif item["id"] == "stress_boundary_03":
+            # SQL-инъекция санитизирована: Москва присутствует и в основном, и в синтетическом датасете
+            assert slots.city == "Москва"
+            assert len(cards) > 0, "Москва обязана вернуть отели даже при попытке SQL-инъекции"
+
+        elif item["id"] in ("stress_mood_01", "stress_mood_02"):
+            # Тематические запросы (горы, тепло) поддерживаются и основным, и синтетическим датасетом
+            assert len(cards) > 0, f"Тематический запрос [{item['id']}] обязан найти отели"
+
