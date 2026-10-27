@@ -161,6 +161,7 @@ class ExtractedSlots(BaseModel):
     max_distance_to_station_km: float | None = None
     max_distance_to_airport_km: float | None = None
     origin_city: str | None = None
+    needs_origin_clarification: bool = False
     total_trip_budget_rub: int | None = None
     depart_date: str | None = None
     include_flight: bool | None = None

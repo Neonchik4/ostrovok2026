@@ -42,6 +42,12 @@ def get_missing_clarifying_questions(slots: ExtractedSlots) -> list[str]:
         missing.append("комфортный бюджет")
     return missing[:2]
 
+
+ORIGIN_CLARIFY_QUESTION = (
+    "Подскажите, из какого города вы выезжаете? Я сразу подберу удобные поезда или рейсы "
+    "и включу трансфер от вокзала или аэропорта в общий чек поездки. (Или выберите подсказку ниже)."
+)
+
 def build_deterministic_concierge_response(
     user_message: str,
     slots: ExtractedSlots,
@@ -151,8 +157,12 @@ def build_deterministic_concierge_response(
     if top_names:
         parts.append(f"Обратите внимание на {', '.join(top_names)} — они полностью соответствуют вашим критериям.")
 
-    # 4. Вопрос про недостающие параметры поездки (максимум 2 вопроса)
-    if not slots.city and slots.candidate_cities:
+    # 4. Вопрос про недостающие параметры поездки (максимум 2 вопроса).
+    # Проактивный slot-filling: при ясной цели, но неизвестном городе выезда —
+    # ровно один конкретный вопрос с ценностью (Issue #40, F06).
+    if slots.needs_origin_clarification:
+        parts.append(ORIGIN_CLARIFY_QUESTION)
+    elif not slots.city and slots.candidate_cities:
         if not slots.depart_date:
             parts.append("Какой курорт вам ближе и на какие даты планируете поездку? (Или выберите подсказку ниже).")
         else:
@@ -224,7 +234,14 @@ async def generate_concierge_response_stream(
             logistics_prompt_note = "\nЛогистика и расстояния (обязательно упомяни в ответе):\n" + "\n".join(lines)
 
     top_missing = get_missing_clarifying_questions(slots)
-    if top_missing:
+    if slots.needs_origin_clarification:
+        missing_note = (
+            "\nВнимание: гость еще не указал город отправления, при этом цель поездки уже понятна. "
+            "В самом конце ответа задай ровно один короткий вопрос: из какого города он выезжает. "
+            "Подчеркни ценность: с городом отправления ты сразу подберешь удобные поезда или рейсы "
+            "и включишь трансфер от вокзала или аэропорта в общий чек поездки. Другие параметры не спрашивай."
+        )
+    elif top_missing:
         orig_reminder = (
             f" Город отправления («{slots.origin_city}») гость УЖЕ УКАЗАЛ — ни в коем случае НЕ спрашивай город выезда!"
             if slots.origin_city else ""
