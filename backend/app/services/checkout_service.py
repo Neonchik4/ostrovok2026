@@ -116,22 +116,37 @@ def build_ostrovok_checkout_url(
     """
     Генерирует прямую валидную ссылку на страницу чекаута и бронирования на Ostrovok.ru.
     Строгий детерминированный алгоритм без галлюцинаций.
+
+    В датасете slug хранит путь локации ("russia/sochi"), поэтому при наличии
+    master_id и id собирается канонический URL отеля
+    /hotel/{slug}/mid{master_id}/{id}/ (как в getOstrovokBookingUrl на фронте).
+    Location-слаг без master_id не допускается в путь — иначе задвоение сегментов.
     """
     if isinstance(hotel, HotelFullSchema):
         city = hotel.city
         name = hotel.name
         slug = hotel.slug
+        master_id = getattr(hotel, "master_id", None)
+        hotel_id = getattr(hotel, "id", None)
     elif isinstance(hotel, Mapping):
         city = str(hotel.get("city", ""))
         name = str(hotel.get("name", ""))
         slug = hotel.get("slug")
+        master_id = hotel.get("master_id")
+        hotel_id = hotel.get("id")
     else:
         city = getattr(hotel, "city", "")
         name = getattr(hotel, "name", "")
         slug = getattr(hotel, "slug", None)
+        master_id = getattr(hotel, "master_id", None)
+        hotel_id = getattr(hotel, "id", None)
 
-    city_slug = get_city_slug(city)
-    hotel_slug = slug if (slug and isinstance(slug, str) and slug.strip()) else slugify(name)
+    def _clean(value: Any) -> str:
+        return str(value).strip().strip("/") if value and isinstance(value, str) else ""
+
+    clean_slug = _clean(slug)
+    clean_hotel_id = _clean(hotel_id)
+    is_location_slug = "/" in clean_slug
 
     if not checkin or not checkout:
         def_in, def_out = get_default_dates()
@@ -146,7 +161,6 @@ def build_ostrovok_checkout_url(
     else:
         safe_guests = 2
 
-    base_url = f"https://ostrovok.ru/hotel/russia/{city_slug}/{hotel_slug}/"
     params = [f"dates={checkin}-{checkout}", f"guests={safe_guests}"]
 
     if room_id:
@@ -154,4 +168,14 @@ def build_ostrovok_checkout_url(
         if clean_room:
             params.append(f"room={clean_room}")
 
+    # Канонический URL карточки отеля: slug датасета — путь локации.
+    if is_location_slug and master_id and clean_hotel_id:
+        base_url = f"https://ostrovok.ru/hotel/{clean_slug}/mid{master_id}/{clean_hotel_id}/"
+        return f"{base_url}?{'&'.join(params)}"
+
+    # Fallback: страница поиска по городу. Location-слаг без master_id
+    # в путь не подставляется — во избежание задвоения сегментов.
+    city_slug = get_city_slug(city)
+    hotel_slug = clean_slug if (clean_slug and not is_location_slug) else slugify(name)
+    base_url = f"https://ostrovok.ru/hotel/russia/{city_slug}/{hotel_slug}/"
     return f"{base_url}?{'&'.join(params)}"
