@@ -1,4 +1,5 @@
 import asyncio
+import re
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -157,10 +158,17 @@ def build_deterministic_concierge_response(
     if top_names:
         parts.append(f"Обратите внимание на {', '.join(top_names)} — они полностью соответствуют вашим критериям.")
 
+    is_user_dispute = bool(re.search(
+        r"\b(?:почему|зачем|откуда|как так|вместо|не сходится|разниц|ошибк|претензи|я (?:же )?(?:писал|говорил|просил))\b",
+        user_message.lower(),
+    ))
+
     # 4. Вопрос про недостающие параметры поездки (максимум 2 вопроса).
     # Проактивный slot-filling: при ясной цели, но неизвестном городе выезда —
     # ровно один конкретный вопрос с ценностью (Issue #40, F06).
-    if slots.needs_origin_clarification:
+    if is_user_dispute:
+        parts.append("Скорректировал выборку строго под ваш суммарный бюджет под ключ: все варианты и полный расчёт чека отображены справа.")
+    elif slots.needs_origin_clarification:
         parts.append(ORIGIN_CLARIFY_QUESTION)
     elif not slots.city and slots.candidate_cities:
         if not slots.depart_date:
@@ -234,7 +242,17 @@ async def generate_concierge_response_stream(
             logistics_prompt_note = "\nЛогистика и расстояния (обязательно упомяни в ответе):\n" + "\n".join(lines)
 
     top_missing = get_missing_clarifying_questions(slots)
-    if slots.needs_origin_clarification:
+    is_user_dispute = bool(re.search(
+        r"\b(?:почему|зачем|откуда|как так|вместо|не сходится|разниц|ошибк|претензи|я (?:же )?(?:писал|говорил|просил))\b",
+        safe_message.lower(),
+    ))
+    if is_user_dispute:
+        missing_note = (
+            "\nВнимание: гость задаёт вопрос, уточнение или претензию по бюджету или предыдущему ответу. "
+            "Дай чёткое, прямое и вежливое разъяснение по существу вопроса гостя, опираясь на расчёт чека под ключ. "
+            "Категорически запрещено повторять шаблонные вопросы о датах и транспорте в конце ответа!"
+        )
+    elif slots.needs_origin_clarification:
         missing_note = (
             "\nВнимание: гость еще не указал город отправления, при этом цель поездки уже понятна. "
             "В самом конце ответа задай ровно один короткий вопрос: из какого города он выезжает. "
@@ -247,9 +265,9 @@ async def generate_concierge_response_stream(
             if slots.origin_city else ""
         )
         missing_note = (
-            f"\nВнимание: гость еще не указал {', '.join(top_missing)}. "
-            f"В самом конце своего ответа задай ровно {len(top_missing)} коротких уточняющих вопроса об этих параметрах "
-            f"(например: на какие даты планируете поездку и какой транспорт предпочтительнее).{orig_reminder}"
+            f"\nВнимание: гость еще не указал: {', '.join(top_missing)}. "
+            f"В самом конце своего ответа задай ровно {len(top_missing)} коротких естественных уточняющих вопроса об этих параметрах, "
+            f"не повторяя шаблонных заученных формулировок.{orig_reminder}"
         )
     else:
         missing_note = "\nВнимание: параметры поездки и бюджет уже известны. В самом конце ответа НЕ задавай никаких вопросов!"

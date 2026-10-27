@@ -77,6 +77,8 @@ def merge_slots(prev: ExtractedSlots | None, current: ExtractedSlots) -> Extract
         merged.total_trip_budget_rub = current.total_trip_budget_rub
     if current.depart_date is not None:
         merged.depart_date = current.depart_date
+        if current.nights:
+            merged.nights = current.nights
     if current.min_rating is not None:
         merged.min_rating = current.min_rating
     if current.guests_count and current.guests_count != 2:

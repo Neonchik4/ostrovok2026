@@ -93,6 +93,21 @@ def matches_scalar_filters(hotel: HotelFullSchema, slots: ExtractedSlots) -> boo
     # Цена неизвестна (0 + data_quality.has_real_prices=false): бюджет подтвердить нельзя
     if slots.max_price_per_night_rub and hotel.min_price_per_night_rub <= 0:
         return False
+    # Жесткая проверка общего бюджета поездки под ключ (проживание + трансфер + курортный сбор)
+    if slots.total_trip_budget_rub and slots.total_trip_budget_rub > 0:
+        safe_n = max(1, slots.nights or 2)
+        safe_g = max(1, slots.guests_count or 2)
+        stay_cost = hotel.min_price_per_night_rub * safe_n
+        tax = 50 * safe_g * safe_n
+        transfer_est = 0
+        if hotel.coordinates:
+            _, _, overall_hub = find_nearest_hubs_for_coords(
+                hotel.city, hotel.coordinates.lat, hotel.coordinates.lon
+            )
+            if overall_hub:
+                transfer_est = overall_hub.taxi_cost_rub * 2
+        if (stay_cost + tax + transfer_est) > slots.total_trip_budget_rub:
+            return False
     if slots.pet_friendly and not hotel.amenities.pet_friendly:
         return False
     if slots.heated_pool and not hotel.amenities.heated_pool:
@@ -593,6 +608,13 @@ def search_relaxed(dataset: list[HotelFullSchema], slots: ExtractedSlots) -> lis
             diff = h.min_price_per_night_rub - slots.max_price_per_night_rub
             penalty = int(min(15, (diff / max(slots.max_price_per_night_rub, 1000)) * 10))
             match_pct -= penalty
+        elif slots.total_trip_budget_rub:
+            safe_n = max(1, slots.nights or 2)
+            stay_est = h.min_price_per_night_rub * safe_n
+            if stay_est > slots.total_trip_budget_rub:
+                diff = stay_est - slots.total_trip_budget_rub
+                penalty = int(min(20, (diff / max(slots.total_trip_budget_rub, 1000)) * 15))
+                match_pct -= penalty
 
         score_val = max(62, min(92, match_pct))
         candidates.append((score_val, h.min_price_per_night_rub, -float(h.rating), h))
