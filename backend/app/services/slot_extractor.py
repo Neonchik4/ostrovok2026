@@ -120,35 +120,61 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
     # Бюджет (общий на поездку или за ночь)
     max_price = None
     total_budget = None
-    m_total = re.search(r"(?:бюджет\s+(?:на\s+вс[её]|поездки)?|на\s+вс[её]\s+до|всего\s+до)\s*(\d+[\s\d]*)\s*(млн|миллион|к|тыс|руб|р|$)", lower)
-    if m_total:
-        num_str = m_total.group(1).replace(" ", "")
-        if num_str.isdigit():
-            val = int(num_str)
-            unit = m_total.group(2) if len(m_total.groups()) > 1 else ""
-            if "млн" in unit or "миллион" in unit:
-                val *= 1_000_000
-            elif "тыс" in unit or unit == "к" or (val < 100 and unit in ("руб", "р")):
-                val *= 1000
-            if val > 0:
-                total_budget = val
-                estimated_logistics = 6500
-                stay_budget = max(val - estimated_logistics, val // 2)
-                max_price = max(1500, stay_budget // nights)
+
+    def _parse_num_and_unit(num_text: str, unit_text: str) -> int | None:
+        clean = num_text.replace(" ", "")
+        if not clean.isdigit():
+            return None
+        v = int(clean)
+        u = unit_text.lower() if unit_text else ""
+        if "млн" in u or "миллион" in u:
+            v *= 1_000_000
+        elif "тыс" in u or u == "к" or u == "k" or (v < 100 and u in ("руб", "р", "₽")):
+            v *= 1000
+        return v if v > 0 else None
+
+    is_explicit_night = bool(re.search(r"(?:за\s*ночь|в\s*сутки|/\s*ночь|/\s*сут|за\s*сутки)", lower))
+
+    # Общий бюджет поездки (любой порядок слов: 'бюджет 67000', '67 тыс руб бюджет', '67000 на всё', '67к общий бюджет')
+    pat_total_prefix = re.search(
+        r"(?:(?:общий\s+)?бюджет(?:\s+на\s+вс[её]|\s+поездки)?|на\s+вс[её]\s+(?:до\s+)?|всего\s+(?:до\s+)?|под\s+ключ\s+(?:до\s+)?)\s*(\d+[\s\d]*)\s*(млн|миллион|к|k|тыс|руб|р|₽|$)",
+        lower,
+    )
+    pat_total_suffix = re.search(
+        r"(\d+[\s\d]*)\s*(млн|миллион|к|k|тыс|руб|р|₽)?\s*(?:(?:руб|р|₽)\s*)?(?:(?:общий\s+)?бюджет|на\s+вс[её]|под\s+ключ|всего)",
+        lower,
+    )
+
+    if not is_explicit_night:
+        parsed_total = None
+        if pat_total_prefix:
+            parsed_total = _parse_num_and_unit(
+                pat_total_prefix.group(1),
+                pat_total_prefix.group(2) if len(pat_total_prefix.groups()) > 1 else "",
+            )
+        elif pat_total_suffix:
+            parsed_total = _parse_num_and_unit(
+                pat_total_suffix.group(1),
+                pat_total_suffix.group(2) if len(pat_total_suffix.groups()) > 1 else "",
+            )
+
+        if parsed_total:
+            total_budget = parsed_total
+            estimated_logistics = 6500
+            stay_budget = max(parsed_total - estimated_logistics, parsed_total // 2)
+            max_price = max(1500, stay_budget // nights)
 
     if not max_price:
-        m_price = re.search(r"(?:до|цена|за\s*ночь)?\s*(\d+[\s\d]*)\s*(млн|миллион|к|тыс|руб|р|$)", lower)
+        m_price = re.search(
+            r"(?:до|цена|за\s*ночь)?\s*(\d+[\s\d]*)\s*(млн|миллион|к|k|тыс|руб|р|₽|$)", lower
+        )
         if m_price:
-            num_str = m_price.group(1).replace(" ", "")
-            if num_str.isdigit():
-                val = int(num_str)
-                unit = m_price.group(2) if len(m_price.groups()) > 1 else ""
-                if "млн" in unit or "миллион" in unit:
-                    val *= 1_000_000
-                elif "тыс" in unit or unit == "к" or (val < 100 and unit in ("руб", "р")):
-                    val *= 1000
-                if val > 0:
-                    max_price = val
+            val = _parse_num_and_unit(
+                m_price.group(1),
+                m_price.group(2) if len(m_price.groups()) > 1 else "",
+            )
+            if val:
+                max_price = val
 
     # Время прибытия и состыковки (Issue #27)
     arrival_time = None

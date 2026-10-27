@@ -158,8 +158,14 @@ def extract_route_cities(text: str) -> tuple[str | None, str | None]:
     return orig, dest
 
 
+_RU_MONTHS = {
+    "янв": 1, "фев": 2, "мар": 3, "апр": 4, "ма": 5, "июн": 6,
+    "июл": 7, "авг": 8, "сен": 9, "окт": 10, "ноя": 11, "дек": 12,
+}
+
+
 def extract_depart_date(text: str) -> str | None:
-    """Извлечение даты поездки из запроса: сегодня, завтра, послезавтра или точная дата."""
+    """Извлечение даты поездки: сегодня, завтра, послезавтра, точные даты и диапазоны (с 28 по 30)."""
     lower = text.lower()
     now = datetime.now(UTC)
     if re.search(r"\bсегодня\b|\bна\s+сегодня\b", lower):
@@ -180,6 +186,56 @@ def extract_depart_date(text: str) -> str | None:
             return datetime(y, m, d, tzinfo=UTC).strftime("%Y-%m-%d")
         except ValueError:
             pass
+
+    found_month = None
+    for prefix, m_num in _RU_MONTHS.items():
+        if prefix in lower:
+            found_month = m_num
+            break
+
+    # Диапазоны дат: 'с 28 по 30', 'от 5 до 8 ноября', '28-30 октября'
+    m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})(?:\s*([а-яё]+))?", lower)
+    if not m_range:
+        m_range = re.search(r"\b(\d{1,2})\s*[-—]\s*(\d{1,2})(?:\s*([а-яё]+))?\b", lower)
+    if not m_range:
+        # Одиночная дата с месяцем: '28 октября'
+        m_single = re.search(r"\b(\d{1,2})\s+([а-яё]+)\b", lower)
+        if m_single:
+            word = m_single.group(2)
+            for prefix, m_num in _RU_MONTHS.items():
+                if prefix in word:
+                    d = int(m_single.group(1))
+                    y = now.year if m_num >= now.month else now.year + 1
+                    try:
+                        return datetime(y, m_num, d, tzinfo=UTC).strftime("%Y-%m-%d")
+                    except ValueError:
+                        pass
+
+    if m_range:
+        d1 = int(m_range.group(1))
+        word_after = m_range.group(3) or ""
+        month = found_month
+        if not month:
+            for prefix, m_num in _RU_MONTHS.items():
+                if prefix in word_after:
+                    month = m_num
+                    break
+        if not month:
+            if d1 >= now.day - 2:
+                month = now.month
+                year = now.year
+            else:
+                month = now.month + 1 if now.month < 12 else 1
+                year = now.year if now.month < 12 else now.year + 1
+        else:
+            year = now.year if month >= now.month else now.year + 1
+
+        if 1 <= d1 <= 31 and 1 <= month <= 12:
+            try:
+                return datetime(year, month, d1, tzinfo=UTC).strftime("%Y-%m-%d")
+            except ValueError:
+                pass
+
     return None
 
 
