@@ -1,6 +1,6 @@
 # Директория инструкций и правил AI-агентов (.agents/)
 
-Связано с главным архитектурным манифестом проекта: [AGENTS.md](file:///c:/Users/vanya/OneDrive/Desktop/ostrovok2026/AGENTS.md).
+Связано с главным архитектурным манифестом проекта: [AGENTS.md](../AGENTS.md).
 
 Данный каталог содержит специализированные модульные руководства для AI-ассистентов, соблюдающие принцип Single Responsibility Principle (SRP) для контекста модели.
 
@@ -11,3 +11,4 @@
 * **`rules/security-and-testing.md`** — правила безопасности: запрет моков в рантайме, Secure by Design, TDD, санитизация и клампинг.
 * **`rules/git-workflow.md`** — регламент Git: `.gitignore`, Conventional Commits, проверка `git status`, верификационный пайплайн.
 * **[`skills/bun-uv-workflow/SKILL.md`](skills/bun-uv-workflow/SKILL.md)** — skill для установки, запуска и проверки проекта через Bun и uv; правила работы с lock-файлами и сохранения Node.js/Python runtime.
+* **[`skills/gh-cli/SKILL.md`](skills/gh-cli/SKILL.md)** — skill для работы с GitHub через CLI: чтение и создание issues, открытие и слияние PR, проверка CI, JSON-first вывод и правила экранирования для bash и PowerShell.
