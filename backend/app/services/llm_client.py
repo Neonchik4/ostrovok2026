@@ -4,6 +4,15 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from ..config import settings
+from .offline_mode import (
+    all_configured_keys_dead,
+    filter_live_keys,
+    is_auth_error,
+    is_offline_mode,
+    mark_offline,
+    note_offline_once,
+    register_dead_key,
+)
 
 # (ключ, модель), недавно словившие 429 (rate limit), и время, когда с ними можно снова пробовать.
 # Общий для call_gemini_content/stream_gemini_content процесс-локальный кэш.
@@ -40,8 +49,9 @@ def _build_attempts() -> list[tuple[str, str]]:
     ключах/проектах (максимально использует самую быструю/дешёвую модель на разных
     квотах), затем аналогично для каждой fallback-модели. Пары в кулдауне после 429
     уходят в конец очереди, а не выбрасываются — лучше медленно, чем никак.
+    Ключи, отклоненные внешним API по авторизации, исключаются совсем (Issue #46).
     """
-    keys = _get_api_keys()
+    keys = filter_live_keys(_get_api_keys())
     models = get_cascade_models()
     now = time.monotonic()
     available: list[tuple[str, str]] = []
@@ -86,7 +96,13 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str
     - Каскадный обход (ключ проекта AI Studio x модель): PRIMARY -> FALLBACK, на каждом ключе.
     - Таймаут на каждый запрос для предотвращения зависания.
     - Отсутствие утечки ключей API и системных учетных данных в логи (ключи маскируются).
+    - Zero-Config Offline Mode: без ключей или после авторизационного отказа всех ключей
+      возвращает None мгновенно, без единого сетевого вызова (Issue #46).
     """
+    if is_offline_mode():
+        note_offline_once()
+        return None
+
     attempts = _build_attempts()
     if not attempts:
         return None
@@ -114,18 +130,28 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str
             except Exception as e:
                 if _is_rate_limit_error(e):
                     _mark_rate_limited(key, model_name)
+                if is_auth_error(str(e)):
+                    register_dead_key(key)
                 next_target = attempts[idx + 1] if idx + 1 < len(attempts) else None
                 next_desc = f"{next_target[1]} ({_mask_key(next_target[0])})" if next_target else "fallback"
                 print(f"[LLM Client] Ошибка {model_name} ({_mask_key(key)}): {e}. Переход на {next_desc}...")
     except Exception as client_err:
         print(f"[LLM Client Init Error]: {client_err}")
 
+    if all_configured_keys_dead():
+        mark_offline("все GEMINI_API_KEYS отклонены внешним API (auth error)")
+
     return None
 
 async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> AsyncGenerator[str, None]:
     """
     Потоковый вызов Gemini API с поддержкой каскадного переключения (ключ x модель).
+    Zero-Config Offline Mode: без валидных ключей не выполняет ни одного сетевого вызова.
     """
+    if is_offline_mode():
+        note_offline_once()
+        return
+
     attempts = _build_attempts()
     if not attempts:
         return
@@ -159,8 +185,13 @@ async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> A
             except Exception as e:
                 if _is_rate_limit_error(e):
                     _mark_rate_limited(key, model_name)
+                if is_auth_error(str(e)):
+                    register_dead_key(key)
                 next_target = attempts[idx + 1] if idx + 1 < len(attempts) else None
                 next_desc = f"{next_target[1]} ({_mask_key(next_target[0])})" if next_target else "fallback"
                 print(f"[LLM Stream] Ошибка {model_name} ({_mask_key(key)}): {e}. Переход на {next_desc}...")
     except Exception as client_err:
         print(f"[LLM Stream Client Error]: {client_err}")
+
+    if all_configured_keys_dead():
+        mark_offline("все GEMINI_API_KEYS отклонены внешним API (auth error)")

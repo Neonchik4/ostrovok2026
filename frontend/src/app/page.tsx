@@ -14,6 +14,7 @@ export default function HomePage() {
     hotels,
     chips,
     transportSummary,
+    offlineMode,
     isStreaming,
     isThinking,
     sendMessage,
@@ -22,7 +23,7 @@ export default function HomePage() {
 
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
-      <AppHeader title="Агент Островка" />
+      <AppHeader title="Агент Островка" offlineNotice={offlineMode} />
 
       {/* Основной контент: AI Сплит-чат (Чат-агент слева + Витрина отелей справа) */}
       <div className="flex min-h-0 w-full flex-1">
