@@ -31,7 +31,7 @@ def _load_locations_data() -> list[dict[str, object]]:
         {"canonical": "Красная Поляна", "patterns": [r"красн\w*\s+полян\w*", r"полян\w*"]},
         {"canonical": "Сочи", "patterns": [r"сочи"]},
         {"canonical": "Санкт-Петербург", "patterns": [r"санкт[- ]петербург\w*", r"петербург\w*", r"питер\w*", r"спб\b"]},
-        {"canonical": "Москва", "patterns": [r"москв\w*", r"мск\b"]},
+        {"canonical": "Москва", "patterns": [r"москв\w*", r"мск\b", r"подмосков\w*", r"красн\w*\s+площад\w*"]},
         {"canonical": "Казань", "patterns": [r"казан\w*"]},
         {"canonical": "Калининград", "patterns": [r"калининград\w*", r"кениг\w*"]},
         {"canonical": "Екатеринбург", "patterns": [r"екатеринбург\w*", r"екб\b", r"екат\w*"]},
