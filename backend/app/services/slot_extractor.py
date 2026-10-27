@@ -63,16 +63,36 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         area_type = thematic.area_type
 
     # Питомцы
-    pet_friendly = True if re.search(r"собак|кошк|питомц|животн|псом|с догом|хорьк|хорек", lower) else None
+    if re.search(r"\bбез\s+(?:собак|кошек|питомц|животн|хорьк)", lower):
+        pet_friendly = False
+    elif re.search(r"собак|кошк|питомц|животн|псом|с догом|\bхорьк\w*|\bхорек\b", lower):
+        pet_friendly = True
+    else:
+        pet_friendly = None
 
     # Бассейн
-    heated_pool = True if re.search(r"бассейн|теплый бассейн|подогрев", lower) else None
+    if re.search(r"\bбез\s+(?:бассейн|подогрев)", lower):
+        heated_pool = False
+    elif re.search(r"бассейн|теплый бассейн|подогрев", lower):
+        heated_pool = True
+    else:
+        heated_pool = None
 
     # СПА
-    spa = True if re.search(r"спа|spa|саун|хаммам|баня", lower) else None
+    if re.search(r"\bбез\s+(?:спа|sauna|саун|бани|хаммам)", lower):
+        spa = False
+    elif re.search(r"\bспа\b|\bspa\b|саун|хаммам|баня", lower):
+        spa = True
+    else:
+        spa = None
 
     # Завтрак
-    breakfast = True if re.search(r"завтрак|шведский стол|питание", lower) else None
+    if re.search(r"\bбез\s+(?:завтрак|питани)", lower):
+        breakfast = False
+    elif re.search(r"завтрак|шведский стол|питание", lower):
+        breakfast = True
+    else:
+        breakfast = None
 
     # Бесплатная / свободная отмена
     free_cancellation = True if re.search(r"бесплатн\w*\s+отмен|свободн\w*\s+отмен|без штрафа", lower) else None
@@ -98,25 +118,26 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         m_guests = re.search(r"(?:для|на|нас)\s*(\d+)(?!\s*(?:ноч|дн|сут|к\b|тыс|руб|р|₽|%|\*|звезд))", lower)
     if m_guests:
         guests = int(m_guests.group(1))
-    elif "вдвоем" in lower or "двоих" in lower:
+    elif "вдвоем" in lower or "двоих" in lower or "парой" in lower:
         guests = 2
-    elif "один" in lower or "одного" in lower or "одному" in lower or "одна" in lower:
+    elif re.search(r"\b(?:одному|одного|в\s+одиночку|соло)\b|\b(?:для|на)\s+одн(?:ого|ому|у|а)\b|\bеду\s+один\b", lower):
+        guests = 1
+    elif re.search(r"\bодин\b(?!\s*(?:отел|номер|билет|день|раз|из|поезд|вариант))", lower):
         guests = 1
     guests = max(1, min(20, guests))
 
     # Ночи и даты поездки
     nights = 2
-    m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", lower)
+    duration_text = re.sub(r"\bчерез\s+(?:неделю|дней|день|месяц)\b", "", lower)
+    m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", duration_text)
     if m_nights:
         nights = int(m_nights.group(1))
-    elif "пару дней" in lower or "выходн" in lower or "выхи" in lower:
+    elif re.search(r"\b(?:на\s+)?пару\s+дней\b|\bвыходн\w*|\bвыхи\b", duration_text):
         nights = 2
-    elif re.search(r"\bна\s+недел|\bнедел[юеяи]\b|7\s+дней", lower) and "через неделю" not in lower:
-        nights = 7
-    elif "недел" in lower and "через неделю" not in lower:
+    elif re.search(r"\bна\s+недел\w*|\bнедел[юеяи]\b|7\s+дней", duration_text) or "недел" in duration_text:
         nights = 7
     else:
-        m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})", lower)
+        m_range = re.search(r"(?:с|от)\s*(\d{1,2})\s*(?:по|до|-)\s*(\d{1,2})", duration_text)
         if m_range:
             d1, d2 = int(m_range.group(1)), int(m_range.group(2))
             if 0 < d1 < d2 <= 31:

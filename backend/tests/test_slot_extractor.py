@@ -204,3 +204,30 @@ def test_departure_time_and_late_checkout_extraction():
     assert s3.departure_time == "18:00"
 
 
+def test_slot_extractor_negation_and_offset_robustness():
+    # 1. Отрицания удобств не должны приводить к True
+    s_neg_pets = mock_extract_slots("отель в Москве без животных")
+    assert s_neg_pets.pet_friendly is False
+
+    s_neg_pool = mock_extract_slots("отель в Сочи без бассейна")
+    assert s_neg_pool.heated_pool is False
+
+    s_neg_spa = mock_extract_slots("отель в Казани без спа")
+    assert s_neg_spa.spa is False
+
+    # 2. Недельный интервал с относительным смещением
+    s_week_offset = mock_extract_slots("через неделю на неделю в Сочи")
+    assert s_week_offset.nights == 7
+
+    s_couple_days = mock_extract_slots("через неделю на пару дней в Ярославль")
+    assert s_couple_days.nights == 2
+
+    # 3. Слово 'однако' и одиночные запросы не должны сбивать количество гостей
+    s_however = mock_extract_slots("Однако отель в Сочи")
+    assert s_however.guests_count == 2
+
+    s_one_hotel = mock_extract_slots("подскажи один отель в Казани")
+    assert s_one_hotel.guests_count == 2
+
+
+
