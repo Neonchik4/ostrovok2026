@@ -30,21 +30,29 @@ interface HotelDetailViewProps {
 export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewProps) {
   const [detailedHotel, setDetailedHotel] = useState<Hotel>(hotel);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setDetailedHotel(hotel);
     setActiveImageIdx(0);
 
     let isSubscribed = true;
+    setIsLoading(true);
     fetch(`/api/hotels/${hotel.id}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (isSubscribed && data) {
-          setDetailedHotel((prev) => ({ ...prev, ...data }));
+          const fetchedReviews = data.reviews || data.top_reviews || [];
+          setDetailedHotel((prev) => ({
+            ...prev,
+            ...data,
+            reviews: fetchedReviews.length > 0 ? fetchedReviews : prev.reviews,
+          }));
         }
       })
-      .catch(() => {
-        // Fallback to existing hotel prop
+      .catch(() => {})
+      .finally(() => {
+        if (isSubscribed) setIsLoading(false);
       });
 
     return () => {
@@ -52,10 +60,9 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
     };
   }, [hotel]);
 
-  const images =
-    detailedHotel.image_urls && detailedHotel.image_urls.length > 0
-      ? detailedHotel.image_urls
-      : ["/hotels/center/1.jpg"];
+  const images = detailedHotel.image_urls?.length
+    ? detailedHotel.image_urls
+    : ["/hotels/center/1.jpg"];
   const currentImg = images[activeImageIdx] || images[0];
   const bookingUrl = getOstrovokBookingUrl(detailedHotel);
 
@@ -202,7 +209,10 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
 
       {/* Анализ аспектов и реальные отзывы гостей */}
       <HotelAspectsSummary summary={detailedHotel.reviews_summary} />
-      <HotelReviewsList reviews={detailedHotel.reviews || []} />
+      <HotelReviewsList
+        reviews={detailedHotel.reviews || detailedHotel.top_reviews}
+        isLoading={isLoading && !detailedHotel.reviews?.length && !detailedHotel.top_reviews?.length}
+      />
 
       {/* Фиксированная нижняя панель бронирования */}
       <footer className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-card/95 p-4 px-6 shadow-2xl backdrop-blur-md">

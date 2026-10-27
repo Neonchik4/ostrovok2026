@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquare,Star } from "lucide-react";
+import { Loader2, MessageSquare, Star } from "lucide-react";
 import React, { useState } from "react";
 
 import { ReviewItem } from "@/entities/hotel";
@@ -8,15 +8,25 @@ import { Button } from "@/shared/ui";
 
 interface HotelReviewsListProps {
   reviews?: ReviewItem[];
+  isLoading?: boolean;
 }
 
-export function HotelReviewsList({ reviews }: HotelReviewsListProps) {
+export function HotelReviewsList({ reviews, isLoading = false }: HotelReviewsListProps) {
   const [displayCount, setDisplayCount] = useState(4);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center rounded-xl border border-border bg-card/40 py-6 text-sm text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
+        Загрузка проверенных отзывов...
+      </div>
+    );
+  }
 
   if (!reviews || reviews.length === 0) {
     return (
       <div className="rounded-xl border border-border bg-card/40 p-5 text-center text-sm text-muted-foreground">
-        Отзывы для этого отеля подгружаются...
+        Пока нет проверенных текстовых отзывов для этого объекта
       </div>
     );
   }
@@ -33,9 +43,9 @@ export function HotelReviewsList({ reviews }: HotelReviewsListProps) {
       </div>
 
       <div className="space-y-3">
-        {visibleReviews.map((rev) => (
+        {visibleReviews.map((rev, idx) => (
           <div
-            key={rev.id}
+            key={rev.id || `${rev.author}-${rev.date}-${idx}`}
             className="space-y-2 rounded-xl border border-border bg-background/60 p-4 text-xs shadow-sm transition-colors hover:border-primary/30"
           >
             <div className="flex items-center justify-between">

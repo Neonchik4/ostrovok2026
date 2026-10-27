@@ -154,6 +154,7 @@ export interface HotelData {
   };
   amenities?: Record<string, boolean>;
   reviews?: ReviewItem[];
+  top_reviews?: ReviewItem[];
   reviews_summary?: ReviewsSummary;
   review_summary?: HotelReviewSummaryData;
   criteria_breakdown?: CriterionMatch[];

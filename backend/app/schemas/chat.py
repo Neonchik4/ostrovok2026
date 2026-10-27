@@ -100,6 +100,17 @@ class HotelReviewSummary(BaseModel):
     cons: list[str] = Field(default_factory=list)
 
 
+class HotelReviewItem(BaseModel):
+    id: str | int = ""
+    author: str = ""
+    date: str = ""
+    rating: float | None = None
+    plus: str = ""
+    minus: str = ""
+    room: str = ""
+    traveller_type: str = "other"
+
+
 class HotelCardWidget(BaseModel):
     id: str
     name: str
@@ -132,6 +143,7 @@ class HotelCardWidget(BaseModel):
     nearest_airport: NearestHub | None = None
     coordinates: Coordinates | None = None
     review_summary: HotelReviewSummary | None = None
+    reviews: list[HotelReviewItem] = Field(default_factory=list)
 
 class WidgetEvent(BaseModel):
     type: str = "hotel_grid"

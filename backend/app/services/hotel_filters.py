@@ -1,4 +1,10 @@
-from ..schemas.chat import CriterionMatch, ExtractedSlots, HotelCardWidget, SearchTelemetry
+from ..schemas.chat import (
+    CriterionMatch,
+    ExtractedSlots,
+    HotelCardWidget,
+    HotelReviewItem,
+    SearchTelemetry,
+)
 from ..schemas.hotel_models import HotelFullSchema, RoomType
 from .checkout_service import build_ostrovok_checkout_url
 from .logistics_validator import validate_arrival_checkin_match, validate_departure_checkout_match
@@ -472,6 +478,20 @@ def build_hotel_card(
     has_late_val = getattr(hotel, "has_late_checkout", False) or hotel.policies.late_check_out_available
     has_luggage_val = hotel.has_luggage_storage or hotel.amenities.has_luggage_storage
 
+    reviews_payload = [
+        HotelReviewItem(
+            id=f"{hotel.id}_rev_{idx + 1}",
+            author=rev.author or "Гость",
+            date=rev.date or "",
+            rating=rev.rating or float(hotel.rating),
+            plus=rev.plus or "",
+            minus=rev.minus or "",
+            room=rev.room or "",
+            traveller_type=rev.traveller_type or "other",
+        )
+        for idx, rev in enumerate(hotel.top_reviews[:5])
+    ]
+
     return HotelCardWidget(
         id=hotel.id,
         name=hotel.name,
@@ -504,6 +524,7 @@ def build_hotel_card(
         nearest_airport=airport_hub,
         coordinates=hotel.coordinates,
         review_summary=build_hotel_review_summary(hotel),
+        reviews=reviews_payload,
     )
 
 
