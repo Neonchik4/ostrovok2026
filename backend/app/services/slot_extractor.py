@@ -9,6 +9,7 @@ from .route_extractor import (
     extract_depart_date,
     extract_route_cities,
     extract_transport_preference,
+    extract_trip_dates,
     sanitize_chips,
 )
 from .text_helpers import sanitize_user_input
@@ -58,6 +59,26 @@ SYSTEM_EXTRACTOR_PROMPT = """Ты — интеллектуальный экст�
 Запрос: "можно заехать в 10 утра?"
 Ответ:
 {"city": null, "origin_city": null, "stars": null, "max_price_per_night_rub": null, "total_trip_budget_rub": null, "depart_date": null, "transport_preference": null, "pet_friendly": null, "heated_pool": null, "spa": null, "breakfast_included": null, "free_cancellation": null, "guests_count": null, "nights": null, "arrival_time": "10:00", "semantic_query": "ранний заезд в 10 утра", "intent": "search", "disambiguation_suggestions": []}
+
+Пример 5 (Относительный сдвиг дат):
+Запрос: "а если на 2 дня позже?"
+Ответ:
+{"city": null, "origin_city": null, "stars": null, "max_price_per_night_rub": null, "total_trip_budget_rub": null, "depart_date": null, "transport_preference": null, "pet_friendly": null, "heated_pool": null, "spa": null, "breakfast_included": null, "free_cancellation": null, "guests_count": null, "nights": null, "arrival_time": null, "semantic_query": "а если на 2 дня позже?", "intent": "search", "disambiguation_suggestions": []}
+
+Пример 6 (Общий бюджет компании):
+Запрос: "общий бюджет на всю компанию до 60 000 руб"
+Ответ:
+{"city": null, "origin_city": null, "stars": null, "max_price_per_night_rub": null, "total_trip_budget_rub": 60000, "depart_date": null, "transport_preference": null, "pet_friendly": null, "heated_pool": null, "spa": null, "breakfast_included": null, "free_cancellation": null, "guests_count": null, "nights": null, "arrival_time": null, "semantic_query": "общий бюджет на всю компанию до 60 000 руб", "intent": "search", "disambiguation_suggestions": []}
+
+Пример 7 (Возражение по цене):
+Запрос: "почему этот отель дороже?"
+Ответ:
+{"city": null, "origin_city": null, "stars": null, "max_price_per_night_rub": null, "total_trip_budget_rub": null, "depart_date": null, "transport_preference": null, "pet_friendly": null, "heated_pool": null, "spa": null, "breakfast_included": null, "free_cancellation": null, "guests_count": null, "nights": null, "arrival_time": null, "semantic_query": "почему этот отель дороже?", "intent": "search", "disambiguation_suggestions": []}
+
+Пример 8 (Подтверждение выбора и чекаут):
+Запрос: "бронирую первый вариант"
+Ответ:
+{"city": null, "origin_city": null, "stars": null, "max_price_per_night_rub": null, "total_trip_budget_rub": null, "depart_date": null, "transport_preference": null, "pet_friendly": null, "heated_pool": null, "spa": null, "breakfast_included": null, "free_cancellation": null, "guests_count": null, "nights": null, "arrival_time": null, "semantic_query": "бронирую первый вариант", "intent": "search", "disambiguation_suggestions": []}
 """
 
 def mock_extract_slots(text: str) -> ExtractedSlots:
@@ -159,7 +180,7 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
             if not m_guests:
                 m_guests = re.search(r"\b(\d+)\s*(?:человек\w*|гост\w*|взросл\w*|персон\w*)", lower)
             if not m_guests:
-                m_guests = re.search(r"(?:для|на|нас)\s*(\d+)(?!\s*(?:ноч|дн|сут|к\b|тыс|руб|р|₽|%|\*|звезд))", lower)
+                m_guests = re.search(r"(?:для|на|нас)\s*(\d+)\b(?!\s*(?:ноч|дн|сут|к\b|тыс|руб|р|₽|%|\*|звезд))", lower)
             if m_guests:
                 guests = int(m_guests.group(1))
             elif "вдвоем" in lower or "двоих" in lower or "парой" in lower:
@@ -172,8 +193,13 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
 
     # Ночи и даты поездки
     nights = 2
+    parsed_depart_date, date_range_nights = extract_trip_dates(lower)
     duration_text = re.sub(r"\bчерез\s+(?:неделю|дней|день|месяц)\b", "", lower)
-    duration_text = re.sub(r"\b(?:на\s+)?(?:\d+|один|два|три)\s+(?:дн[яей]|дня|день)\s+(?:позже|раньше)\b", "", duration_text)
+    duration_text = re.sub(
+        r"\b(?:на\s+)?(?:\d+|один|два|три|четыре|пять|шесть|семь)?\s*(?:дней|дня|день|суток|сутк\w*|недел\w*)\s+(?:позже|раньше)\b",
+        "",
+        duration_text,
+    )
     m_nights = re.search(r"(\d+)\s*(?:ноч|дн|сут)", duration_text)
     if m_nights:
         nights = int(m_nights.group(1))
@@ -183,6 +209,8 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         nights = 1
     elif re.search(r"\bна\s+недел\w*|\bнедел[юеяи]\b|7\s+дней", duration_text) or "недел" in duration_text:
         nights = 7
+    elif date_range_nights:
+        nights = date_range_nights
     else:
         m_range = re.search(r"(?:заезд|приезд|с|от)\s*(\d{1,2})(?:\s*[а-яё]+)?\s*(?:по|до|-|—|,?\s*выезд\s*(?:в|до)?)\s*(\d{1,2})", duration_text)
         if not m_range:
@@ -298,7 +326,7 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
             raw_t = f"0{raw_t}"
         arrival_time = raw_t
     elif not arrival_time:
-        if "ранний рейс" in lower or "утром" in lower:
+        if re.search(r"(?:прибыва\w*|прилет\w*|прие[здж]\w*|заезд\w*|заселен\w*|рейс|поезд)\s+(?:утром|рано\s+утром)|\bутром\s+(?:прибыва\w*|прилет\w*|прие[здж]\w*|заезд\w*|заселен\w*|рейс|поезд)|\bранний\s+рейс\b", lower):
             arrival_time = "07:30"
         elif "ночью" in lower or "ночной заезд" in lower:
             arrival_time = "02:30"
@@ -331,14 +359,28 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
 
     # Транспортные узлы (Issue #28)
     near_station = True if re.search(r"вокзал|ж/?д|станци", lower) else None
-    near_airport = True if re.search(r"аэропорт|домодедов|шереметьев|внуков|пулков|адлер|кольцов|толмачев|жуковск", lower) else None
+    airport_pat = r"аэропорт\w*|домодедов\w*|шереметьев\w*|внуков\w*|пулков\w*|адлер\w*|кольцов\w*|толмачев\w*|жуковск\w*"
+    near_airport = None
+    if re.search(airport_pat, lower):
+        is_negated = bool(
+            re.search(
+                rf"(?:трансфер\w*\s+)?(?:из\s+)?(?:{airport_pat})\s+(?:не\s+нужен|не\s+надо|не\s+требуется)",
+                lower,
+            )
+            or re.search(
+                rf"(?:не\s+нужен|не\s+надо|не\s+требуется|без)\s+(?:трансфер\w*\s+)?(?:из\s+)?(?:{airport_pat})",
+                lower,
+            )
+        )
+        if not is_negated:
+            near_airport = True
 
     max_dist_station = None
     m_dist = re.search(r"до\s*(\d+(?:[.,]\d+)?)\s*км\s*(?:от|до)?\s*вокзал", lower)
     if m_dist:
         max_dist_station = float(m_dist.group(1).replace(",", "."))
 
-    depart_date = extract_depart_date(lower)
+    depart_date = parsed_depart_date or extract_depart_date(lower)
     inc_flight, inc_train, pref_transport = extract_transport_preference(lower)
     if pref_transport == "train":
         near_station = True
@@ -347,6 +389,23 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
 
     include_flight = inc_flight if inc_flight is not None else (True if re.search(r"перелет|самолет|авиабилет", lower) else None)
     include_train = inc_train if inc_train is not None else (True if re.search(r"поезд|жд билеты|ж/д билеты", lower) else None)
+
+    # Минимальный рейтинг отзывов
+    min_rating = None
+    m_rating = re.search(
+        r"(?:оценк\w*|рейтинг\w*)(?:\s+отзывов)?(?:\s+(?:ровно\s+или\s+выше|не\s+ниже|выше|от|минимум|не\s+меньше))\s*(\d+(?:[.,]\d+)?)",
+        lower,
+    )
+    if not m_rating:
+        m_rating = re.search(
+            r"(?:ровно\s+или\s+выше|не\s+ниже|выше|от)\s*(\d+(?:[.,]\d+)?)\s*(?:по\s+оценке|в\s+рейтинге|звезд|баллов)",
+            lower,
+        )
+    if m_rating:
+        try:
+            min_rating = float(m_rating.group(1).replace(",", "."))
+        except ValueError:
+            pass
 
     # Интент запроса отзывов (Issue #29)
     is_review_inquiry = False
@@ -372,6 +431,7 @@ def mock_extract_slots(text: str) -> ExtractedSlots:
         stars=stars,
         max_price_per_night_rub=max_price,
         total_trip_budget_rub=total_budget,
+        min_rating=min_rating,
         pet_friendly=pet_friendly,
         heated_pool=heated_pool,
         spa=spa,
