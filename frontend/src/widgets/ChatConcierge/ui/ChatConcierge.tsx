@@ -5,6 +5,7 @@ import React, { useState } from "react";
 
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
+import { OnboardingScenarioChips } from "@/features/onboarding-scenarios";
 import { QuickChips } from "@/features/quick-chips";
 import { VoiceInputButton } from "@/features/voice-input";
 import { Button, Input } from "@/shared/ui";
@@ -68,6 +69,14 @@ export function ChatConcierge({
         scrollRef={scrollRef}
         messagesEndRef={messagesEndRef}
       />
+
+      {/* Чипсы стартовых сценариев: только до отправки первого сообщения (Issue #41) */}
+      {messages.length === 0 && thoughts.length === 0 && (
+        <OnboardingScenarioChips
+          disabled={isStreaming}
+          onSelectScenario={(query) => onSendMessage(query)}
+        />
+      )}
 
       {/* Быстрые чипсы уточнений */}
       {chips.length > 0 && (
