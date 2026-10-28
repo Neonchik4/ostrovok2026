@@ -87,12 +87,8 @@ export function ClassicSerp({
     >
       {/* Фильтры + лента на всю доступную ширину, карта прижата к правому краю */}
       <div className="flex h-full min-w-0 flex-[999_1_760px] gap-6 overflow-hidden pl-5 pr-6 pt-4">
-        {/* Колонка 1: Фильтры */}
-        <ClassicSerpFilters filters={filters} onFilterChange={setFilters} />
-
-        {/* Колонка 2: Список отелей или детальный просмотр */}
-        <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-          {selectedDetailHotel ? (
+        {selectedDetailHotel ? (
+          <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
             <div className="flex-1 overflow-y-auto pr-1">
               <div className="mb-2">
                 <button
@@ -110,8 +106,14 @@ export function ClassicSerp({
                 onBack={() => setSelectedDetailHotel(null)}
               />
             </div>
-          ) : (
-            <>
+          </main>
+        ) : (
+          <>
+            {/* Колонка 1: Фильтры */}
+            <ClassicSerpFilters filters={filters} onFilterChange={setFilters} />
+
+            {/* Колонка 2: Список отелей */}
+            <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
               <p className="px-1 pt-0.5 text-sm text-foreground">
                 <b>{pluralizeRu(filteredHotels.length, ["отель", "отеля", "отелей"])}</b>
                 <span className="text-muted-foreground">
@@ -186,9 +188,9 @@ export function ClassicSerp({
                   ))
                 )}
               </div>
-            </>
-          )}
-        </main>
+            </main>
+          </>
+        )}
       </div>
 
       {/* Колонка 3: Карта (поверх неё в углу живёт Ghost-агент) */}

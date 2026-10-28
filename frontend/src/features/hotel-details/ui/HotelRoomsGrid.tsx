@@ -68,7 +68,7 @@ export function HotelRoomsGrid({ hotel }: HotelRoomsGridProps) {
         <span className="text-xs text-muted-foreground">Гарантия лучшей цены Островка</span>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {tariffs.map((tariff) => (
           <div
             key={tariff.id}
