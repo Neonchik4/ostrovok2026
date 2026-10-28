@@ -89,7 +89,7 @@ export function ClassicSerp({
       <div className="flex h-full min-w-0 flex-[999_1_760px] gap-6 overflow-hidden pl-5 pr-6 pt-4">
         {selectedDetailHotel ? (
           <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
-            <div className="flex-1 overflow-y-auto pr-1">
+            <div className="flex-1 overflow-y-auto p-2.5 pr-3 pb-8 hotel-canvas-scroll">
               <div className="mb-2">
                 <button
                   type="button"
@@ -163,7 +163,7 @@ export function ClassicSerp({
                 )}
 
               {/* Список отелей */}
-              <div className="flex flex-1 flex-col gap-3 overflow-y-auto pb-4 pr-1">
+              <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-2.5 pr-3 pb-8 hotel-canvas-scroll">
                 {filteredHotels.length === 0 ? (
                   <div className="flex h-64 flex-col items-center justify-center space-y-3 rounded-2xl bg-card p-8 text-center text-muted-foreground">
                     <HotelIcon className="h-10 w-10 text-muted-foreground" />
