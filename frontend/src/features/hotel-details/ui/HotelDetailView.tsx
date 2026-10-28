@@ -125,10 +125,10 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
                 key={idx}
                 type="button"
                 onClick={() => setActiveImageIdx(idx)}
-                className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border transition-all ${
+                className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
                   activeImageIdx === idx
-                    ? "border-primary ring-2 ring-primary/40"
-                    : "border-border opacity-70 hover:opacity-100"
+                    ? "border-primary shadow-sm ring-2 ring-primary/30"
+                    : "border-transparent opacity-70 hover:border-border hover:opacity-100"
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -141,4 +141,22 @@ describe("HotelCard", () => {
       "https://ostrovok.ru/hotel/russia/moscow/mid8744391/azimut_hotel_smolenskaya_moscow/"
     );
   });
+
+  it("applies prominent clean border and ring when isSelected is true", () => {
+    const { rerender } = render(<HotelCard hotel={mockHotel} isSelected={false} />);
+    const card = screen.getByTestId(`hotel-card-${mockHotel.id}`);
+    expect(card.className).toContain("border-border");
+
+    rerender(<HotelCard hotel={mockHotel} isSelected={true} />);
+    expect(card.className).toContain("border-primary");
+    expect(card.className).toContain("ring-primary");
+  });
+
+  it("triggers onSelect callback when clicking the card", () => {
+    let selected: Hotel | null = null;
+    render(<HotelCard hotel={mockHotel} onSelect={(h) => { selected = h; }} />);
+    const card = screen.getByTestId(`hotel-card-${mockHotel.id}`);
+    fireEvent.click(card);
+    expect(selected).toEqual(mockHotel);
+  });
 });

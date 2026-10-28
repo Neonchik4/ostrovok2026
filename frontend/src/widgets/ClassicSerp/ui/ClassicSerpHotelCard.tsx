@@ -47,8 +47,10 @@ export function ClassicSerpHotelCard({
     <article
       onClick={() => onSelect(hotel)}
       className={cn(
-        "flex shrink-0 cursor-pointer gap-4 rounded-2xl bg-card p-2 transition-all hover:border-primary/40",
-        isHighlighted ? "ring-2 ring-primary" : "hover:shadow-md"
+        "flex shrink-0 cursor-pointer gap-4 rounded-2xl bg-card p-2 transition-all",
+        isHighlighted
+          ? "border-2 border-primary shadow-md ring-4 ring-primary/20"
+          : "border-2 border-border/60 hover:border-primary/40 hover:shadow-md"
       )}
     >
       <div className="min-h-[176px] w-[176px] shrink-0 self-stretch overflow-hidden rounded-xl bg-accent">

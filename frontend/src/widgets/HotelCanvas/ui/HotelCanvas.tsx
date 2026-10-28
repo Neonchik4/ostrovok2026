@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
+import { ArrowLeft, Building2, Hotel as HotelIcon, Sparkles } from "lucide-react";
 import React, { useEffect, useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
@@ -70,6 +70,17 @@ export function HotelCanvas({
             </Badge>
           )}
         </div>
+        {mode === "detail" && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleBackToList}
+            className="h-10 gap-1.5 rounded-xl border-border bg-card px-4 text-xs font-semibold text-foreground hover:border-primary/50 hover:text-primary"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Назад ко всем отелям</span>
+          </Button>
+        )}
       </header>
 
       {/* Основной контент */}
@@ -149,6 +160,7 @@ export function HotelCanvas({
                 <HotelCard
                   key={hotel.id}
                   hotel={hotel}
+                  isSelected={selectedHotel?.id === hotel.id}
                   onSelect={handleSelectHotel}
                 />
               ))}
