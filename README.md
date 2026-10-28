@@ -3,17 +3,19 @@
 > Каркас проекта команды «О!Хакатон 2026» (Компания «Островок» / Ostrovok.tech).  
 > **Трек №2:** «О!дин запрос» (AI-агент для умного поиска и бронирования отелей).  
 > **Слоган:** «Скажи, куда хочешь отправиться. Остальное устроит агент».  
+> **Видео-демонстрация проекта (Google Drive):** [https://drive.google.com/file/d/1DOTMagq39FI-Jr5vxieHXHozy5eQBZ8v/view?usp=sharing](https://drive.google.com/file/d/1DOTMagq39FI-Jr5vxieHXHozy5eQBZ8v/view?usp=sharing)  
 > **Публичный рабочий стенд (Production Live Demo):** [https://chto-to-drugoe.ru](https://chto-to-drugoe.ru)
 
 ---
 
 ## 1. Быстрый старт для жюри
 
-### 1.1. Публичный рабочий стенд (Production Live Demo)
+### 1.1. Публичный рабочий стенд и видео-демонстрация
 
-Для оперативной оценки решения без необходимости сборки локального окружения развернут публичный продакшн-стенд:
+Для оперативной оценки решения без необходимости сборки локального окружения:
 
-* **Веб-интерфейс AI-агента:** [https://chto-to-drugoe.ru](https://chto-to-drugoe.ru)
+* **Видео-демонстрация работы решения (3 мин):** [https://drive.google.com/file/d/1DOTMagq39FI-Jr5vxieHXHozy5eQBZ8v/view?usp=sharing](https://drive.google.com/file/d/1DOTMagq39FI-Jr5vxieHXHozy5eQBZ8v/view?usp=sharing)
+* **Веб-интерфейс AI-агента (Live Demo):** [https://chto-to-drugoe.ru](https://chto-to-drugoe.ru)
 * **Каталог отелей с браузерным Ghost-агентом:** [https://chto-to-drugoe.ru/catalog](https://chto-to-drugoe.ru/catalog)
 * **Эндпоинт проверки здоровья (Healthcheck):** [https://chto-to-drugoe.ru/health](https://chto-to-drugoe.ru/health) (отдает `200 OK` моментально, 0 мс)
 * **Интерактивная спецификация API (Swagger):** [https://chto-to-drugoe.ru/docs](https://chto-to-drugoe.ru/docs)
@@ -163,7 +165,7 @@ docker compose up --build
 | **LLM Request Cost Accounting** | Учет токенов, TTFT, прайса | **100% совпадение с Google API** | Пройдено |
 | **NLU Latency (детерминированный режим)** | Локальный парсинг | **< 2 мс (avg) / < 5 мс (p95)** | Пройдено |
 | **Healthcheck Endpoint Latency** | Моментальный старт `/health` | **0 мс (немедленный 200 OK)** | Пройдено |
-| **Суммарный объем автотестов** | **605 тестов** (379 Pytest + 226 Vitest) | **100% Pass Rate (0 failed)** | Пройдено |
+| **Суммарный объем автотестов** | **608 тестов** (381 Pytest + 227 Vitest) | **100% Pass Rate (0 failed)** | Пройдено |
 
 ### 9.2. Когорты стресс-бенчмарка (Stress Benchmark Cohorts)
 
@@ -181,7 +183,7 @@ docker compose up --build
 # 1. Запуск официального бенчмарка агента (One-Shot prompts):
 bun run test:benchmark
 
-# 2. Запуск полного тест-сьюта проекта (605 тестов Vitest и Pytest):
+# 2. Запуск полного тест-сьюта проекта (608 тестов Vitest и Pytest):
 bun run test
 
 # 3. Проверка качества кода, FSD Boundaries и типов (ESLint, Boundaries, Ruff):
@@ -203,7 +205,7 @@ bun run build
 | **Frontend** | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons, Web Speech API, Web Animations API | Пользовательский интерфейс сплит-чата, полноширинный каталог, маскот Ghost, Request Cost |
 | **Backend** | FastAPI, Python 3.11, Pydantic v2, ChromaDB v2, SentenceTransformers, Uvicorn, uv | Асинхронный SSE-стриминг, векторный и скалярный поиск, расчет чека, токеномика |
 | **AI / Models** | Google Gemini (3.5 Flash-Lite, 3.5 Flash), multilingual MiniLM-L12-v2 | Каскад языковых моделей для извлечения слотов и диалога, семантические эмбеддинги |
-| **Testing** | Vitest, React Testing Library, Pytest, anyio, ruff, eslint-plugin-boundaries | 605 автоматических тестов, 100% покрытие бизнес-логики |
+| **Testing** | Vitest, React Testing Library, Pytest, anyio, ruff, eslint-plugin-boundaries | 608 автоматических тестов, 100% покрытие бизнес-логики |
 | **Security & Infra** | Docker Multi-stage, Docker Compose, age encryption, Traefik v3, GitHub Actions | Безопасная контейнеризация, шифрование секретов для жюри, CI/CD |
 
 ---
