@@ -76,7 +76,7 @@ app.include_router(live_router)
 @app.get(f"{settings.API_PREFIX}/health")
 async def health_check():
     return {
-        "status": "healthy",
+        "status": "ok",
         "service": settings.PROJECT_NAME,
         "version": settings.VERSION
     }
