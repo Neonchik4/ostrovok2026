@@ -112,6 +112,17 @@ describe("CatalogPage 3-Column Simulator (Frontend 3)", () => {
     );
   });
 
+  it("lets hotel cards span the same width as the transport banner", () => {
+    render(<CatalogPage />);
+
+    const list = screen.getAllByRole("article")[0].parentElement as HTMLElement;
+    // Отступы под подсветку карточки компенсированы отрицательными полями —
+    // внешние края карточек совпадают с краями колонки (и баннера транспорта)
+    expect(list).toHaveClass("p-2.5", "pr-3", "-ml-2.5", "-mr-3");
+    // Колонка не обрезает подсветку, выступающую в промежуток между колонками
+    expect(list.closest("main")).not.toHaveClass("overflow-hidden");
+  });
+
   it("quick filter chips and amenity checkboxes control the same filter", () => {
     render(<CatalogPage />);
 

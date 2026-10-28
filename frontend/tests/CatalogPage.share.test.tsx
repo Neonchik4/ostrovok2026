@@ -7,7 +7,7 @@ import { decodeTripState, encodeTripState, TripShareState } from "@/features/sha
 
 const mockSendMessage = vi.fn();
 const mockRestoreSharedTrip = vi.fn();
-const mockState = vi.hoisted(() => ({ hotels: [] as unknown[], isRestoringCache: false }));
+const mockState = vi.hoisted(() => ({ hotels: [] as unknown[], isCacheRestored: true }));
 
 const hotel = {
   id: "hotel-1",
@@ -38,7 +38,7 @@ vi.mock("@/shared/api", async (importOriginal) => {
       transportSummary: null,
       thoughts: [],
       isStreaming: false,
-      isRestoringCache: mockState.isRestoringCache,
+      isCacheRestored: mockState.isCacheRestored,
       sendMessage: mockSendMessage,
       restoreSharedTrip: mockRestoreSharedTrip,
     }),
@@ -49,7 +49,7 @@ describe("CatalogPage — кнопка «Поделиться»", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockState.hotels = [];
-    mockState.isRestoringCache = false;
+    mockState.isCacheRestored = true;
     Object.defineProperty(navigator, "clipboard", {
       value: { writeText: vi.fn().mockResolvedValue(undefined) },
       configurable: true,
@@ -87,12 +87,12 @@ describe("CatalogPage — кнопка «Поделиться»", () => {
   });
 
   it("waits for the session cache before sending the default query", () => {
-    mockState.isRestoringCache = true;
+    mockState.isCacheRestored = false;
     const { rerender } = render(<CatalogPage />);
     expect(mockSendMessage).not.toHaveBeenCalled();
 
     // Кэш поднял отели — запрос по умолчанию не нужен
-    mockState.isRestoringCache = false;
+    mockState.isCacheRestored = true;
     mockState.hotels = [hotel];
     rerender(<CatalogPage />);
     expect(mockSendMessage).not.toHaveBeenCalled();

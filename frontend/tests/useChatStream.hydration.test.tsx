@@ -6,43 +6,44 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { useChatStream } from "@/shared/api";
 
-const cachedHotel = { id: "cached-1", name: "Отель из кэша", city: "Сочи" };
+const cachedHotels = [{ id: "hotel-1" }, { id: "hotel-2" }, { id: "hotel-3" }];
 
-function HotelsProbe() {
-  const { hotels, isRestoringCache } = useChatStream();
+function HotelsCount() {
+  const { hotels, isCacheRestored } = useChatStream();
   return (
-    <div data-restoring={String(isRestoringCache)}>
-      {hotels.map((h) => (
-        <span key={h.id}>{h.name}</span>
-      ))}
-    </div>
+    <p>
+      <b>{hotels.length} отелей</b>
+      <span data-testid="restored">{String(isCacheRestored)}</span>
+    </p>
   );
 }
 
-describe("useChatStream — кэш отелей и SSR-гидрация", () => {
-  afterEach(() => {
-    cleanup();
-    sessionStorage.clear();
-    vi.restoreAllMocks();
-  });
+afterEach(() => {
+  cleanup();
+  sessionStorage.clear();
+  vi.restoreAllMocks();
+});
 
-  it("renders the same markup as the server and restores the cache after mount", async () => {
-    // Сервер не видит sessionStorage — рендерим «серверный» HTML до появления кэша
-    const serverHtml = renderToString(<HotelsProbe />);
-    sessionStorage.setItem("ostrovok_cached_hotels", JSON.stringify([cachedHotel]));
+describe("useChatStream sessionStorage cache and SSR hydration", () => {
+  it("renders the server markup first and restores cached hotels after hydration", async () => {
+    // Сервер не видит sessionStorage — рендерим разметку без кэша.
+    const serverHtml = renderToString(<HotelsCount />);
+    sessionStorage.setItem("ostrovok_cached_hotels", JSON.stringify(cachedHotels));
 
     const container = document.createElement("div");
     container.innerHTML = serverHtml;
     document.body.appendChild(container);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const onRecoverableError = vi.fn();
 
     await act(async () => {
-      hydrateRoot(container, <HotelsProbe />, { onRecoverableError });
+      hydrateRoot(container, <HotelsCount />, { onRecoverableError });
     });
 
     expect(onRecoverableError).not.toHaveBeenCalled();
-    expect(container).toHaveTextContent("Отель из кэша");
-    expect(container.firstElementChild).toHaveAttribute("data-restoring", "false");
+    expect(consoleError).not.toHaveBeenCalled();
+    expect(container.querySelector("b")?.textContent).toBe("3 отелей");
+    expect(container.querySelector("[data-testid=restored]")?.textContent).toBe("true");
     container.remove();
   });
 });

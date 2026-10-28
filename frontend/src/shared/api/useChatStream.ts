@@ -197,16 +197,29 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [thoughts, setThoughts] = useState<ThoughtItem[]>([]);
+  // Кэш из sessionStorage читаем только после гидрации: на сервере его нет,
+  // и ленивая инициализация useState давала рассинхрон разметки (hydration error).
   const [hotels, setHotels] = useState<HotelData[]>([]);
   const [chips, setChips] = useState<string[]>([]);
   const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(null);
-  // Кэш sessionStorage недоступен на сервере: читаем его после монтирования,
-  // иначе первый клиентский рендер расходится с SSR (hydration error)
-  const [isRestoringCache, setIsRestoringCache] = useState(true);
+  const [isCacheRestored, setIsCacheRestored] = useState(false);
   const [offlineMode, setOfflineMode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cachedHotels = getCachedHotels();
+    const cachedTransport = getCachedTransport();
+    // Не затираем данные, если их уже успели выставить до восстановления кэша.
+    if (cachedHotels.length > 0) {
+      setHotels((prev) => (prev.length > 0 ? prev : cachedHotels));
+    }
+    if (cachedTransport) {
+      setTransportSummary((prev) => prev ?? cachedTransport);
+    }
+    setIsCacheRestored(true);
+  }, []);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSubmittingRef = useRef(false);
@@ -214,15 +227,6 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   if (!conversationIdRef.current) {
     conversationIdRef.current = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   }
-
-  useEffect(() => {
-    const cachedHotels = getCachedHotels();
-    const cachedTransport = getCachedTransport();
-    // Не перетираем данные, если их уже успели выставить (например, восстановление по ссылке)
-    setHotels((prev) => (prev.length > 0 ? prev : cachedHotels));
-    setTransportSummary((prev) => prev ?? cachedTransport);
-    setIsRestoringCache(false);
-  }, []);
 
   const stopStream = useCallback(() => {
     isSubmittingRef.current = false;
@@ -479,10 +483,10 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     hotels,
     chips,
     transportSummary,
+    isCacheRestored,
     offlineMode,
     isStreaming,
     isThinking,
-    isRestoringCache,
     error,
     sendMessage,
     stopStream,

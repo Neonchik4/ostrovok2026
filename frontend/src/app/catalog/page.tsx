@@ -32,9 +32,9 @@ export default function CatalogPage() {
     messages = [],
     hotels,
     transportSummary,
+    isCacheRestored,
     thoughts,
     isStreaming,
-    isRestoringCache,
     sendMessage,
     restoreSharedTrip,
   } = useChatStream();
@@ -48,7 +48,7 @@ export default function CatalogPage() {
   const hasLoadedInitialRef = useRef(false);
   useEffect(() => {
     // Ждём кэш сессии: иначе запрос по умолчанию затрёт уже найденные отели
-    if (hasLoadedInitialRef.current || isRestoringCache) return;
+    if (hasLoadedInitialRef.current || !isCacheRestored) return;
 
     // Ссылка «Поделиться» (#trip=...) восстанавливает подборку без повторного запроса
     const tripToken = extractTripToken(window.location.search, window.location.hash);
@@ -69,7 +69,7 @@ export default function CatalogPage() {
       hasLoadedInitialRef.current = true;
       void sendMessage("Популярные отели в Сочи и на Красной Поляне");
     }
-  }, [hotels.length, isStreaming, isRestoringCache, sendMessage, restoreSharedTrip]);
+  }, [hotels.length, isCacheRestored, isStreaming, sendMessage, restoreSharedTrip]);
 
   const handleGhostAction = (action: GhostAction) => {
     switch (action.type) {
