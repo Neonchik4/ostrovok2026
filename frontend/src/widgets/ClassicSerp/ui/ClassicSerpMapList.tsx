@@ -31,7 +31,7 @@ export function ClassicSerpMapList({
             onClick={() => onSelectHotel(h)}
             className={`group flex cursor-pointer items-center justify-between rounded-xl border p-2.5 transition-all duration-200 ${
               isSelected
-                ? "border-primary bg-primary/20 shadow-md ring-2 ring-primary/40"
+                ? "border-primary bg-primary/10 shadow-sm ring-2 ring-primary/25"
                 : "border-border bg-card/90 hover:border-primary/40 hover:bg-card"
             }`}
           >

@@ -48,6 +48,7 @@ vi.mock("@/shared/api", async (importOriginal) => {
       isThinking: false,
       sendMessage: vi.fn(),
       stopStream: vi.fn(),
+      restoreSharedTrip: vi.fn(),
     }),
   };
 });

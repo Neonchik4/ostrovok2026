@@ -1,7 +1,7 @@
 import { AlertCircle, CheckCircle2, Clock, ExternalLink, MapPin, Navigation, Plane, Star, Train } from "lucide-react";
 import React from "react";
 
-import { formatPrice } from "@/shared/lib";
+import { cn, formatPrice } from "@/shared/lib";
 import { Badge, Button, Card } from "@/shared/ui";
 
 import { getOstrovokBookingUrl } from "../lib/hotelBookingUrl";
@@ -11,10 +11,11 @@ import { HotelScoreBadge } from "./HotelScoreBadge";
 
 interface HotelCardProps {
   hotel: Hotel;
+  isSelected?: boolean;
   onSelect?: (hotel: Hotel) => void;
 }
 
-export function HotelCard({ hotel, onSelect }: HotelCardProps) {
+export function HotelCard({ hotel, isSelected = false, onSelect }: HotelCardProps) {
   const fallbackCategory = ["mountains", "sea", "center", "nature"].includes(hotel.area_type)
     ? hotel.area_type
     : "center";
@@ -28,13 +29,26 @@ export function HotelCard({ hotel, onSelect }: HotelCardProps) {
   }, [hotel.id, hotel.image_urls, fallbackUrl]);
 
   return (
-    <Card className="relative flex flex-col justify-between rounded-2xl border-border bg-card transition-all duration-200 hover:border-primary/50 hover:shadow-2xl">
+    <Card
+      data-testid={`hotel-card-${hotel.id}`}
+      onClick={(e) => {
+        if ((e.target as HTMLElement).closest("button, a, [role='dialog']")) return;
+        onSelect?.(hotel);
+      }}
+      className={cn(
+        "relative flex flex-col justify-between rounded-2xl bg-card transition-all duration-200",
+        isSelected
+          ? "border-2 border-primary shadow-xl ring-4 ring-primary/20"
+          : "border-2 border-border/70 hover:border-primary/50 hover:shadow-2xl",
+        onSelect ? "cursor-pointer" : ""
+      )}
+    >
       <div>
         {/* Фотография отеля и бейджи */}
         <div className="relative h-56 w-full">
           <div
             onClick={() => onSelect?.(hotel)}
-            className={`h-full w-full overflow-hidden rounded-t-2xl bg-muted ${onSelect ? "cursor-pointer" : ""}`}
+            className="h-full w-full overflow-hidden rounded-t-[14px] bg-muted"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img

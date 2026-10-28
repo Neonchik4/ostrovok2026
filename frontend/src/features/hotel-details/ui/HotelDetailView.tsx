@@ -125,10 +125,10 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
                 key={idx}
                 type="button"
                 onClick={() => setActiveImageIdx(idx)}
-                className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border transition-all ${
+                className={`relative h-16 w-24 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
                   activeImageIdx === idx
-                    ? "border-primary ring-2 ring-primary/40"
-                    : "border-border opacity-70 hover:opacity-100"
+                    ? "border-primary shadow-sm ring-2 ring-primary/30"
+                    : "border-transparent opacity-70 hover:border-border hover:opacity-100"
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -187,7 +187,7 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
       />
 
       {/* Фиксированная нижняя панель бронирования */}
-      <footer className="sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-primary/30 bg-card/95 p-4 px-6 shadow-2xl backdrop-blur-md">
+      <footer className="sticky bottom-4 z-20 flex w-full max-w-full flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-card/95 p-3.5 px-5 shadow-2xl backdrop-blur-md">
         <div>
           <span className="block text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
             Лучшая цена за ночь
@@ -202,7 +202,7 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
           <Button
             variant="outline"
             onClick={onBack}
-            className="h-11 rounded-xl px-5 text-xs font-semibold"
+            className="h-11 rounded-xl px-4 text-xs font-semibold sm:px-5"
           >
             Назад к списку
           </Button>
@@ -210,7 +210,7 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
             href={bookingUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-6 text-sm font-bold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-primary-foreground shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] sm:px-6"
           >
             <span>Забронировать на Ostrovok.ru</span>
             <ExternalLink className="h-4 w-4" />

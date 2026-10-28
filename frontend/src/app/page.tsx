@@ -3,8 +3,13 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { MobileBottomSheet, MobileFloatingBar } from "@/features/mobile-bottom-sheet";
-import { decodeTripState, ShareTripButton } from "@/features/share-trip";
-import { useChatStream } from "@/shared/api";
+import {
+  decodeTripState,
+  extractTripToken,
+  ShareTripButton,
+  toCompactHotelSnapshot,
+} from "@/features/share-trip";
+import { HotelData, useChatStream } from "@/shared/api";
 import { AppHeader } from "@/widgets/AppHeader";
 import { ChatAgent } from "@/widgets/ChatAgent";
 import { HotelCanvas } from "@/widgets/HotelCanvas";
@@ -21,19 +26,19 @@ export default function HomePage() {
     isThinking,
     sendMessage,
     stopStream,
+    restoreSharedTrip,
   } = useChatStream();
 
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [restoredHotelId, setRestoredHotelId] = useState<string | null>(null);
   const hasRestoredRef = useRef(false);
 
-  // Восстановление контекста поездки из URL (?trip=...) (Issue #36)
+  // Восстановление контекста поездки из URL (#trip=... или ?trip=...) без повторного расчета
   useEffect(() => {
     if (hasRestoredRef.current) return;
     if (typeof window === "undefined") return;
 
-    const params = new URLSearchParams(window.location.search);
-    const tripToken = params.get("trip");
+    const tripToken = extractTripToken(window.location.search, window.location.hash);
     if (!tripToken) return;
 
     const state = decodeTripState(tripToken);
@@ -44,6 +49,69 @@ export default function HomePage() {
       setRestoredHotelId(state.selected_hotel_id);
     }
 
+    // Если в ссылке уже есть сохраненные отели — восстанавливаем их сразу без повторного расчета
+    if (state.hotels && state.hotels.length > 0) {
+      const topHotel = state.hotels[0];
+      const assistantText =
+        state.assistant_message ||
+        `Вот готовая поездка, которой с вами поделились: ${topHotel?.name || state.city}${state.nights ? ` на ${state.nights} ноч.` : ""}. Все расчеты и условия сохранены.`;
+
+      restoreSharedTrip({
+        hotels: state.hotels as HotelData[],
+        userMessage: state.user_message || (state.city ? `Поездка в ${state.city}` : undefined),
+        assistantMessage: assistantText,
+        transportSummary: state.transport_summary,
+      });
+      return;
+    }
+
+    // Если передан список ID отелей — загружаем их параллельно без вызова LLM
+    if (state.hotel_ids && state.hotel_ids.length > 0) {
+      void Promise.all(
+        state.hotel_ids.map((id) =>
+          fetch(`/api/hotels/${encodeURIComponent(id)}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .catch(() => null)
+        )
+      )
+        .then((loadedHotels) => {
+          const validHotels = loadedHotels.filter(Boolean) as HotelData[];
+          if (validHotels.length > 0) {
+            const topHotel = validHotels[0];
+            restoreSharedTrip({
+              hotels: validHotels,
+              userMessage: state.user_message || `Отели в ${state.city || topHotel.city}`,
+              assistantMessage:
+                state.assistant_message ||
+                `Вот готовая поездка, сохраненная для вас: ${topHotel.name} (${topHotel.city}).`,
+              transportSummary: state.transport_summary,
+            });
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // Если передан только ID отеля — загружаем его статически без вызова LLM
+    if (state.selected_hotel_id) {
+      void fetch(`/api/hotels/${encodeURIComponent(state.selected_hotel_id)}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((hotel) => {
+          if (hotel) {
+            restoreSharedTrip({
+              hotels: [hotel as HotelData],
+              userMessage: state.user_message || `Отель «${hotel.name}» в ${hotel.city}`,
+              assistantMessage:
+                state.assistant_message ||
+                `Вот готовая сохраненная поездка в отель «${hotel.name}» (${hotel.city}).`,
+            });
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
+    // Фоллбэк только для пустых ссылок без отелей
     const prompt =
       state.user_message ||
       (state.city
@@ -57,7 +125,7 @@ export default function HomePage() {
         pets: state.pet_friendly ? 1 : 0,
       });
     }
-  }, [sendMessage]);
+  }, [sendMessage, restoreSharedTrip]);
 
   const minPrice =
     hotels.length > 0
@@ -75,9 +143,20 @@ export default function HomePage() {
               state={{
                 city: hotels[0]?.city,
                 selected_hotel_id: restoredHotelId || hotels[0]?.id,
+                hotel_ids: hotels.map((h) => h.id),
                 nights: hotels[0]?.receipt?.nights,
                 guests: hotels[0]?.receipt?.tickets_count,
-                user_message: hotels[0] ? `Поездка в ${hotels[0].city}` : undefined,
+                user_message:
+                  messages.find((m) => m.role === "user")?.content ||
+                  (hotels[0] ? `Поездка в ${hotels[0].city}` : undefined),
+                assistant_message:
+                  messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content
+                    ? messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content.slice(0, 400)
+                    : (hotels[0]
+                      ? `Вот готовая подборка отелей в ${hotels[0].city}: лучший вариант — ${hotels[0].name}.`
+                      : undefined),
+                hotels: hotels.slice(0, 5).map(toCompactHotelSnapshot),
+                transport_summary: transportSummary,
               }}
               label="Поделиться"
               size="sm"

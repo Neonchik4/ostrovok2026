@@ -5,7 +5,7 @@ import React, { useState } from "react";
 
 import { Hotel, HotelReceiptPreview } from "@/entities/hotel";
 import { DemoBookingConfirmation } from "@/features/booking-confirmation";
-import { ShareTripButton } from "@/features/share-trip";
+import { ShareTripButton, toCompactHotelSnapshot } from "@/features/share-trip";
 import { Button, Card } from "@/shared/ui";
 
 interface ReceiptBookingCardProps {
@@ -34,6 +34,8 @@ export function ReceiptBookingCard({ hotel }: ReceiptBookingCardProps) {
             stars: hotel.stars,
             max_price_per_night_rub: hotel.min_price_per_night_rub,
             user_message: `Отель «${hotel.name}» в ${hotel.city}`,
+            assistant_message: `Вот готовая поездка с прозрачным чеком в отель «${hotel.name}» (${hotel.city}). Все условия и стоимость проживания зафиксированы.`,
+            hotels: [toCompactHotelSnapshot(hotel)],
           }}
           label="Поделиться"
           size="sm"

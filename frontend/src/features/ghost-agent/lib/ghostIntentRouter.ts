@@ -75,11 +75,11 @@ export function parseGhostIntent(query: string): IntentMatchResult {
 
   // 4. Удобства
   const amenitiesMap: Array<{ pattern: RegExp; key: string; label: string }> = [
-    { pattern: /(?:бассейн|поплавать|водн)/, key: "pool", label: "Теплый бассейн" },
-    { pattern: /(?:завтрак|еда|питани)/, key: "breakfast", label: "Завтрак включен" },
+    { pattern: /(?:бассейн|поплавать|водн|pool)/, key: "pool", label: "Теплый бассейн" },
+    { pattern: /(?:завтрак|еда|питани|breakfast)/, key: "breakfast", label: "Завтрак включен" },
     { pattern: /(?:спа|spa|саун|баня|массаж)/, key: "spa", label: "СПА-комплекс" },
-    { pattern: /(?:собак|кошк|питомц|животн|dog)/, key: "pets", label: "Можно с питомцами" },
-    { pattern: /(?:отмен|бесплатная отмена)/, key: "freeCancellation", label: "Бесплатная отмена" },
+    { pattern: /(?:собак|кошк|питомц|животн|dog|pet)/, key: "pets", label: "Можно с питомцами" },
+    { pattern: /(?:отмен|бесплатная отмена|cancellation)/, key: "freeCancellation", label: "Бесплатная отмена" },
   ];
 
   for (const item of amenitiesMap) {
