@@ -25,6 +25,7 @@ services:
       - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@chto-to-drugoe.ru}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--ping=true"
+      - "--ping.entrypoint=jury"
       - "--log.level=INFO"
     ports:
       - "80:80"
