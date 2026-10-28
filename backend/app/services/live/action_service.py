@@ -15,7 +15,7 @@ class DOMAction(BaseModel):
 
 
 class LiveActionResponse(BaseModel):
-    persona: str = Field(default="bro", description="bro | assistant | concierge")
+    persona: str = Field(default="bro", description="bro | assistant | luxury")
     speech: str = Field(description="Голосовая реплика агента (БЕЗ ЭМОДЗИ, без слова 'Ищу')")
     thought: str = Field(default="", description="Ход мыслей агента для отображения в логе")
     steps: list[DOMAction] = Field(default_factory=list, description="Шаги манипуляции страницей")
@@ -75,7 +75,7 @@ class LiveActionService:
         has_early = any(w in u for w in ["ранн", "утром"])
         is_luxury = any(w in u for w in ["люкс", "шикануть", "премиум", "5 звезд"])
 
-        p = persona if persona in ["bro", "assistant", "concierge"] else ("concierge" if is_luxury else "bro")
+        p = persona if persona in ["bro", "assistant", "luxury"] else ("luxury" if is_luxury else "bro")
         steps: list[DOMAction] = [
             DOMAction(
                 action="set_destination",

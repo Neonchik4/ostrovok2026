@@ -41,7 +41,7 @@ async def lifespan(app: FastAPI):
     Эндпоинт /health отдает 200 OK сразу после запуска процесса (0 мс),
     исключая таймауты проверок Docker и автоматических грейдеров жюри.
     """
-    print("=== [Startup] Запуск сервера Ostrovok AI Concierge ===")
+    print("=== [Startup] Запуск сервера Ostrovok AI Agent ===")
     assert_safe_runtime(settings.APP_ENV, is_containerized())
     asyncio.create_task(_warmup_background())
     print("=== [Startup] Сервер готов к обработке запросов, /health активен ===")

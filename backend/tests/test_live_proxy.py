@@ -64,10 +64,10 @@ def test_live_action_fallback_personas():
     assert asst_res.persona == "assistant"
     assert "документ" in asst_res.speech.lower() or "параметр" in asst_res.speech.lower()
 
-    # Concierge persona
-    conc_res = svc._fallback_action("хочу шикануть в Питере", persona="concierge")
-    assert conc_res.persona == "concierge"
-    assert any("Питер" in s.value or "Петербург" in s.value for s in conc_res.steps if s.action == "set_destination")
+    # Luxury persona
+    lux_res = svc._fallback_action("хочу шикануть в Питере", persona="luxury")
+    assert lux_res.persona == "luxury"
+    assert any("Питер" in s.value or "Петербург" in s.value for s in lux_res.steps if s.action == "set_destination")
 
 
 def test_live_health(client):

@@ -16,7 +16,7 @@ from ..services.hotel_search_adapter import search_hotels_with_telemetry
 from ..services.llm_cascade import (
     build_deterministic_reasoning,
     extract_slots_cascade,
-    generate_concierge_response_stream,
+    generate_agent_response_stream,
 )
 from ..services.offline_mode import OFFLINE_MODE_MESSAGE, is_offline_mode, note_offline_once
 from ..services.route_extractor import default_chips
@@ -305,7 +305,7 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
 
         # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов).
         # Zero Secret Leakage: каждый исходящий чанк проходит фильтр утечек (Issue #45).
-        async for chunk in generate_concierge_response_stream(message, slots, hotels, transport=transport):
+        async for chunk in generate_agent_response_stream(message, slots, hotels, transport=transport):
             logger.log_token(chunk)
             yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
             

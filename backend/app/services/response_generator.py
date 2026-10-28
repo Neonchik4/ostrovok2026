@@ -8,7 +8,7 @@ from ..schemas.chat import ExtractedSlots
 from .llm_client import stream_gemini_content
 from .text_helpers import sanitize_user_input
 
-SYSTEM_CONCIERGE_PROMPT = """Ты — персональный AI-консьерж сервиса бронирования отелей «Островок».
+SYSTEM_AGENT_PROMPT = """Ты — персональный AI-агент сервиса бронирования отелей «Островок».
 Твоя задача — дать четкий, полезный, профессиональный и человечный ответ пользователю без воды, шаблонных клише и слащавых фраз.
 
 Правила:
@@ -49,7 +49,7 @@ ORIGIN_CLARIFY_QUESTION = (
     "и включу трансфер от вокзала или аэропорта в общий чек поездки. (Или выберите подсказку ниже)."
 )
 
-def build_deterministic_concierge_response(
+def build_deterministic_agent_response(
     user_message: str,
     slots: ExtractedSlots,
     hotels: list[Any],
@@ -207,7 +207,7 @@ def build_deterministic_concierge_response(
             parts.append("Все варианты билетов с расчетом всей поездки под ключ прикреплены в карточках справа.")
     return " ".join(parts)
 
-async def generate_concierge_response_stream(
+async def generate_agent_response_stream(
     user_message: str,
     slots: ExtractedSlots,
     hotels: list[Any],
@@ -316,7 +316,7 @@ async def generate_concierge_response_stream(
         )
 
     prompt_text = (
-        f"{SYSTEM_CONCIERGE_PROMPT}\n\n"
+        f"{SYSTEM_AGENT_PROMPT}\n\n"
         f"Запрос пользователя: «{safe_message}»\n"
         f"Параметры: {route_info}, {slots.guests_count or 2} гостей, {slots.nights or 2} ночей.{thematic_note}{budget_note}{transport_pref_note}{logistics_prompt_note}{review_inquiry_note}{missing_note}\n"
         f"Найденные отели (всего {len(hotels)} шт.):\n{hotels_context}\n\n"
@@ -332,7 +332,7 @@ async def generate_concierge_response_stream(
             return
 
     # Детерминированный живой ответ
-    fallback_text = build_deterministic_concierge_response(safe_message, slots, hotels, transport)
+    fallback_text = build_deterministic_agent_response(safe_message, slots, hotels, transport)
     words = fallback_text.split(" ")
     for i, word in enumerate(words):
         chunk = word + (" " if i < len(words) - 1 else "")

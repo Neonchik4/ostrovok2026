@@ -6,11 +6,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { cn } from "@/shared/lib/utils";
 import { GHOST_TOGGLE_DURATION, GhostToggle } from "@/shared/ui";
 
-const CONCIERGE_PATH = "/";
+const AGENT_PATH = "/";
 const CATALOG_PATH = "/catalog";
 
 /**
- * Переключатель экранов AI Консьерж (/) <-> Каталог Островка (/catalog).
+ * Переключатель экранов AI Агент (/) <-> Каталог Островка (/catalog).
  * Призрак сначала долетает до нового положения, и только потом меняется роут,
  * поэтому новая страница монтируется с тумблером уже в конечном состоянии.
  */
@@ -26,7 +26,7 @@ export function ScreenSwitch() {
   }, [pathname]);
 
   useEffect(() => {
-    router.prefetch(pathname === CATALOG_PATH ? CONCIERGE_PATH : CATALOG_PATH);
+    router.prefetch(pathname === CATALOG_PATH ? AGENT_PATH : CATALOG_PATH);
   }, [pathname, router]);
 
   useEffect(
@@ -41,7 +41,7 @@ export function ScreenSwitch() {
     setIsCatalog(toCatalog);
     pendingRef.current = setTimeout(() => {
       pendingRef.current = null;
-      router.push(toCatalog ? CATALOG_PATH : CONCIERGE_PATH);
+      router.push(toCatalog ? CATALOG_PATH : AGENT_PATH);
     }, GHOST_TOGGLE_DURATION);
   };
 
@@ -59,12 +59,12 @@ export function ScreenSwitch() {
         aria-current={!isCatalog ? "page" : undefined}
         className={labelClass(!isCatalog)}
       >
-        AI Консьерж
+        AI Агент
       </button>
       <GhostToggle
         checked={isCatalog}
         onCheckedChange={switchTo}
-        aria-label="Переключить экран: AI Консьерж или Каталог Островка"
+        aria-label="Переключить экран: AI Агент или Каталог Островка"
       />
       <button
         type="button"

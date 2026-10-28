@@ -6,7 +6,7 @@ import {
   ONBOARDING_SCENARIOS,
   OnboardingScenarioChips,
 } from "@/features/onboarding-scenarios";
-import { ChatConcierge } from "@/widgets/ChatConcierge";
+import { ChatAgent } from "@/widgets/ChatAgent";
 
 describe("OnboardingScenarioChips component", () => {
   it("renders all five onboarding scenarios with labels and hints", () => {
@@ -40,10 +40,10 @@ describe("OnboardingScenarioChips component", () => {
   });
 });
 
-describe("Onboarding scenarios visibility in ChatConcierge", () => {
+describe("Onboarding scenarios visibility in ChatAgent", () => {
   it("shows scenario chips in the empty chat before the first message", () => {
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}
@@ -58,7 +58,7 @@ describe("Onboarding scenarios visibility in ChatConcierge", () => {
 
   it("hides scenario chips after the first message is sent", () => {
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[
           {
             id: "user-1",
@@ -81,7 +81,7 @@ describe("Onboarding scenarios visibility in ChatConcierge", () => {
   it("starts the agent search flow with the scenario query on chip click", () => {
     const onSendMessage = vi.fn();
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}

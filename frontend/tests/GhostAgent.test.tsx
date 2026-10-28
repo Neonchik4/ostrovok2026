@@ -110,7 +110,7 @@ describe("Ghost Agent & Intent Router (Frontend 2)", () => {
     );
 
     expect(screen.getByTestId("ghost-action-bar")).toBeInTheDocument();
-    expect(screen.getByText("AI Консьерж")).toBeInTheDocument();
+    expect(screen.getByText("AI Агент")).toBeInTheDocument();
 
     // Chip click
     const poolChip = screen.getByRole("button", { name: "Теплый бассейн" });
