@@ -315,7 +315,7 @@ def test_stream_emits_llm_usage_before_done(monkeypatch):
 
     # Без сетевых вызовов: слоты — детерминированный экстрактор, ответ — фейковый стрим
     monkeypatch.setattr(workflow, "extract_slots_cascade", _offline_slots)
-    monkeypatch.setattr(workflow, "generate_concierge_response_stream", _fake_response)
+    monkeypatch.setattr(workflow, "generate_agent_response_stream", _fake_response)
 
     async def _run():
         async with AsyncClient(transport=ASGITransport(app=workflow_app()), base_url="http://test") as ac:
