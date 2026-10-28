@@ -152,4 +152,34 @@ describe("CatalogPage 3-Column Simulator (Frontend 3)", () => {
     expect(screen.getByText("Гранд Отель Сочи")).toBeInTheDocument();
     expect(screen.queryByText("Апартаменты Ривьера")).not.toBeInTheDocument();
   });
+
+  it("opens detailed view when hotel is clicked and allows returning back to catalog", () => {
+    render(<CatalogPage />);
+
+    // Click on hotel name button
+    const hotelBtn = screen.getByRole("button", { name: /Гранд Отель Сочи/i });
+    fireEvent.click(hotelBtn);
+
+    // Detail view is opened
+    expect(screen.getByRole("button", { name: "Назад к списку отелей" })).toBeInTheDocument();
+    expect(screen.getByTestId("hotel-detail-view")).toBeInTheDocument();
+
+    // Click back button
+    fireEvent.click(screen.getByRole("button", { name: "Назад к списку отелей" }));
+
+    // Back to catalog list
+    expect(screen.getByText("2 отеля")).toBeInTheDocument();
+    expect(screen.getByText("Апартаменты Ривьера")).toBeInTheDocument();
+  });
+
+  it("includes map focus button on hotel cards", () => {
+    render(<CatalogPage />);
+
+    const mapBtns = screen.getAllByRole("button", { name: "На карте" });
+    expect(mapBtns.length).toBe(2);
+
+    // Clicking map focus button does not crash and keeps cards list
+    fireEvent.click(mapBtns[0]);
+    expect(screen.getByText("Гранд Отель Сочи")).toBeInTheDocument();
+  });
 });

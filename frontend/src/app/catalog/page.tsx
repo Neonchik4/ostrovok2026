@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { GhostAction, GhostAgent } from "@/features/ghost-agent";
 import { useChatStream } from "@/shared/api";
@@ -23,6 +23,7 @@ export default function CatalogPage() {
   const [highlightedHotelId, setHighlightedHotelId] = useState<string | null>(null);
 
   const {
+    messages = [],
     hotels,
     transportSummary,
     thoughts,
@@ -32,6 +33,18 @@ export default function CatalogPage() {
 
   const currentThought =
     thoughts.length > 0 ? thoughts[thoughts.length - 1].text : null;
+
+  const lastAssistantMessage =
+    messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content || null;
+
+  const hasLoadedInitialRef = useRef(false);
+  useEffect(() => {
+    if (hasLoadedInitialRef.current) return;
+    if (hotels.length === 0 && !isStreaming) {
+      hasLoadedInitialRef.current = true;
+      void sendMessage("Популярные отели в Сочи и на Красной Поляне");
+    }
+  }, [hotels.length, isStreaming, sendMessage]);
 
   const handleGhostAction = (action: GhostAction) => {
     switch (action.type) {
@@ -94,6 +107,7 @@ export default function CatalogPage() {
         onAction={handleGhostAction}
         onSendPrompt={(prompt) => void sendMessage(prompt)}
         currentThought={currentThought}
+        assistantMessage={lastAssistantMessage}
         isStreaming={isStreaming}
       />
     </div>

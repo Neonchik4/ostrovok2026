@@ -4,9 +4,9 @@ import { Maximize2, Minimize2, Minus, Plus } from "lucide-react";
 import React, { useEffect, useRef, useState } from "react";
 
 import { Hotel } from "@/entities/hotel";
-import { formatPrice } from "@/shared/lib";
 import { cn } from "@/shared/lib/utils";
 
+import { buildPlacemarkBalloon, createPinLayout } from "../lib/mapTemplates";
 import { loadYandexMapsScript } from "../lib/yandexMapsLoader";
 import { ClassicSerpMapList } from "./ClassicSerpMapList";
 
@@ -27,6 +27,10 @@ export function ClassicSerpMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ymapsRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const placemarksMapRef = useRef<Map<string, any>>(new Map());
   const onSelectHotelRef = useRef(onSelectHotel);
 
   useEffect(() => {
@@ -62,42 +66,18 @@ export function ClassicSerpMap({
         );
 
         mapRef.current = mapInstance;
+        ymapsRef.current = ymaps;
+        placemarksMapRef.current.clear();
         const geoObjects = new ymaps.GeoObjectCollection();
-        // Метка — «пилюля» с ценой; выбранный отель — синяя
-        const pinLayout = (isSelected: boolean) =>
-          ymaps.templateLayoutFactory.createClass(
-            `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;padding:5px 10px;border-radius:999px;font:700 13px/1.2 system-ui,sans-serif;box-shadow:0 2px 8px rgba(17,24,39,.16);background:${
-              isSelected ? "#0E41D2" : "#fff"
-            };color:${isSelected ? "#fff" : "#2d3137"}">$[properties.iconContent]</div>`
-          );
-
         hotels.forEach((hotel) => {
           if (!hotel.coordinates?.lat || !hotel.coordinates?.lon) return;
 
           const isSelected = hotel.id === selectedHotelId;
           const placemark = new ymaps.Placemark(
             [hotel.coordinates.lat, hotel.coordinates.lon],
+            buildPlacemarkBalloon(hotel),
             {
-              hintContent: `${hotel.name} — ${formatPrice(hotel.min_price_per_night_rub)}`,
-              balloonContentHeader: `<div style="font-weight:700;font-size:13px;color:#111;">${hotel.name}</div>`,
-              balloonContentBody: `
-                <div style="font-size:12px;color:#444;line-height:1.4;margin-top:4px;">
-                  <div>${hotel.stars}★ • Рейтинг ${hotel.rating.toFixed(1)}</div>
-                  <div style="font-weight:700;color:#0d9488;margin-top:2px;">от ${formatPrice(hotel.min_price_per_night_rub)} / ночь</div>
-                  ${hotel.address ? `<div style="color:#666;font-size:11px;margin-top:2px;">${hotel.address}</div>` : ""}
-                </div>
-              `,
-              balloonContentFooter: `
-                <div style="margin-top:6px;font-size:11px;">
-                  <a href="https://yandex.ru/maps/?text=${encodeURIComponent(hotel.name + " " + hotel.city)}" target="_blank" rel="noopener noreferrer" style="color:#0d9488;text-decoration:underline;">
-                    Открыть на Яндекс.Картах ↗
-                  </a>
-                </div>
-              `,
-              iconContent: formatPrice(hotel.min_price_per_night_rub),
-            },
-            {
-              iconLayout: pinLayout(isSelected),
+              iconLayout: createPinLayout(ymaps, isSelected),
               iconShape: {
                 type: "Rectangle",
                 coordinates: [
@@ -105,7 +85,7 @@ export function ClassicSerpMap({
                   [44, 14],
                 ],
               },
-              zIndex: isSelected ? 1000 : undefined,
+              zIndex: isSelected ? 1000 : 1,
             }
           );
 
@@ -113,6 +93,7 @@ export function ClassicSerpMap({
             onSelectHotelRef.current(hotel);
           });
 
+          placemarksMapRef.current.set(hotel.id, placemark);
           geoObjects.add(placemark);
         });
 
@@ -133,6 +114,7 @@ export function ClassicSerpMap({
         setMapError("Яндекс.Карты в автономном режиме");
       });
 
+    const currentPlacemarks = placemarksMapRef.current;
     return () => {
       isMounted = false;
       if (mapInstance) {
@@ -142,6 +124,8 @@ export function ClassicSerpMap({
           // ignore
         }
         mapRef.current = null;
+        ymapsRef.current = null;
+        currentPlacemarks.clear();
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -152,12 +136,30 @@ export function ClassicSerpMap({
     const target = hotels.find((h) => h.id === selectedHotelId);
     if (target?.coordinates?.lat && target?.coordinates?.lon) {
       try {
-        mapRef.current.panTo([target.coordinates.lat, target.coordinates.lon], {
-          flying: true,
-          duration: 500,
+        const curZoom = typeof mapRef.current.getZoom === "function" ? mapRef.current.getZoom() : 13;
+        const targetCoords = [target.coordinates.lat, target.coordinates.lon];
+        if (typeof mapRef.current.setCenter === "function") {
+          mapRef.current.setCenter(targetCoords, Math.max(curZoom, 14), { flying: true, duration: 600 });
+        } else if (typeof mapRef.current.panTo === "function") {
+          mapRef.current.panTo(targetCoords, { flying: true, duration: 500 });
+        }
+      } catch {}
+
+      // Обновляем визуальное выделение меток и открываем балун
+      const ymaps = ymapsRef.current;
+      if (ymaps) {
+        placemarksMapRef.current.forEach((pm, hid) => {
+          const isSelected = hid === selectedHotelId;
+          try {
+            pm.options.set("iconLayout", createPinLayout(ymaps, isSelected));
+            pm.options.set("zIndex", isSelected ? 1000 : 1);
+            if (isSelected && pm.balloon) {
+              pm.balloon.open();
+            }
+          } catch {
+            // ignore
+          }
         });
-      } catch {
-        // ignore
       }
     }
   }, [selectedHotelId, hotels]);
@@ -167,21 +169,15 @@ export function ClassicSerpMap({
     if (!map) return;
     try {
       map.setZoom(map.getZoom() + delta, { duration: 200 });
-    } catch {
-      // ignore
-    }
+    } catch {}
   };
 
-  // Развёрнутая карта занимает всю область каталога под шапкой сайта (не fullscreen браузера)
   const [isExpanded, setIsExpanded] = useState(false);
 
-  // Яндекс.Карты не следят за размером контейнера — подгоняем после разворота/сворачивания
   useEffect(() => {
     try {
       mapRef.current?.container.fitToViewport();
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, [isExpanded]);
 
   return (

@@ -15,6 +15,7 @@ interface GhostAgentProps {
   onAction?: (action: GhostAction) => void;
   onSendPrompt?: (prompt: string) => void;
   currentThought?: string | null;
+  assistantMessage?: string | null;
   isStreaming?: boolean;
 }
 
@@ -129,6 +130,7 @@ export function GhostAgent({
   onAction,
   onSendPrompt,
   currentThought,
+  assistantMessage,
   isStreaming = false,
 }: GhostAgentProps) {
   const [spot, setSpot] = useState<GhostSpot>("corner");
@@ -240,6 +242,19 @@ export function GhostAgent({
     }
   }, [isStreaming, currentThought, addMessage]);
 
+  // Ответ ассистента из SSE-потока попадает в чат при завершении стриминга
+  useEffect(() => {
+    if (assistantMessage && !isStreaming) {
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last && last.role === "ghost" && last.text === assistantMessage) {
+          return prev;
+        }
+        return [...prev, createMessage("ghost", assistantMessage)];
+      });
+    }
+  }, [assistantMessage, isStreaming]);
+
   useEffect(() => () => recognitionRef.current?.stop(), []);
 
   const handleQuery = useCallback(
@@ -250,8 +265,13 @@ export function GhostAgent({
       if (result.handled && result.action) {
         addMessage("ghost", result.speechText);
         onAction?.(result.action);
-      } else if (onSendPrompt) {
-        onSendPrompt(query);
+      } else {
+        addMessage("ghost", result.speechText || `Ищу подходящие варианты: «${query}»...`);
+        if (onSendPrompt) {
+          onSendPrompt(query);
+        } else if (onAction && result.action) {
+          onAction(result.action);
+        }
       }
     },
     [addMessage, onAction, onSendPrompt]

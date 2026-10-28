@@ -169,14 +169,39 @@ export interface UseChatStreamOptions {
   apiEndpoint?: string;
 }
 
+const STORAGE_KEY_HOTELS = "ostrovok_cached_hotels";
+const STORAGE_KEY_TRANSPORT = "ostrovok_cached_transport";
+
+function getCachedHotels(): HotelData[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_HOTELS);
+    return raw ? (JSON.parse(raw) as HotelData[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function getCachedTransport(): TransportSummaryData | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY_TRANSPORT);
+    return raw ? (JSON.parse(raw) as TransportSummaryData) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useChatStream(options: UseChatStreamOptions = {}) {
   const { apiEndpoint = "/api/chat/stream" } = options;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [thoughts, setThoughts] = useState<ThoughtItem[]>([]);
-  const [hotels, setHotels] = useState<HotelData[]>([]);
+  const [hotels, setHotels] = useState<HotelData[]>(() => getCachedHotels());
   const [chips, setChips] = useState<string[]>([]);
-  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(null);
+  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(() =>
+    getCachedTransport()
+  );
   const [offlineMode, setOfflineMode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -321,11 +346,24 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
               setIsThinking(false);
               if (data.type === "hotel_grid" && Array.isArray(data.hotels)) {
                 setHotels(data.hotels);
+                if (typeof window !== "undefined") {
+                  try {
+                    sessionStorage.setItem(STORAGE_KEY_HOTELS, JSON.stringify(data.hotels));
+                  } catch {}
+                }
                 if (Array.isArray(data.disambiguation_chips)) {
                   setChips(data.disambiguation_chips);
                 }
                 if (data.transport_summary) {
                   setTransportSummary(data.transport_summary);
+                  if (typeof window !== "undefined") {
+                    try {
+                      sessionStorage.setItem(
+                        STORAGE_KEY_TRANSPORT,
+                        JSON.stringify(data.transport_summary)
+                      );
+                    } catch {}
+                  }
                 }
               }
             } else if (event === "llm_usage") {
@@ -368,8 +406,25 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     }) => {
       stopStream();
       setHotels(payload.hotels);
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.setItem(STORAGE_KEY_HOTELS, JSON.stringify(payload.hotels));
+        } catch {}
+      }
       if (payload.transportSummary !== undefined) {
         setTransportSummary(payload.transportSummary ?? null);
+        if (typeof window !== "undefined") {
+          try {
+            if (payload.transportSummary) {
+              sessionStorage.setItem(
+                STORAGE_KEY_TRANSPORT,
+                JSON.stringify(payload.transportSummary)
+              );
+            } else {
+              sessionStorage.removeItem(STORAGE_KEY_TRANSPORT);
+            }
+          } catch {}
+        }
       }
       if (payload.chips) {
         setChips(payload.chips);
