@@ -188,6 +188,8 @@ class WorkflowRunLogger:
     def _write_logs(self) -> None:
         try:
             log_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "outputs"))
+            if not os.access(log_dir, os.W_OK) and not os.access(os.path.dirname(log_dir), os.W_OK):
+                log_dir = "/tmp"
             os.makedirs(log_dir, exist_ok=True)
 
             last_run_path = os.path.join(log_dir, "last_run.log")

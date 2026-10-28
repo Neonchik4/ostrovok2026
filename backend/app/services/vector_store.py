@@ -27,6 +27,7 @@ def init_dataset() -> None:
             "../outputs/hotels.json",
             "outputs/hotels.json",
             settings.DATASET_PATH,
+            "/tmp/hotels.json",
         ]
         if not any(os.path.exists(p) for p in candidates):
             try:

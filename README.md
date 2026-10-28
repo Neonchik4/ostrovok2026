@@ -165,7 +165,7 @@ docker compose up --build
 | **LLM Request Cost Accounting** | Учет токенов, TTFT, прайса | **100% совпадение с Google API** | Пройдено |
 | **NLU Latency (детерминированный режим)** | Локальный парсинг | **< 2 мс (avg) / < 5 мс (p95)** | Пройдено |
 | **Healthcheck Endpoint Latency** | Моментальный старт `/health` | **0 мс (немедленный 200 OK)** | Пройдено |
-| **Суммарный объем автотестов** | **608 тестов** (381 Pytest + 227 Vitest) | **100% Pass Rate (0 failed)** | Пройдено |
+| **Суммарный объем автотестов** | **618 тестов** (381 Pytest + 237 Vitest) | **100% Pass Rate (0 failed)** | Пройдено |
 
 ### 9.2. Когорты стресс-бенчмарка (Stress Benchmark Cohorts)
 
@@ -183,7 +183,7 @@ docker compose up --build
 # 1. Запуск официального бенчмарка агента (One-Shot prompts):
 bun run test:benchmark
 
-# 2. Запуск полного тест-сьюта проекта (608 тестов Vitest и Pytest):
+# 2. Запуск полного тест-сьюта проекта (618 тестов Vitest и Pytest):
 bun run test
 
 # 3. Проверка качества кода, FSD Boundaries и типов (ESLint, Boundaries, Ruff):
@@ -205,7 +205,7 @@ bun run build
 | **Frontend** | Next.js 14 (App Router), React 18, TypeScript, Tailwind CSS, Lucide Icons, Web Speech API, Web Animations API | Пользовательский интерфейс сплит-чата, полноширинный каталог, маскот Ghost, Request Cost |
 | **Backend** | FastAPI, Python 3.11, Pydantic v2, ChromaDB v2, SentenceTransformers, Uvicorn, uv | Асинхронный SSE-стриминг, векторный и скалярный поиск, расчет чека, токеномика |
 | **AI / Models** | Google Gemini (3.5 Flash-Lite, 3.5 Flash), multilingual MiniLM-L12-v2 | Каскад языковых моделей для извлечения слотов и диалога, семантические эмбеддинги |
-| **Testing** | Vitest, React Testing Library, Pytest, anyio, ruff, eslint-plugin-boundaries | 608 автоматических тестов, 100% покрытие бизнес-логики |
+| **Testing** | Vitest, React Testing Library, Pytest, anyio, ruff, eslint-plugin-boundaries | 618 автоматических тестов, 100% покрытие бизнес-логики |
 | **Security & Infra** | Docker Multi-stage, Docker Compose, age encryption, Traefik v3, GitHub Actions | Безопасная контейнеризация, шифрование секретов для жюри, CI/CD |
 
 ---

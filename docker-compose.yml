@@ -71,6 +71,11 @@ services:
       TRAVELPAYOUTS_TOKEN: "${TRAVELPAYOUTS_TOKEN:-}"
       DATASET_PATH: /app/outputs/hotels.json
       CHROMA_DB_PATH: /app/outputs/chroma_db_v2
+      S3_ENDPOINT_URL: "${S3_ENDPOINT_URL:-https://storage.yandexcloud.net}"
+      S3_BUCKET_NAME: "${S3_BUCKET_NAME:-ostrovok2026-dataset-b1g8}"
+      S3_ACCESS_KEY_ID: "${S3_ACCESS_KEY_ID:-}"
+      S3_SECRET_ACCESS_KEY: "${S3_SECRET_ACCESS_KEY:-}"
+      DATASET_VERSION: "${DATASET_VERSION:-latest}"
     volumes:
       - type: bind
         source: ./outputs

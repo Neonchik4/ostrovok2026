@@ -92,7 +92,12 @@ def ensure_dataset_available(
         logger.info(f"Локальный датасет уже готов ({dest})")
         return dest
 
-    dest.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        dest = Path("/tmp/hotels.json")
+        dest.parent.mkdir(parents=True, exist_ok=True)
+
     bucket = os.getenv("S3_BUCKET_NAME", "ostrovok2026-dataset-b1g8")
     ver = version or os.getenv("DATASET_VERSION", "latest")
     key = f"datasets/{ver}/hotels.json.gz"
@@ -119,10 +124,17 @@ def ensure_dataset_available(
 
     logger.info(f"Распаковка {len(compressed_data) / (1024*1024):.1f} МБ gzip в {dest}...")
     decompressed = gzip.decompress(compressed_data)
-    tmp_path = dest.with_suffix(".tmp")
-    with open(tmp_path, "wb") as f:
-        f.write(decompressed)
-    tmp_path.replace(dest)
+    try:
+        tmp_path = dest.with_suffix(".tmp")
+        with open(tmp_path, "wb") as f:
+            f.write(decompressed)
+        tmp_path.replace(dest)
+    except OSError:
+        dest = Path("/tmp/hotels.json")
+        tmp_path = dest.with_suffix(".tmp")
+        with open(tmp_path, "wb") as f:
+            f.write(decompressed)
+        tmp_path.replace(dest)
 
     logger.info(f"Датасет успешно подготовлен: {dest.stat().st_size / (1024*1024):.1f} МБ")
     return dest

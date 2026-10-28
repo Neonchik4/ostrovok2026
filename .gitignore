@@ -73,7 +73,7 @@ outputs/chroma_db_gemini/
 # Large datasets & S3 downloaded archives
 outputs/*.gz
 outputs/*.zip
-outputs/hotels.json
+!outputs/hotels.json
 !outputs/hotels_stats.json
 
 # Local backups and runtime dumps
