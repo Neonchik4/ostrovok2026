@@ -132,4 +132,7 @@ test("release workflow publishes to GHCR with the built-in token", () => {
   const ci = read(".github/workflows/ci.yml");
   assert.match(ci, /permissions:\n\s+contents: read/);
   assert.equal(/\bwrite\b/.test(ci), false, "CI must stay read-only");
+  assert.match(ci, /push:\s*\n\s*branches:\s*\[master,\s*main\]/);
+  assert.match(ci, /pull_request:\s*\n\s*branches:\s*\[master,\s*main\]/);
+  assert.match(ci, /concurrency:\s*\n\s*group:\s*\$\{\{\s*github\.workflow\s*\}\}-\$\{\{\s*github\.event\.pull_request\.number\s*\|\|\s*github\.ref\s*\}\}\s*\n\s*cancel-in-progress:\s*true/);
 });

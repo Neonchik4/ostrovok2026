@@ -1,0 +1,739 @@
+[
+  {
+    "id": "scenario_01",
+    "category": "rich_scenarios",
+    "title": "Романтический уикенд, Санкт-Петербург",
+    "prompt": "Привет! Планирую поездку в Санкт-Петербург с девушкой на годовщину — едем вдвоём. Заезд 14 февраля 2027, выезд 16 февраля (2 ночи). Бюджет до 12 000 рублей за ночь. Хочу номер с видом на воду или исторический центр, обязательно двуспальная кровать king-size, желательно джакузи или ванна в номере. Завтрак включён — очень важно, хочу не выходить утром. Без животных у других гостей (аллергия). Желательно в радиусе 15 минут пешком от Невского проспекта. Трансфер из Пулково не нужен — едем на своей машине, нужна парковка.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Санкт-Петербург",
+      "guests_count": 2,
+      "nights": 2,
+      "depart_date": "2027-02-14",
+      "max_price_per_night_rub": 12000,
+      "breakfast_included": true,
+      "pet_friendly": false
+    }
+  },
+  {
+    "id": "scenario_02",
+    "category": "rich_scenarios",
+    "title": "Семейный отдых с детьми, Сочи",
+    "prompt": "Добрый день! Ищем отель в Сочи для большой семьи: 2 взрослых + 3 детей (11 лет, 8 лет и 3 года). Даты: с 1 июля по 14 июля 2027 — ровно 13 ночей. Бюджет — не более 8 000 рублей за ночь за всё. Нам нужны либо два смежных номера, либо один большой семейный номер. Обязательны: детский бассейн, анимация, детское меню в ресторане. Пляж желательно свой или в 5 минутах ходьбы — маленький ребёнок, долго нести неудобно. Кроватка для малыша нужна. Трансфер из аэропорта Адлер на 5 человек с большим багажом — если возможно организовать через отель, скажите стоимость.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи",
+      "guests_count": 5,
+      "nights": 13,
+      "depart_date": "2027-07-01",
+      "max_price_per_night_rub": 8000,
+      "heated_pool": true
+    }
+  },
+  {
+    "id": "scenario_03",
+    "category": "rich_scenarios",
+    "title": "Деловая командировка, Москва",
+    "prompt": "Мне нужен отель в Москве для одного человека (командировка). Заезд 3 ноября 2026, выезд 7 ноября — 4 ночи. Бюджет строго до 7 000 рублей за ночь, счёт нужен с НДС для бухгалтерии. Отель должен быть рядом с метро (не дальше 7 минут пешком), желательно Центральный или Пресненский район — встречи в Сити. Обязателен быстрый WiFi (буду работать из номера), рабочий стол в номере. Завтрак не нужен — экономлю время. Поздний выезд 7-го числа в 15:00 — возможно ли? Трансфер до Шереметьево вечером 7-го нужен.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "guests_count": 1,
+      "nights": 4,
+      "depart_date": "2026-11-03",
+      "max_price_per_night_rub": 7000,
+      "needs_late_checkout": true
+    }
+  },
+  {
+    "id": "scenario_04",
+    "category": "rich_scenarios",
+    "title": "Горнолыжный отдых, Шерегеш",
+    "prompt": "Здравствуйте! Компания из 6 взрослых (все лыжники и сноубордисты) едет в Шерегеш. Заезд 20 января 2027, выезд 27 января — 7 ночей. Общий бюджет на всю компанию — до 60 000 рублей за все ночи (то есть примерно 8 600 за ночь на всех). Хотим либо несколько стандартных двухместных номеров в одном отеле, либо отдельный коттедж/апартаменты на всех. Критично: хранение лыжного снаряжения, сушилка для ботинок, близость к подъёмнику Е2 или Е1. Баня или сауна на территории — очень желательна. Питание — хотя бы завтрак включён. Трансфер из Новокузнецка нужен на 6 человек с лыжным снаряжением.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Шерегеш",
+      "guests_count": 6,
+      "nights": 7,
+      "depart_date": "2027-01-20",
+      "total_trip_budget_rub": 60000,
+      "spa": true,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "scenario_05",
+    "category": "rich_scenarios",
+    "title": "Одиночное путешествие, Байкал (Листвянка)",
+    "prompt": "Еду один на Байкал, хочу побыть в тишине и отдохнуть от города. Заезд 5 сентября 2026, выезд 12 сентября — 7 ночей. Бюджет — до 4 500 рублей за ночь. Хочу небольшой уютный отель или гостевой дом прямо на берегу Байкала — чтобы утром видеть воду из окна. Без шума, без корпоративов, без свадеб. Интернет нужен слабый — хочу отдохнуть, но чуть-чуть онлайн. Питание: только завтрак. Из удобств: возможность взять байдарку или каяк в аренду на месте или рядом. Трансфер из Иркутска нужен.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Иркутск (Байкал)",
+      "guests_count": 1,
+      "nights": 7,
+      "depart_date": "2026-09-05",
+      "max_price_per_night_rub": 4500,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "scenario_06",
+    "category": "rich_scenarios",
+    "title": "Свадебное торжество + проживание, Подмосковье",
+    "prompt": "Организуем свадьбу на 45 гостей в Подмосковье (не дальше 80 км от Москвы). Дата торжества: 12 июня 2027 (суббота). Нам нужно: банкетный зал на 45 человек, возможность украшения, выездная церемония на территории (беседка или лужайка). Для молодожёнов — президентский или люкс-номер с 11 июня по 13 июня (2 ночи). Для гостей — блок из 15 номеров (двухместных) с 12 по 13 июня (1 ночь). Бюджет на номер для гостей — до 6 000 рублей. Бюджет на номер молодожёнов — до 20 000. Нужна парковка на 30+ машин. Питание для гостей обсуждается с менеджером отеля — есть ли такая услуга?",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "guests_count": 20
+    }
+  },
+  {
+    "id": "scenario_07",
+    "category": "rich_scenarios",
+    "title": "Велнес-отдых, Краснодарский край",
+    "prompt": "Хочу поехать на оздоровление — одна, без компании. Интересует санаторий или велнес-отель в Краснодарском крае (можно Анапа, Геленджик, Сочи). Заезд 1 марта 2027, выезд 15 марта — 14 ночей. Бюджет до 9 000 рублей за ночь всё включено (питание + процедуры). Обязательны: собственная медицинская программа или СПА с массажем, бассейн крытый (мне важно плавать зимой), тихая обстановка. Не хочу развлекательных программ и дискотек. Возраст 34 года — не пенсионный санаторий, хочу современный wellness. Могу приехать на своей машине.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "guests_count": 1,
+      "nights": 14,
+      "depart_date": "2027-03-01",
+      "max_price_per_night_rub": 9000,
+      "heated_pool": true,
+      "spa": true
+    }
+  },
+  {
+    "id": "scenario_08",
+    "category": "rich_scenarios",
+    "title": "Корпоратив IT-компании, Казань",
+    "prompt": "Планируем корпоратив для команды 22 человека в Казани. Заезд 6 декабря 2026 (воскресенье), выезд 8 декабря (вторник) — 2 ночи. Нужно: 11 двухместных номеров (коллеги по двое) или 22 одноместных (бюджет позволяет). Бюджет на номер — до 5 500 рублей за ночь. Нужен конференц-зал на 25 человек с проектором и флипчартом (2 дня рабочих сессий). Питание: завтраки включены, обед и ужин — банкет первого вечера (бюджет 2 500 р/чел на банкет). WiFi корпоративный (стабильный). Трансфер из аэропорта Казань на автобусе на 22 человека — нужно организовать.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Казань",
+      "guests_count": 20,
+      "nights": 2,
+      "depart_date": "2026-12-06",
+      "max_price_per_night_rub": 5500,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "scenario_09",
+    "category": "rich_scenarios",
+    "title": "Дикий отдых с собакой, Алтай",
+    "prompt": "Еду на Алтай вдвоём с женой и нашей собакой (хаски, 28 кг). Заезд 10 августа 2026, выезд 20 августа — 10 ночей. Бюджет — до 6 000 рублей за ночь. Отель или глэмпинг — не принципиально, главное чтобы пускали с собакой без доплаты (или с минимальной). Хочу близость к природе: горы, река, треккинг из отеля. Нужна территория где пёс может бегать без поводка. Питание: завтрак желательно. Из удобств достаточно горячего душа и нормальной кровати. Трансфер не нужен — едем на своём внедорожнике.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Алтай",
+      "guests_count": 2,
+      "nights": 10,
+      "depart_date": "2026-08-10",
+      "max_price_per_night_rub": 6000,
+      "pet_friendly": true,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "scenario_10",
+    "category": "rich_scenarios",
+    "title": "Студенческая поездка, Владивосток",
+    "prompt": "Нас 4 студента едем во Владивосток первый раз. Даты: 25 ноября 2026 — 1 декабря 2026, 6 ночей. Бюджет жёсткий — не более 2 500 рублей за ночь со всех (то есть 625 рублей/чел/ночь). Хотим либо хостел с 4-местным номером, либо самый дешевый отель с двумя двухместными номерами. Локация: поближе к центру, набережной или Спортивной Гавани. Завтрак не нужен — сами разберёмся. WiFi обязателен. Нужен отель с 24/7 доступом — прилетаем ночью в 2:30. Трансфер не нужен, возьмём такси.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Владивосток",
+      "guests_count": 4,
+      "nights": 6,
+      "depart_date": "2026-11-25",
+      "max_price_per_night_rub": 2500,
+      "needs_24h_front_desk": true,
+      "arrival_time": "02:30"
+    }
+  },
+  {
+    "id": "scenario_11",
+    "category": "rich_scenarios",
+    "title": "Пенсионеры на юбилей, Кисловодск",
+    "prompt": "Мы с мужем празднуем золотую свадьбу — 50 лет вместе. Нас двое, оба пенсионеры (67 и 69 лет). Хотим поехать в Кисловодск. Заезд 15 апреля 2027, выезд 25 апреля — 10 ночей. Бюджет — до 7 000 рублей за ночь на двоих, полный пансион (завтрак + обед + ужин). Нам важно: лифт в отеле обязателен (мужу трудно ходить по лестницам), тихие номера, близость к Нарзанной галерее и Курортному бульвару — хотим гулять пешком. Желательно рядом с санаторными процедурами или прямо в санатории. Трансфер из Минеральных Вод нужен.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "guests_count": 2,
+      "nights": 10,
+      "depart_date": "2027-04-15",
+      "max_price_per_night_rub": 7000,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "scenario_12",
+    "category": "rich_scenarios",
+    "title": "Экстремальный минимализм, Дагестан",
+    "prompt": "Один мужчина, 29 лет, путешествую по Дагестану автостопом. Нужно жильё в Махачкале на 2 ночи: 18 и 19 сентября 2026. Потом — в Дербенте на 3 ночи: 20, 21, 22 сентября. Бюджет абсолютный минимум — до 1 500 рублей за ночь в каждом городе. Хостел, гостевой дом, комната у хозяев — всё подходит. Главное: чистота, безопасность, горячий душ. Завтрак не нужен. WiFi желателен. Трансфер не нужен. Если найдёшь — скажи можно ли заплатить наличными на месте.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Дагестан (Махачкала)",
+      "guests_count": 1,
+      "nights": 2,
+      "depart_date": "2026-09-18",
+      "max_price_per_night_rub": 1500
+    }
+  },
+  {
+    "id": "scenario_13",
+    "category": "rich_scenarios",
+    "title": "Новогодний корпоратив + команда, Москва",
+    "prompt": "Компания 35 сотрудников, новогодний праздник в Москве. Нужен отель с банкетным залом. Дата мероприятия: 26 декабря 2026 (пятница). Часть команды приедет из регионов и останется ночевать: нужно 12 двухместных номеров на ночь с 26 на 27 декабря. Местные не ночуют. Бюджет номеров — до 8 000 рублей за ночь. Банкет на 35 человек с живой музыкой (нужен зал с местом для выступлений), бюджет банкета — 3 500 р/чел. Отель желательно в ЦАО, с красивым видом или нарядным лобби — важна атмосфера. Парковка на 10 машин нужна.",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "guests_count": 20,
+      "nights": 1,
+      "depart_date": "2026-12-26",
+      "max_price_per_night_rub": 8000
+    }
+  },
+  {
+    "id": "scenario_14",
+    "category": "rich_scenarios",
+    "title": "Лечебный тур после операции, Кавминводы",
+    "prompt": "Мне 42 года, недавно перенёс операцию на суставе, врач рекомендовал санаторное лечение. Еду один. Заезд 1 февраля 2027, выезд 21 февраля — 20 ночей. Бюджет — до 10 000 рублей за ночь включая лечение и питание (3-разовое). Нужен санаторий с ортопедическим или реабилитационным профилем, физиотерапия, ЛФК, бассейн с тёплой водой. Номер должен быть на низком этаже или с лифтом, поручни в ванной обязательны. Город: Пятигорск, Ессентуки или Железноводск. Трансфер из Минеральных Вод нужен с помощью персонала (костыли).",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "guests_count": 1,
+      "nights": 20,
+      "depart_date": "2027-02-01",
+      "max_price_per_night_rub": 10000,
+      "heated_pool": true,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "scenario_15",
+    "category": "rich_scenarios",
+    "title": "Большая семья + друзья, Карелия",
+    "prompt": "Большая смешанная компания: 4 взрослых + 2 детей (10 и 13 лет) + 1 подросток 16 лет = 7 человек. Хотим загородный дом или отель в Карелии у озера. Заезд 30 июня 2027 (среда), выезд 7 июля (среда) — ровно 7 ночей. Бюджет — до 25 000 рублей в сутки на всю компанию (за весь объект или несколько номеров). Критично: сауна с выходом к озеру, мангальная зона, лодки или SUP-доски в аренде на месте, рыбалка рядом. Питание: сами готовим — нужна оборудованная кухня. WiFi нужен для подростков. Трансфер не нужен, едем двумя машинами. Можно ли забронировать весь объект целиком?",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Карелия (Петрозаводск)",
+      "guests_count": 7,
+      "nights": 7,
+      "depart_date": "2027-06-30",
+      "max_price_per_night_rub": 25000,
+      "spa": true
+    }
+  },
+  {
+    "id": "sonnet_01",
+    "category": "standard",
+    "prompt": "Найди отель в Сочи на 3 ночи с 10 декабря для двоих",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи",
+      "nights": 3,
+      "guests_count": 2
+    }
+  },
+  {
+    "id": "sonnet_02",
+    "category": "standard",
+    "prompt": "Хочу отель в Москве до 5000 рублей за ночь",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "max_price_per_night_rub": 5000
+    }
+  },
+  {
+    "id": "sonnet_03",
+    "category": "standard",
+    "prompt": "Отель в Казани с завтраком на 2 человека",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Казань",
+      "breakfast_included": true,
+      "guests_count": 2
+    }
+  },
+  {
+    "id": "sonnet_04",
+    "category": "standard",
+    "prompt": "Покажи отели в Питере с бассейном",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Санкт-Петербург",
+      "heated_pool": true
+    }
+  },
+  {
+    "id": "sonnet_05",
+    "category": "standard",
+    "prompt": "Нужен номер в Екатеринбурге на новогодние праздники",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Екатеринбург"
+    }
+  },
+  {
+    "id": "sonnet_06",
+    "category": "standard",
+    "prompt": "Отель рядом с Красной площадью, 4 звезды",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "stars": 4
+    }
+  },
+  {
+    "id": "sonnet_07",
+    "category": "standard",
+    "prompt": "Самый дешевый отель в Сочи на эту неделю",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи"
+    }
+  },
+  {
+    "id": "sonnet_08",
+    "category": "standard",
+    "prompt": "Отель в Калининграде у моря с парковкой",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Калининград"
+    }
+  },
+  {
+    "id": "sonnet_09",
+    "category": "unusual_realistic",
+    "prompt": "Еду в Шерегеш кататься на лыжах, нужен отель у подъемника, заезд 15 января, выезд 22-го, двое взрослых и один ребенок 7 лет",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Шерегеш",
+      "guests_count": 3,
+      "nights": 7
+    }
+  },
+  {
+    "id": "sonnet_10",
+    "category": "unusual_realistic",
+    "prompt": "Хочу отель в Дагестане с видом на горы, без шведского стола, только завтрак в номер, бюджет до 8000 за ночь",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Дагестан (Махачкала)",
+      "max_price_per_night_rub": 8000,
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "sonnet_11",
+    "category": "unusual_realistic",
+    "prompt": "Ищу отель в Байкале где разрешено с собакой (лабрадор, 30 кг)",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Иркутск (Байкал)",
+      "pet_friendly": true
+    }
+  },
+  {
+    "id": "sonnet_12",
+    "category": "unusual_realistic",
+    "prompt": "Нужен тихий отель в Карелии, подальше от дороги, желательно у воды, без детей и без корпоративов",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Карелия (Петрозаводск)"
+    }
+  },
+  {
+    "id": "sonnet_13",
+    "category": "unusual_realistic",
+    "prompt": "Планирую медовый месяц в Алтае — нужен самый романтичный вариант с джакузи в номере",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Алтай"
+    }
+  },
+  {
+    "id": "sonnet_14",
+    "category": "unusual_realistic",
+    "prompt": "Еду на конференцию в Новосибирск, нужен отель с хорошим WiFi и переговорной комнатой рядом с ЭКСПО",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Новосибирск"
+    }
+  },
+  {
+    "id": "sonnet_15",
+    "category": "unusual_realistic",
+    "prompt": "Ищу глэмпинг или необычное размещение в Краснодарском крае с 5 по 12 августа",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "nights": 7
+    }
+  },
+  {
+    "id": "sonnet_16",
+    "category": "unusual_realistic",
+    "prompt": "Хочу отель в Казани, но только если там есть спа и сауна финская, не турецкая",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Казань",
+      "spa": true
+    }
+  },
+  {
+    "id": "sonnet_17",
+    "category": "extreme_unusual",
+    "prompt": "Мне нужен отель где нет кондиционера — я мерзну и боюсь сквозняков",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_18",
+    "category": "extreme_unusual",
+    "prompt": "Ищу отель в России где разрешено курить в номере",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_19",
+    "category": "extreme_unusual",
+    "prompt": "Можешь найти отель где номера выше 10-го этажа? Хочу вид сверху",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_20",
+    "category": "extreme_unusual",
+    "prompt": "Хочу заселиться сегодня в 3 ночи — есть варианты в Москве с круглосуточной стойкой?",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "needs_24h_front_desk": true,
+      "arrival_time": "03:00"
+    }
+  },
+  {
+    "id": "sonnet_21",
+    "category": "extreme_unusual",
+    "prompt": "Найди отель где средняя оценка отзывов ровно или выше 4.8, не меньше 200 отзывов, и цена ниже 7000 за ночь",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "max_price_per_night_rub": 7000,
+      "min_rating": 4.8
+    }
+  },
+  {
+    "id": "sonnet_22",
+    "category": "extreme_unusual",
+    "prompt": "У меня колесная инвалидная коляска — нужен отель в Питере с полной доступностью, лифт обязателен, нулевой порог в душе",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Санкт-Петербург"
+    }
+  },
+  {
+    "id": "sonnet_23",
+    "category": "extreme_unusual",
+    "prompt": "Еду в командировку на 45 дней в Тюмень — есть ли отели с помесячной оплатой или корпоративным тарифом?",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Тюмень",
+      "nights": 45
+    }
+  },
+  {
+    "id": "sonnet_24",
+    "category": "extreme_unusual",
+    "prompt": "Хочу отель в Сочи где можно сыграть свадьбу прямо в отеле на 80 человек, и нам нужно остаться на 2 ночи всей группой",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи",
+      "guests_count": 20,
+      "nights": 2
+    }
+  },
+  {
+    "id": "sonnet_25",
+    "category": "extreme_unusual",
+    "prompt": "Мне нужен отель с кошачьим отелем на территории — у меня три кота",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "pet_friendly": true
+    }
+  },
+  {
+    "id": "sonnet_26",
+    "category": "extreme_unusual",
+    "prompt": "Ищу отель в Москве куда можно привезти музыкальное оборудование и репетировать ночью",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва"
+    }
+  },
+  {
+    "id": "sonnet_27",
+    "category": "extreme_unusual",
+    "prompt": "Найди отель в России с собственным вертолетной площадкой",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_28",
+    "category": "extreme_unusual",
+    "prompt": "Хочу отель рядом с аэропортом Шереметьево, чтобы пешком дойти, у меня 4 часа между рейсами",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "near_airport": true
+    }
+  },
+  {
+    "id": "sonnet_29",
+    "category": "extreme_unusual",
+    "prompt": "Мне нужен номер в отеле Питера, где снимали кино или сериал — хочу ту же атмосферу",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Санкт-Петербург"
+    }
+  },
+  {
+    "id": "sonnet_30",
+    "category": "extreme_unusual",
+    "prompt": "Найди отель в Москве где последний раз делали ремонт не раньше 2023 года — не хочу совок",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва"
+    }
+  },
+  {
+    "id": "sonnet_31",
+    "category": "absurd_boundary",
+    "prompt": "Хочу отель в России где нет других гостей — полная приватность, хочу арендовать весь объект",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_32",
+    "category": "absurd_boundary",
+    "prompt": "Найди отель где на завтрак подают именно сырники, а не омлет",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "sonnet_33",
+    "category": "absurd_boundary",
+    "prompt": "Мне нужен отель в Сочи, но только если владелец — женщина",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи"
+    }
+  },
+  {
+    "id": "sonnet_34",
+    "category": "absurd_boundary",
+    "prompt": "Покажи отели с оценкой ниже 3 звезд — хочу настоящий советский опыт",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "stars": 3
+    }
+  },
+  {
+    "id": "sonnet_35",
+    "category": "absurd_boundary",
+    "prompt": "Есть ли отели в РФ где принимают оплату биткоином?",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_36",
+    "category": "absurd_boundary",
+    "prompt": "Хочу отель где тихо, но чтобы соседей не было слышно — покажи только с хорошей звукоизоляцией по отзывам",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_37",
+    "category": "absurd_boundary",
+    "prompt": "Ищу отель в форме необычного здания — круглый, треугольный, корабль, что угодно нестандартное",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_38",
+    "category": "absurd_boundary",
+    "prompt": "Есть отель в РФ с подводными номерами или панорамным дном бассейна?",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "heated_pool": true
+    }
+  },
+  {
+    "id": "sonnet_39",
+    "category": "absurd_boundary",
+    "prompt": "Хочу заселиться с электросамокатом и велосипедом — нужна закрытая парковка для техники",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_40",
+    "category": "absurd_boundary",
+    "prompt": "Найди самый старый действующий отель в России — хочу историю",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_41",
+    "category": "conditional_single",
+    "prompt": "Покажи отели в Казани, но если нет с бассейном — тогда хотя бы с джакузи, а если и этого нет — просто с хорошим спа",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Казань",
+      "heated_pool": true,
+      "spa": true
+    }
+  },
+  {
+    "id": "sonnet_42",
+    "category": "conditional_single",
+    "prompt": "Нужен отель в Питере до 6000р, если нет таких — расширь до 9000, но тогда с завтраком обязательно",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Санкт-Петербург",
+      "breakfast_included": true
+    }
+  },
+  {
+    "id": "sonnet_43",
+    "category": "conditional_single",
+    "prompt": "Есть что-то в Алтае на Новый год? Если нет мест — посмотри на ближайшие даты когда есть свободные номера",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Алтай"
+    }
+  },
+  {
+    "id": "sonnet_44",
+    "category": "conditional_single",
+    "prompt": "Хочу отель в Москве с трансфером из Домодедово, если трансфер платный — скажи сколько стоит и все равно покажи варианты",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва",
+      "near_airport": true
+    }
+  },
+  {
+    "id": "sonnet_45",
+    "category": "conditional_single",
+    "prompt": "Ищу отель в Сочи на 14 февраля — если все дорого, покажи за 13-е или 15-е как альтернативу",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи"
+    }
+  },
+  {
+    "id": "sonnet_46",
+    "category": "boundary_break",
+    "prompt": "<script>alert('xss')</script> отель Москва",
+    "expected_verdict": "injection",
+    "expected_intent": null,
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_47",
+    "category": "boundary_break",
+    "prompt": "Отель отель отель отель отель Сочи Сочи Сочи дешево дешево найди найди",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Сочи"
+    }
+  },
+  {
+    "id": "sonnet_48",
+    "category": "boundary_break",
+    "prompt": "Хочу отель в Антарктиде, Россия",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {}
+  },
+  {
+    "id": "sonnet_49",
+    "category": "boundary_break",
+    "prompt": "Найди отель для 0 гостей на 0 ночей бесплатно",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "guests_count": 1,
+      "nights": 1
+    }
+  },
+  {
+    "id": "sonnet_50",
+    "category": "boundary_break",
+    "prompt": "ЫЫЫ ааа мне нужно место переночевать сегодня не знаю где я в Москве помогите пожалуйста срочно!!!",
+    "expected_verdict": "travel",
+    "expected_intent": "search",
+    "expected_slots": {
+      "city": "Москва"
+    }
+  }
+]

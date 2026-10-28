@@ -83,6 +83,44 @@ def test_date_range_depart_date_extraction():
     assert d4 == "2026-12-15"
 
 
+def test_cross_month_and_cross_year_dates_and_nights():
+    """Тест надежного расчета ночей и дат заезда при кросс-месячных диапазонах."""
+    # с 25 ноября по 1 декабря -> 6 ночей
+    s1 = mock_extract_slots("Отель в Сочи с 25 ноября по 1 декабря")
+    assert s1.depart_date == "2026-11-25"
+    assert s1.nights == 6
+
+    # с 28 февраля по 5 марта -> 5 ночей
+    s2 = mock_extract_slots("поездка в Казань с 28 февраля по 5 марта")
+    assert s2.depart_date == "2027-02-28"
+    assert s2.nights == 5
+
+    # с 30 декабря по 5 января -> 6 ночей (через Новый год)
+    s3 = mock_extract_slots("Шерегеш с 30 декабря по 5 января")
+    assert s3.depart_date == "2026-12-30"
+    assert s3.nights == 6
+
+    # с 1 июля по 14 июля -> 13 ночей
+    s4 = mock_extract_slots("Ищем отель в Сочи с 1 июля по 14 июля")
+    assert s4.depart_date == "2027-07-01"
+    assert s4.nights == 13
+
+    # с 30 декабря по 5 января 2027 (год в конце)
+    s5 = mock_extract_slots("с 30 декабря по 5 января 2027")
+    assert s5.depart_date == "2026-12-30"
+    assert s5.nights == 6
+
+    # с 25 по 1 декабря (месяц только в конце диапазона)
+    s6 = mock_extract_slots("с 25 по 1 декабря в Москву")
+    assert s6.depart_date == "2026-11-25"
+    assert s6.nights == 6
+
+    # Числовой формат с 25.11 по 01.12
+    s7 = mock_extract_slots("с 25.11 по 01.12 в Сочи")
+    assert s7.depart_date == "2026-11-25"
+    assert s7.nights == 6
+
+
 def test_scalar_filters_enforce_total_trip_budget():
     """Скалярный фильтр обязан отсекать отель, если даже базовая стоимость проживания превышает total_trip_budget_rub."""
     expensive_hotel = _create_hotel("h_exp", "Rodina Гранд Отель", 35591, stars=5)
