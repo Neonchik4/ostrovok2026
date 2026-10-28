@@ -27,6 +27,7 @@
     "setup": "bun run setup:front && bun run setup:back",
     "db:backup": "ssh yc-user@158.160.228.85 \"sudo /opt/ostrovok/scripts/backup.sh\"",
     "db:seed": "bun run --cwd backend python -m app.db.seed",
+    "secrets:encrypt": "age -r age1932fu7f70rwyfhaxflyfszz4gf6avxwc95wc0yjwm6zns9tspycqpgdnc0 -o secrets.env.age .env",
     "sync:ostrovok": "git push ostrovok master:main --force"
   },
   "devDependencies": {
