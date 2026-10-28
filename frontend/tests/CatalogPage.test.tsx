@@ -72,19 +72,56 @@ describe("CatalogPage 3-Column Simulator (Frontend 3)", () => {
 
     // Column 1: Filters
     expect(screen.getByRole("complementary", { name: /Фильтры каталога/i })).toBeInTheDocument();
-    expect(screen.getByText("Даты поездки")).toBeInTheDocument();
-    expect(screen.getByText("Бюджет / ночь")).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Сортировка отелей" })).toHaveValue("match");
+    expect(screen.getByText("Цена за ночь")).toBeInTheDocument();
 
     // Column 2: Hotels
     expect(screen.getByText("Гранд Отель Сочи")).toBeInTheDocument();
     expect(screen.getByText("Апартаменты Ривьера")).toBeInTheDocument();
 
-    // Column 3: Map
-    expect(screen.getByText("Яндекс.Карты: Сочи")).toBeInTheDocument();
+    // Hotel cards as in the design
+    expect(screen.getByText("2 отеля")).toBeInTheDocument();
+    expect(screen.getByText("9,2")).toBeInTheDocument();
+    expect(screen.getByText("310 оценок")).toBeInTheDocument();
+    expect(screen.getAllByRole("link", { name: "Выбрать номер" })).toHaveLength(2);
 
-    // Ghost Agent
-    expect(screen.getByTestId("ghost-actor-container")).toBeInTheDocument();
-    expect(screen.getByTestId("ghost-action-bar")).toBeInTheDocument();
+    // Никаких заглушек без данных бэкенда
+    expect(screen.queryByText("Даты и гости")).not.toBeInTheDocument();
+    expect(screen.queryByText(/окт/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "В избранное" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: "Гранд Отель Сочи" })).not.toBeInTheDocument();
+
+    // Column 3: Map
+    expect(screen.getByRole("region", { name: "Карта отелей" })).toBeInTheDocument();
+
+    // Ghost Agent: плавающий призрак в углу вместо нижней плашки
+    expect(screen.getByRole("button", { name: "Открыть чат с Ghost" })).toBeInTheDocument();
+    expect(screen.queryByTestId("ghost-action-bar")).not.toBeInTheDocument();
+  });
+
+  it("uses the full screen width without max-w-7xl side gutters", () => {
+    render(<CatalogPage />);
+
+    const serp = screen.getByTestId("classic-serp-container");
+    expect(serp).toHaveClass("w-full");
+    // Развёрнутая карта позиционируется внутри каталога, под шапкой сайта
+    expect(serp).toHaveClass("relative");
+    expect(serp.querySelector(".max-w-7xl")).toBeNull();
+    expect(screen.getByRole("complementary", { name: /Фильтры каталога/i })).toHaveClass(
+      "w-[266px]"
+    );
+  });
+
+  it("quick filter chips and amenity checkboxes control the same filter", () => {
+    render(<CatalogPage />);
+
+    const chip = screen.getByRole("button", { name: "Тёплый бассейн" });
+    fireEvent.click(chip);
+
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("checkbox", { name: "Тёплый бассейн" })).toBeChecked();
+    expect(screen.getByText("Гранд Отель Сочи")).toBeInTheDocument();
+    expect(screen.queryByText("Апартаменты Ривьера")).not.toBeInTheDocument();
   });
 
   it("filters hotels reactively when star filter is selected", () => {
@@ -102,12 +139,14 @@ describe("CatalogPage 3-Column Simulator (Frontend 3)", () => {
     expect(screen.queryByText("Апартаменты Ривьера")).not.toBeInTheDocument();
   });
 
-  it("interacts with ghost action bar to adjust filters", () => {
+  it("adjusts filters from the Ghost chat", () => {
     render(<CatalogPage />);
 
-    // Click quick chip "Теплый бассейн" on Action Bar
-    const poolChip = screen.getByRole("button", { name: "Теплый бассейн" });
-    fireEvent.click(poolChip);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Сообщение Ghost" }), {
+      target: { value: "с теплым бассейном" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
 
     // Hotel with pool should stay, hotel without should be filtered out
     expect(screen.getByText("Гранд Отель Сочи")).toBeInTheDocument();

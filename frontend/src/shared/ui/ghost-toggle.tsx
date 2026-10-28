@@ -10,6 +10,8 @@ type GhostToggleProps = {
   defaultChecked?: boolean;
   onCheckedChange?: (checked: boolean) => void;
   disabled?: boolean;
+  /** Скрыть призрака-ручку: он «вылетел» из тумблера на страницу (каталог). */
+  hideKnob?: boolean;
   className?: string;
   "aria-label"?: string;
 };
@@ -22,6 +24,7 @@ export function GhostToggle({
   defaultChecked = false,
   onCheckedChange,
   disabled,
+  hideKnob = false,
   className,
   "aria-label": ariaLabel = "Переключить страницу",
 }: GhostToggleProps) {
@@ -62,6 +65,7 @@ export function GhostToggle({
       aria-checked={on}
       aria-label={ariaLabel}
       disabled={disabled}
+      data-knob={hideKnob ? "hidden" : undefined}
       className={cls}
       onClick={toggle}
     >

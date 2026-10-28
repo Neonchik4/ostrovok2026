@@ -1,17 +1,15 @@
 "use client";
 
-import { Check, Filter, RotateCcw } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import React from "react";
 
-import { Badge, Button } from "@/shared/ui";
+import { cn } from "@/shared/lib/utils";
 
-import { ClassicSerpDatesGuests, SortOption } from "./ClassicSerpDatesGuests";
 import { ClassicSerpPriceSlider } from "./ClassicSerpPriceSlider";
 
+type SortOption = "match" | "price_asc" | "price_desc" | "rating";
+
 export interface FilterState {
-  checkInDate?: string;
-  checkOutDate?: string;
-  guests: number;
   sort: SortOption;
   breakfast: boolean;
   pool: boolean;
@@ -23,83 +21,111 @@ export interface FilterState {
   maxPrice: number | null;
 }
 
+type AmenityKey = "breakfast" | "pool" | "spa" | "pets" | "freeCancellation";
+
 interface ClassicSerpFiltersProps {
   filters: FilterState;
   onFilterChange: (newFilters: FilterState) => void;
-  onReset: () => void;
-  totalFound: number;
 }
 
-export function ClassicSerpFilters({
-  filters,
-  onFilterChange,
-  onReset,
-  totalFound,
-}: ClassicSerpFiltersProps) {
-  const toggleCheckbox = (key: "breakfast" | "pool" | "spa" | "pets" | "freeCancellation") => {
-    onFilterChange({
-      ...filters,
-      [key]: !filters[key],
-    });
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "match", label: "По совпадению" },
+  { value: "price_asc", label: "Сначала дешевле" },
+  { value: "price_desc", label: "Сначала дороже" },
+  { value: "rating", label: "По рейтингу" },
+];
+
+/** Быстрые фильтры-чипсы над панелью: те же флаги, что и чекбоксы удобств. */
+const QUICK_FILTERS: { key: AmenityKey; label: string }[] = [
+  { key: "breakfast", label: "Завтрак включён" },
+  { key: "pool", label: "Тёплый бассейн" },
+  { key: "freeCancellation", label: "Бесплатная отмена" },
+  { key: "spa", label: "СПА" },
+];
+
+const AMENITIES: { key: AmenityKey; label: string }[] = [
+  { key: "breakfast", label: "Завтрак включён" },
+  { key: "pool", label: "Тёплый бассейн" },
+  { key: "spa", label: "СПА-комплекс" },
+  { key: "pets", label: "Можно с питомцами" },
+  { key: "freeCancellation", label: "Свободная отмена" },
+];
+
+export function ClassicSerpFilters({ filters, onFilterChange }: ClassicSerpFiltersProps) {
+  const toggle = (key: AmenityKey) => {
+    onFilterChange({ ...filters, [key]: !filters[key] });
   };
 
-  const setStars = (stars: number | null) => {
-    onFilterChange({
-      ...filters,
-      minStars: filters.minStars === stars ? null : stars,
-    });
+  const setStars = (stars: number) => {
+    onFilterChange({ ...filters, minStars: filters.minStars === stars ? null : stars });
   };
 
   return (
     <aside
       aria-label="Фильтры каталога"
-      className="w-72 shrink-0 space-y-4 overflow-y-auto rounded-2xl border border-border bg-card/70 p-4 backdrop-blur-md"
+      className="flex max-h-full w-[266px] shrink-0 flex-col gap-[18px] self-start overflow-y-auto rounded-2xl bg-card p-4"
     >
-      <div className="flex items-center justify-between border-b border-border pb-3">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4 text-primary" />
-          <h3 className="text-sm font-bold text-foreground">Фильтры</h3>
-        </div>
-        <Badge variant="outline" className="text-xs text-primary">
-          {totalFound} вар.
-        </Badge>
+      {/* Сортировка */}
+      <div className="relative">
+        <select
+          value={filters.sort}
+          onChange={(e) => onFilterChange({ ...filters, sort: e.target.value as SortOption })}
+          aria-label="Сортировка отелей"
+          className="h-11 w-full cursor-pointer appearance-none rounded-[10px] border border-border bg-card pl-3.5 pr-10 text-[15px] text-foreground focus:border-primary focus:outline-none"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-foreground" />
       </div>
 
-      {/* Даты, гости и сортировка */}
-      <ClassicSerpDatesGuests
-        checkInDate={filters.checkInDate}
-        checkOutDate={filters.checkOutDate}
-        guests={filters.guests}
-        sort={filters.sort}
-        onDatesChange={(inD, outD) =>
-          onFilterChange({ ...filters, checkInDate: inD, checkOutDate: outD })
-        }
-        onGuestsChange={(g) => onFilterChange({ ...filters, guests: g })}
-        onSortChange={(s) => onFilterChange({ ...filters, sort: s })}
-      />
+      {/* Быстрые фильтры */}
+      <div className="flex flex-wrap gap-1.5">
+        {QUICK_FILTERS.map((chip) => {
+          const isActive = filters[chip.key];
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => toggle(chip.key)}
+              aria-pressed={isActive}
+              className={cn(
+                "rounded-full border px-3 py-[7px] text-[13px] transition-colors",
+                isActive
+                  ? "border-primary bg-accent font-semibold text-primary"
+                  : "border-border bg-card text-foreground hover:border-primary/40"
+              )}
+            >
+              {chip.label}
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Слайдер цен 100 ₽ – 100 000 ₽ */}
       <ClassicSerpPriceSlider
         maxPrice={filters.maxPrice}
         onChange={(price) => onFilterChange({ ...filters, maxPrice: price })}
       />
 
       {/* Звездность */}
-      <div className="space-y-2 border-t border-border pt-4">
-        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Категория отеля
-        </span>
+      <div className="flex flex-col gap-2.5 border-t border-border pt-4">
+        <span className="text-[13px] font-bold text-foreground">Категория отеля</span>
         <div className="flex gap-1.5">
           {[5, 4, 3].map((star) => (
             <button
               key={star}
               type="button"
               onClick={() => setStars(star)}
-              className={`flex-1 rounded-xl border py-1.5 text-xs font-bold transition-all ${
+              aria-pressed={filters.minStars === star}
+              className={cn(
+                "h-9 flex-1 rounded-[10px] border text-[13px] font-bold transition-colors",
                 filters.minStars === star
-                  ? "border-primary bg-primary/20 text-primary"
-                  : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
-              }`}
+                  ? "border-primary bg-accent text-primary"
+                  : "border-border bg-card text-muted-foreground hover:text-foreground"
+              )}
             >
               {star} ★
             </button>
@@ -108,57 +134,36 @@ export function ClassicSerpFilters({
       </div>
 
       {/* Удобства и правила */}
-      <div className="space-y-2 border-t border-border pt-4">
-        <span className="block text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Удобства и правила
-        </span>
-        <div className="space-y-1">
-          {[
-            { id: "breakfast", label: "Завтрак включен", key: "breakfast" as const },
-            { id: "pool", label: "Теплый бассейн", key: "pool" as const },
-            { id: "spa", label: "СПА-комплекс", key: "spa" as const },
-            { id: "pets", label: "Можно с питомцами", key: "pets" as const },
-            { id: "freeCancellation", label: "Свободная отмена", key: "freeCancellation" as const },
-          ].map((item) => {
-            const isChecked = filters[item.key];
-            return (
-              <label
-                key={item.id}
-                className="flex cursor-pointer items-center justify-between rounded-xl px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-secondary/40"
+      <div className="flex flex-col gap-1 border-t border-border pt-4">
+        <span className="mb-1.5 text-[13px] font-bold text-foreground">Удобства и правила</span>
+        {AMENITIES.map((item) => {
+          const isChecked = filters[item.key];
+          return (
+            <label
+              key={item.key}
+              className="flex cursor-pointer items-center gap-2.5 py-1 text-[13px] text-foreground"
+            >
+              <input
+                type="checkbox"
+                checked={isChecked}
+                onChange={() => toggle(item.key)}
+                className="peer sr-only"
+              />
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-[5px] border peer-focus-visible:ring-2 peer-focus-visible:ring-ring",
+                  isChecked
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-[#c9ced6] bg-card"
+                )}
               >
-                <span>{item.label}</span>
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => toggleCheckbox(item.key)}
-                  className="sr-only"
-                />
-                <div
-                  className={`flex h-4 w-4 items-center justify-center rounded border transition-colors ${
-                    isChecked
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background"
-                  }`}
-                >
-                  {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
-                </div>
-              </label>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Сброс всех фильтров */}
-      <div className="border-t border-border pt-3">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onReset}
-          className="w-full gap-2 rounded-xl text-xs"
-        >
-          <RotateCcw className="h-3 w-3" />
-          <span>Сбросить все</span>
-        </Button>
+                {isChecked && <Check className="h-3 w-3 stroke-[3]" />}
+              </span>
+              <span className={cn(isChecked && "font-semibold")}>{item.label}</span>
+            </label>
+          );
+        })}
       </div>
     </aside>
   );
