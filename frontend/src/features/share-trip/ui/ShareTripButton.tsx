@@ -61,6 +61,14 @@ export function ShareTripButton({
     }
 
     setCopied(true);
+    if (typeof window !== "undefined" && window.history && targetUrl) {
+      try {
+        const urlObj = new URL(targetUrl, window.location.origin);
+        window.history.replaceState(null, "", `${urlObj.pathname}${urlObj.search}`);
+      } catch {
+        // Safe fallback
+      }
+    }
     if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
     copiedTimerRef.current = setTimeout(() => setCopied(false), COPIED_MESSAGE_MS);
   };

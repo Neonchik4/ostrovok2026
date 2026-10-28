@@ -187,5 +187,47 @@ describe("useChatStream", () => {
     expect(lastThought.step).toBe("error");
     expect(lastThought.text).toContain("Ошибка: Failed to fetch");
   });
+
+  it("restores shared trip directly without making any fetch requests or streaming", () => {
+    const fetchSpy = vi.fn();
+    global.fetch = fetchSpy;
+
+    const { result } = renderHook(() => useChatStream());
+
+    const mockHotel = {
+      id: "hotel-123",
+      name: "Отель Гранд",
+      city: "Сочи",
+      stars: 4,
+      area: "Центр",
+      area_type: "center",
+      rating: 9.2,
+      reviews_count: 140,
+      image_urls: ["/hotels/1.jpg"],
+      match_score_pct: 95,
+      tags: ["Бассейн"],
+      min_price_per_night_rub: 8500,
+    };
+
+    act(() => {
+      result.current.restoreSharedTrip({
+        hotels: [mockHotel],
+        userMessage: "Поездка в Сочи на 2 гостей",
+        assistantMessage: "Вот готовая сохраненная поездка в отель «Отель Гранд».",
+      });
+    });
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(result.current.isStreaming).toBe(false);
+    expect(result.current.isThinking).toBe(false);
+    expect(result.current.thoughts).toEqual([]);
+    expect(result.current.hotels).toHaveLength(1);
+    expect(result.current.hotels[0].id).toBe("hotel-123");
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[0].role).toBe("user");
+    expect(result.current.messages[0].content).toBe("Поездка в Сочи на 2 гостей");
+    expect(result.current.messages[1].role).toBe("assistant");
+    expect(result.current.messages[1].content).toContain("Отель Гранд");
+  });
 });
 

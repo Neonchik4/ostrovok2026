@@ -358,6 +358,56 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     [apiEndpoint, stopStream, isStreaming]
   );
 
+  const restoreSharedTrip = useCallback(
+    (payload: {
+      hotels: HotelData[];
+      userMessage?: string;
+      assistantMessage?: string;
+      transportSummary?: TransportSummaryData | null;
+      chips?: string[];
+    }) => {
+      stopStream();
+      setHotels(payload.hotels);
+      if (payload.transportSummary !== undefined) {
+        setTransportSummary(payload.transportSummary ?? null);
+      }
+      if (payload.chips) {
+        setChips(payload.chips);
+      }
+
+      const newMessages: ChatMessage[] = [];
+      const timestamp = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+
+      if (payload.userMessage) {
+        newMessages.push({
+          id: `restored-user-${Date.now()}`,
+          role: "user",
+          content: payload.userMessage,
+          timestamp,
+        });
+      }
+
+      if (payload.assistantMessage) {
+        newMessages.push({
+          id: `restored-assistant-${Date.now()}`,
+          role: "assistant",
+          content: payload.assistantMessage,
+          timestamp,
+        });
+      }
+
+      setMessages(newMessages);
+      setThoughts([]);
+      setError(null);
+      setIsStreaming(false);
+      setIsThinking(false);
+    },
+    [stopStream]
+  );
+
   return {
     messages,
     thoughts,
@@ -370,5 +420,6 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     error,
     sendMessage,
     stopStream,
+    restoreSharedTrip,
   };
 }
