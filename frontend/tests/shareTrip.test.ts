@@ -4,6 +4,7 @@ import {
   buildShareTripUrl,
   decodeTripState,
   encodeTripState,
+  extractTripToken,
   toCompactHotelSnapshot,
   TripShareState,
 } from "../src/features/share-trip";
@@ -53,19 +54,27 @@ describe("Share Trip Deep-Link Serialization & Deserialization", () => {
     expect(decodeTripState("eyJuYW1lIjogIjEyMyJ9_corrupt")).toBeNull();
   });
 
-  it("builds canonical share url with ?trip= parameter", () => {
+  it("builds canonical share url with #trip= fragment to prevent HTTP 431 errors", () => {
     const state: TripShareState = {
       city: "Сочи",
       guests: 3,
     };
 
     const url = buildShareTripUrl(state, "https://ostrovok.tech/chat");
-    expect(url).toContain("https://ostrovok.tech/chat?trip=");
+    expect(url).toContain("https://ostrovok.tech/chat#trip=");
 
-    const token = url.split("?trip=")[1];
+    const token = url.split("#trip=")[1];
     const decoded = decodeTripState(token);
     expect(decoded?.city).toBe("Сочи");
     expect(decoded?.guests).toBe(3);
+  });
+
+  it("extracts trip token from search parameters or hash fragment", () => {
+    expect(extractTripToken("?trip=search_token_123", "")).toBe("search_token_123");
+    expect(extractTripToken("", "#trip=hash_token_456")).toBe("hash_token_456");
+    // Hash takes precedence over query for client-side routing
+    expect(extractTripToken("?trip=search_token", "#trip=hash_token")).toBe("hash_token");
+    expect(extractTripToken("", "")).toBeNull();
   });
 
   it("compacts hotel data stripping heavy reviews and keeping essential booking details", () => {
@@ -96,7 +105,7 @@ describe("Share Trip Deep-Link Serialization & Deserialization", () => {
       receipt: {
         nights: 2,
         price_per_night_rub: 18500,
-        base_cost_rub: 37000,
+        base_accommodation_cost_rub: 37000,
         pet_deposit_rub: 0,
         resort_tax_rub: 200,
         total_rub: 37200,
@@ -113,7 +122,7 @@ describe("Share Trip Deep-Link Serialization & Deserialization", () => {
     expect(compact.tags).toHaveLength(4);
     expect(compact.receipt?.total_rub).toBe(37200);
     // Reviews are stripped for lightweight URL size
-    expect((compact as Record<string, unknown>).reviews).toBeUndefined();
+    expect((compact as unknown as Record<string, unknown>).reviews).toBeUndefined();
   });
 
   it("encodes and restores shared trip state with hotels and assistant summary", () => {

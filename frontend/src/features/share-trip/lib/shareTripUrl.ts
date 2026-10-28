@@ -36,6 +36,20 @@ export function decodeTripState(token: string): TripShareState | null {
   }
 }
 
+export function extractTripToken(search?: string, hash?: string): string | null {
+  if (hash) {
+    const cleanHash = hash.startsWith("#") ? hash.slice(1) : hash;
+    const fromHash = new URLSearchParams(cleanHash).get("trip");
+    if (fromHash) return fromHash;
+  }
+  if (search) {
+    const cleanSearch = search.startsWith("?") ? search.slice(1) : search;
+    const fromSearch = new URLSearchParams(cleanSearch).get("trip");
+    if (fromSearch) return fromSearch;
+  }
+  return null;
+}
+
 export function buildShareTripUrl(state: TripShareState, origin?: string): string {
   const token = encodeTripState(state);
   let base = origin;
@@ -46,6 +60,6 @@ export function buildShareTripUrl(state: TripShareState, origin?: string): strin
       base = "/";
     }
   }
-  const separator = base.includes("?") ? "&" : "?";
-  return `${base}${separator}trip=${token}`;
+  const cleanBase = base.split("#")[0];
+  return `${cleanBase}#trip=${token}`;
 }

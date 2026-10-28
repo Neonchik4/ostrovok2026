@@ -3,7 +3,12 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { MobileBottomSheet, MobileFloatingBar } from "@/features/mobile-bottom-sheet";
-import { decodeTripState, ShareTripButton, toCompactHotelSnapshot } from "@/features/share-trip";
+import {
+  decodeTripState,
+  extractTripToken,
+  ShareTripButton,
+  toCompactHotelSnapshot,
+} from "@/features/share-trip";
 import { HotelData, useChatStream } from "@/shared/api";
 import { AppHeader } from "@/widgets/AppHeader";
 import { ChatAgent } from "@/widgets/ChatAgent";
@@ -28,13 +33,12 @@ export default function HomePage() {
   const [restoredHotelId, setRestoredHotelId] = useState<string | null>(null);
   const hasRestoredRef = useRef(false);
 
-  // Восстановление контекста поездки из URL (?trip=...) без повторного расчета
+  // Восстановление контекста поездки из URL (#trip=... или ?trip=...) без повторного расчета
   useEffect(() => {
     if (hasRestoredRef.current) return;
     if (typeof window === "undefined") return;
 
-    const params = new URLSearchParams(window.location.search);
-    const tripToken = params.get("trip");
+    const tripToken = extractTripToken(window.location.search, window.location.hash);
     if (!tripToken) return;
 
     const state = decodeTripState(tripToken);
@@ -61,9 +65,36 @@ export default function HomePage() {
       return;
     }
 
+    // Если передан список ID отелей — загружаем их параллельно без вызова LLM
+    if (state.hotel_ids && state.hotel_ids.length > 0) {
+      void Promise.all(
+        state.hotel_ids.map((id) =>
+          fetch(`/api/hotels/${encodeURIComponent(id)}`)
+            .then((res) => (res.ok ? res.json() : null))
+            .catch(() => null)
+        )
+      )
+        .then((loadedHotels) => {
+          const validHotels = loadedHotels.filter(Boolean) as HotelData[];
+          if (validHotels.length > 0) {
+            const topHotel = validHotels[0];
+            restoreSharedTrip({
+              hotels: validHotels,
+              userMessage: state.user_message || `Отели в ${state.city || topHotel.city}`,
+              assistantMessage:
+                state.assistant_message ||
+                `Вот готовая поездка, сохраненная для вас: ${topHotel.name} (${topHotel.city}).`,
+              transportSummary: state.transport_summary,
+            });
+          }
+        })
+        .catch(() => {});
+      return;
+    }
+
     // Если передан только ID отеля — загружаем его статически без вызова LLM
     if (state.selected_hotel_id) {
-      fetch(`/api/hotels/${encodeURIComponent(state.selected_hotel_id)}`)
+      void fetch(`/api/hotels/${encodeURIComponent(state.selected_hotel_id)}`)
         .then((res) => (res.ok ? res.json() : null))
         .then((hotel) => {
           if (hotel) {
@@ -112,16 +143,18 @@ export default function HomePage() {
               state={{
                 city: hotels[0]?.city,
                 selected_hotel_id: restoredHotelId || hotels[0]?.id,
+                hotel_ids: hotels.map((h) => h.id),
                 nights: hotels[0]?.receipt?.nights,
                 guests: hotels[0]?.receipt?.tickets_count,
                 user_message:
                   messages.find((m) => m.role === "user")?.content ||
                   (hotels[0] ? `Поездка в ${hotels[0].city}` : undefined),
                 assistant_message:
-                  messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content ||
-                  (hotels[0]
-                    ? `Вот готовая подборка отелей в ${hotels[0].city}: лучший вариант — ${hotels[0].name}.`
-                    : undefined),
+                  messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content
+                    ? messages.filter((m) => m.role === "assistant").slice(-1)[0]?.content.slice(0, 400)
+                    : (hotels[0]
+                      ? `Вот готовая подборка отелей в ${hotels[0].city}: лучший вариант — ${hotels[0].name}.`
+                      : undefined),
                 hotels: hotels.slice(0, 5).map(toCompactHotelSnapshot),
                 transport_summary: transportSummary,
               }}

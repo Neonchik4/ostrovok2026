@@ -59,6 +59,7 @@ export interface TripShareState {
   stars?: number;
   max_price_per_night_rub?: number;
   selected_hotel_id?: string;
+  hotel_ids?: string[];
   pet_friendly?: boolean;
   heated_pool?: boolean;
   spa?: boolean;

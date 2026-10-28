@@ -64,7 +64,7 @@ export function ShareTripButton({
     if (typeof window !== "undefined" && window.history && targetUrl) {
       try {
         const urlObj = new URL(targetUrl, window.location.origin);
-        window.history.replaceState(null, "", `${urlObj.pathname}${urlObj.search}`);
+        window.history.replaceState(null, "", `${urlObj.pathname}${urlObj.search}${urlObj.hash}`);
       } catch {
         // Safe fallback
       }

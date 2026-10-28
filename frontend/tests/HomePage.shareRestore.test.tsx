@@ -102,4 +102,48 @@ describe("HomePage Shared Trip Restoration without recalculating", () => {
     // Crucially: sendMessage MUST NOT be called (no LLM streaming or recalculation)
     expect(mockSendMessage).not.toHaveBeenCalled();
   });
+
+  it("restores hotels and messages directly from URL hash fragment (#trip=...) without recalculating", () => {
+    const tripState: TripShareState = {
+      city: "Шерегеш",
+      nights: 3,
+      guests: 2,
+      selected_hotel_id: "hotel_alpen_hoff",
+      user_message: "Хочу в Шерегеш на лыжи",
+      assistant_message: "Вот сохраненный отель Альпенхоф в Шерегеше.",
+      hotels: [
+        {
+          id: "hotel_alpen_hoff",
+          name: "Отель Альпенхоф",
+          city: "Шерегеш",
+          stars: 4,
+          rating: 9.4,
+          reviews_count: 21,
+          match_score_pct: 92,
+          min_price_per_night_rub: 16699,
+          image_urls: ["/hotels/sheregesh/alpen.jpg"],
+        },
+      ],
+    };
+
+    const token = encodeTripState(tripState);
+    Object.defineProperty(window, "location", {
+      value: new URL(`https://ostrovok.tech/#trip=${token}`),
+      writable: true,
+    });
+
+    render(<HomePage />);
+
+    expect(mockRestoreSharedTrip).toHaveBeenCalledTimes(1);
+    expect(mockRestoreSharedTrip).toHaveBeenCalledWith(
+      expect.objectContaining({
+        hotels: expect.arrayContaining([
+          expect.objectContaining({ id: "hotel_alpen_hoff", name: "Отель Альпенхоф" }),
+        ]),
+        userMessage: "Хочу в Шерегеш на лыжи",
+        assistantMessage: "Вот сохраненный отель Альпенхоф в Шерегеше.",
+      })
+    );
+    expect(mockSendMessage).not.toHaveBeenCalled();
+  });
 });

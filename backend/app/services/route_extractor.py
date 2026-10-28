@@ -203,6 +203,8 @@ def extract_trip_dates(text: str) -> tuple[str | None, int | None]:
         return (now + timedelta(days=2)).strftime("%Y-%m-%d"), None
 
     # 1. Диапазон числовых дат (например: 'с 25.11 по 01.12', '25.11 - 01.12')
+    m1: int | None = None
+    m2: int | None = None
     num_matches = list(re.finditer(r"\b(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\b", lower))
     if len(num_matches) >= 2:
         d1, m1 = int(num_matches[0].group(1)), int(num_matches[0].group(2))
@@ -246,21 +248,22 @@ def extract_trip_dates(text: str) -> tuple[str | None, int | None]:
         m_yr = re.search(r"\b(202[5-9]|203[0-9])\b", lower)
         y_text = opt_y or (int(m_yr.group(1)) if m_yr else None)
         y2 = y_text or (now.year if (m2 and m2 >= now.month) else now.year + 1)
-        if d1 <= d_last:
-            m1, y1 = m2, y2
-        else:
-            if m2 == 1:
-                m1, y1 = 12, y2 - 1
+        if m2 is not None:
+            if d1 <= d_last:
+                m1, y1 = m2, y2
             else:
-                m1, y1 = m2 - 1, y2
-        if m1 and m2 and 1 <= d1 <= 31 and 1 <= d_last <= 31:
-            try:
-                dt1 = datetime(y1, m1, d1, tzinfo=UTC)
-                dt2 = datetime(y2, m2, d_last, tzinfo=UTC)
-                if dt2 > dt1:
-                    return dt1.strftime("%Y-%m-%d"), (dt2 - dt1).days
-            except ValueError:
-                pass
+                if m2 == 1:
+                    m1, y1 = 12, y2 - 1
+                else:
+                    m1, y1 = m2 - 1, y2
+            if m1 and 1 <= d1 <= 31 and 1 <= d_last <= 31:
+                try:
+                    dt1 = datetime(y1, m1, d1, tzinfo=UTC)
+                    dt2 = datetime(y2, m2, d_last, tzinfo=UTC)
+                    if dt2 > dt1:
+                        return dt1.strftime("%Y-%m-%d"), (dt2 - dt1).days
+                except ValueError:
+                    pass
 
     # 3. Диапазон с явным месяцем у конца: 'с 10 по 15 июля', 'с 25 по 1 декабря', 'с 28 по 5 марта'
     m_range_short = re.search(
@@ -275,24 +278,25 @@ def extract_trip_dates(text: str) -> tuple[str | None, int | None]:
         m_yr = re.search(r"\b(202[5-9]|203[0-9])\b", lower)
         y_text = opt_y or (int(m_yr.group(1)) if m_yr else None)
         y2 = y_text or (now.year if (m2 and m2 >= now.month) else now.year + 1)
-        if d1 <= d2:
-            m1 = m2
-            y1 = y2
-        else:
-            if m2 == 1:
-                m1 = 12
-                y1 = y2 - 1
-            else:
-                m1 = m2 - 1
+        if m2 is not None:
+            if d1 <= d2:
+                m1 = m2
                 y1 = y2
-        if m1 and m2 and 1 <= d1 <= 31 and 1 <= d2 <= 31:
-            try:
-                dt1 = datetime(y1, m1, d1, tzinfo=UTC)
-                dt2 = datetime(y2, m2, d2, tzinfo=UTC)
-                if dt2 > dt1:
-                    return dt1.strftime("%Y-%m-%d"), (dt2 - dt1).days
-            except ValueError:
-                pass
+            else:
+                if m2 == 1:
+                    m1 = 12
+                    y1 = y2 - 1
+                else:
+                    m1 = m2 - 1
+                    y1 = y2
+            if m1 and 1 <= d1 <= 31 and 1 <= d2 <= 31:
+                try:
+                    dt1 = datetime(y1, m1, d1, tzinfo=UTC)
+                    dt2 = datetime(y2, m2, d2, tzinfo=UTC)
+                    if dt2 > dt1:
+                        return dt1.strftime("%Y-%m-%d"), (dt2 - dt1).days
+                except ValueError:
+                    pass
 
     # 4. Поиск всех вхождений 'число месяц [год]' в тексте (например: 'с 25 ноября по 1 декабря', 'с 30 декабря по 5 января 2027')
     date_matches = list(re.finditer(rf"\b(\d{{1,2}})\s+({_MONTH_PAT})(?:\s+(\d{{4}}))?", lower))
