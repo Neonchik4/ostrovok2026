@@ -12,7 +12,7 @@ action_service = LiveActionService()
 
 class ActRequest(BaseModel):
     query: str = Field(description="Текстовый или расшифрованный голосовой запрос пользователя")
-    persona: str | None = Field(default=None, description="Желаемая персона: bro | assistant | concierge")
+    persona: str | None = Field(default=None, description="Желаемая персона: bro | assistant | luxury")
     current_url: str | None = Field(default=None, description="Текущий адрес страницы поиска")
     available_filters: list[str] | None = Field(default=None, description="Список доступных фильтров на странице")
     page_type: str | None = Field(default=None, description="Тип текущей страницы (SERP, HOTEL_DETAIL, HOME)")

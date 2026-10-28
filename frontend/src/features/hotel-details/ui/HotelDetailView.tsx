@@ -2,7 +2,6 @@
 
 import {
   AlertCircle,
-  ArrowLeft,
   Clock,
   ExternalLink,
   MapPin,
@@ -69,32 +68,9 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
   return (
     <article
       data-testid="hotel-detail-view"
-      className="mx-auto flex w-full max-w-5xl flex-col space-y-6 pb-12 animate-fade-in"
+      className="mx-auto flex w-full max-w-7xl flex-col space-y-6 pb-12 animate-fade-in"
     >
-      {/* Навигационная панель назад */}
-      <div className="flex items-center justify-between border-b border-border pb-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onBack}
-          className="group flex items-center gap-2 rounded-xl border-border bg-card px-4 py-2 text-sm font-bold text-foreground transition-all hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
-          <span>Назад к вариантам</span>
-        </Button>
-
-        <a
-          href={bookingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-primary px-4 text-xs font-bold text-primary-foreground shadow-md transition-all hover:scale-105 active:scale-95"
-        >
-          <span>Забронировать на Ostrovok.ru</span>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      </div>
-
-      {/* Заголовок отеля, локация и звездность */}
+      {/* Локация, звездность и адрес (название — в шапке витрины) */}
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
@@ -118,10 +94,6 @@ export function HotelDetailView({ hotel, transport, onBack }: HotelDetailViewPro
             <span>Компромисс: {detailedHotel.compromise_note}</span>
           </div>
         )}
-
-        <h1 className="text-2xl font-black tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-          {detailedHotel.name}
-        </h1>
 
         {detailedHotel.address && (
           <p className="text-xs text-muted-foreground sm:text-sm">{detailedHotel.address}</p>

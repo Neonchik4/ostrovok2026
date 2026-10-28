@@ -13,7 +13,7 @@ import { Button, Input } from "@/shared/ui";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { useChatAutoScroll } from "./useChatAutoScroll";
 
-interface ChatConciergeProps {
+interface ChatAgentProps {
   messages: Message[];
   thoughts: Thought[];
   chips: string[];
@@ -23,7 +23,7 @@ interface ChatConciergeProps {
   onStopStream: () => void;
 }
 
-export function ChatConcierge({
+export function ChatAgent({
   messages,
   thoughts,
   chips,
@@ -31,7 +31,7 @@ export function ChatConcierge({
   isThinking,
   onSendMessage,
   onStopStream,
-}: ChatConciergeProps) {
+}: ChatAgentProps) {
   const [inputVal, setInputVal] = useState("");
   const [interimSpeech, setInterimSpeech] = useState("");
   const [isListeningVoice, setIsListeningVoice] = useState(false);

@@ -9,7 +9,7 @@ from app.schemas.hotel_models import (
 )
 from app.services.hotel_filters import matches_scalar_filters
 from app.services.response_generator import (
-    build_deterministic_concierge_response,
+    build_deterministic_agent_response,
     get_missing_clarifying_questions,
 )
 from app.services.route_extractor import extract_depart_date
@@ -159,7 +159,7 @@ def test_response_generator_handles_user_dispute():
 
     affordable_hotel = _create_hotel("h_aff", "Отель Lido Central", 9013, stars=3)
 
-    response = build_deterministic_concierge_response(
+    response = build_deterministic_agent_response(
         "почему я пишу бюджет 67000р а ты предлагаешь под ключ за 82000р?",
         slots,
         [affordable_hotel],

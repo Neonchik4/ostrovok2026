@@ -48,7 +48,7 @@ export function ActionBar({
       {/* Лейбл ассистента */}
       <div className="hidden items-center gap-2 pr-2 text-xs font-bold text-primary sm:flex">
         <Sparkles className="h-4 w-4" />
-        <span className="whitespace-nowrap">AI Консьерж</span>
+        <span className="whitespace-nowrap">AI Агент</span>
       </div>
 
       {/* Быстрые чипсы действий */}

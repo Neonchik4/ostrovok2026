@@ -117,16 +117,16 @@ def test_slot_merging_resets_on_explicit_city_switch():
     assert merged.stars is None
     assert merged.free_cancellation is None
 
-def test_deterministic_concierge_response_mentions_hotels():
+def test_deterministic_agent_response_mentions_hotels():
     from app.schemas.chat import ExtractedSlots
-    from app.services.llm_cascade import _build_deterministic_concierge_response
+    from app.services.llm_cascade import _build_deterministic_agent_response
 
     slots = ExtractedSlots(city="Москва", stars=5, free_cancellation=True)
     hotels = [
         type("H", (), {"name": "Классик Спа 119", "city": "Москва", "stars": 5})(),
         type("H", (), {"name": "Арт Лодж 133", "city": "Москва", "stars": 5})(),
     ]
-    resp = _build_deterministic_concierge_response("5 звезд", slots, hotels)
+    resp = _build_deterministic_agent_response("5 звезд", slots, hotels)
     assert "Москва" in resp
     assert "«Классик Спа 119»" in resp
     assert "бесплатной отмены" in resp

@@ -12,9 +12,9 @@ LLM Cascade Facade Service.
 
 from .llm_client import get_cascade_models
 from .response_generator import (
-    SYSTEM_CONCIERGE_PROMPT,
-    build_deterministic_concierge_response,
-    generate_concierge_response_stream,
+    SYSTEM_AGENT_PROMPT,
+    build_deterministic_agent_response,
+    generate_agent_response_stream,
 )
 from .slot_extractor import (
     SYSTEM_EXTRACTOR_PROMPT,
@@ -35,25 +35,25 @@ _mock_extract_slots = mock_extract_slots
 _sanitize_chips = sanitize_chips
 _default_chips = default_chips
 _build_deterministic_reasoning = build_deterministic_reasoning
-_build_deterministic_concierge_response = build_deterministic_concierge_response
+_build_deterministic_agent_response = build_deterministic_agent_response
 
 __all__ = [
     "extract_slots_cascade",
     "think_stream",
-    "generate_concierge_response_stream",
+    "generate_agent_response_stream",
     "get_cascade_models",
     "mock_extract_slots",
     "sanitize_chips",
     "default_chips",
     "build_deterministic_reasoning",
-    "build_deterministic_concierge_response",
+    "build_deterministic_agent_response",
     "SYSTEM_EXTRACTOR_PROMPT",
     "SYSTEM_THINKING_PROMPT",
-    "SYSTEM_CONCIERGE_PROMPT",
+    "SYSTEM_AGENT_PROMPT",
     "_get_cascade_models",
     "_mock_extract_slots",
     "_sanitize_chips",
     "_default_chips",
     "_build_deterministic_reasoning",
-    "_build_deterministic_concierge_response",
+    "_build_deterministic_agent_response",
 ]

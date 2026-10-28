@@ -14,7 +14,7 @@
 ## 2. Архитектура Feature-Sliced Design (FSD)
 * Строгая иерархия слоев:
   1. `app/` — корневая инициализация, роутинг, глобальные стили (`globals.css`).
-  2. `widgets/` — самостоятельные крупные блоки (`ChatConcierge`, `HotelCanvas`).
+  2. `widgets/` — самостоятельные крупные блоки (`ChatAgent`, `HotelCanvas`).
   3. `features/` — интерактивные сценарии (`voice-input`, `quick-chips`, `hotel-details`).
   4. `entities/` — бизнес-сущности (`hotel`, `message`, `thought`).
   5. `shared/` — переиспользуемые UI-примитивы, API-клиенты, утилиты.

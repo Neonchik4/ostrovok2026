@@ -3,7 +3,7 @@ from tests.fixtures.synthetic_hotels import get_synthetic_test_hotels
 
 from app.schemas.chat import ExtractedSlots
 from app.services.hotel_filters import build_hotel_card
-from app.services.response_generator import build_deterministic_concierge_response
+from app.services.response_generator import build_deterministic_agent_response
 from app.services.session_memory import merge_slots
 from app.services.slot_extractor import mock_extract_slots
 from app.services.tag_reviews import build_hotel_review_summary
@@ -67,7 +67,7 @@ def test_multi_turn_preserves_city_on_review_inquiry():
     assert merged.is_review_inquiry is True
 
 
-def test_concierge_response_for_review_inquiry():
+def test_agent_response_for_review_inquiry():
     dataset = get_hotels_dataset() or get_synthetic_test_hotels()
     assert len(dataset) > 0
     hotel = dataset[0]
@@ -82,7 +82,7 @@ def test_concierge_response_for_review_inquiry():
     assert card.review_summary is not None
     assert card.review_summary.rating > 0
 
-    response = build_deterministic_concierge_response("чё по отзывам?", slots, [card])
+    response = build_deterministic_agent_response("чё по отзывам?", slots, [card])
     assert f"«{card.name}»" in response
     assert "плюсы" in response.lower()
     assert "минусы" in response.lower()

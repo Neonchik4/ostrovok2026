@@ -53,7 +53,8 @@ describe("HotelDetailView (Frontend 1)", () => {
     });
 
     expect(screen.getByTestId("hotel-detail-view")).toBeInTheDocument();
-    expect(screen.getByText("Марриотт Красдар")).toBeInTheDocument();
+    // Название уже крупно в шапке витрины — в самой карточке его нет
+    expect(screen.queryByRole("heading", { name: "Марриотт Красдар" })).not.toBeInTheDocument();
     expect(screen.getByText(/ул. Красная, 120/)).toBeInTheDocument();
     expect(screen.queryByText(/% совпадение/)).not.toBeInTheDocument();
     expect(screen.getByText("Доступные номера и тарифы")).toBeInTheDocument();
@@ -64,13 +65,14 @@ describe("HotelDetailView (Frontend 1)", () => {
     expect(screen.getByText("Алексей")).toBeInTheDocument();
   });
 
-  it("calls onBack when 'Назад к вариантам' button is clicked", async () => {
+  it("has no top back/booking bar and calls onBack from the bottom bar", async () => {
     const handleBack = vi.fn();
     await act(async () => {
       render(<HotelDetailView hotel={mockHotel} onBack={handleBack} />);
     });
 
-    const backButton = screen.getByRole("button", { name: /Назад к вариантам/i });
+    expect(screen.queryByRole("button", { name: /Назад к вариантам/i })).not.toBeInTheDocument();
+    const backButton = screen.getByRole("button", { name: /Назад к списку/i });
     fireEvent.click(backButton);
 
     expect(handleBack).toHaveBeenCalledTimes(1);
@@ -82,7 +84,7 @@ describe("HotelDetailView (Frontend 1)", () => {
     });
 
     const bookingLinks = screen.getAllByRole("link", { name: /Забронировать на Ostrovok.ru/i });
-    expect(bookingLinks.length).toBeGreaterThanOrEqual(1);
+    expect(bookingLinks).toHaveLength(1);
     expect(bookingLinks[0]).toHaveAttribute("href", expect.stringContaining("https://ostrovok.ru/hotel/russia/?q="));
     expect(bookingLinks[0]).toHaveAttribute("target", "_blank");
   });

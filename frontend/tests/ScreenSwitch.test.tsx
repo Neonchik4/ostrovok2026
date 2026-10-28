@@ -13,7 +13,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, prefetch: vi.fn() }),
 }));
 
-describe("ScreenSwitch (переключатель AI Консьерж <-> Каталог Островка)", () => {
+describe("ScreenSwitch (переключатель AI Агент <-> Каталог Островка)", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     push.mockClear();
@@ -36,7 +36,7 @@ describe("ScreenSwitch (переключатель AI Консьерж <-> Ка�
 
   it("renders page labels on both sides of the toggle", () => {
     render(<ScreenSwitch />);
-    const left = screen.getByRole("button", { name: "AI Консьерж" });
+    const left = screen.getByRole("button", { name: "AI Агент" });
     const toggle = screen.getByRole("switch");
     const right = screen.getByRole("button", { name: "Каталог Островка" });
 
@@ -81,7 +81,7 @@ describe("ScreenSwitch (переключатель AI Консьерж <-> Ка�
 
   it("clicking the active label does nothing", () => {
     render(<ScreenSwitch />);
-    fireEvent.click(screen.getByRole("button", { name: "AI Консьерж" }));
+    fireEvent.click(screen.getByRole("button", { name: "AI Агент" }));
     act(() => {
       vi.advanceTimersByTime(GHOST_TOGGLE_DURATION);
     });

@@ -120,7 +120,7 @@ export function GhostAgent({
 
   const handleGhostClick = () => {
     setMood("happy");
-    setSpeechText("Я ваш интерактивный AI-консьерж Островка!");
+    setSpeechText("Я ваш интерактивный AI-агент Островка!");
     setTimeout(() => setMood("idle"), 1500);
   };
 

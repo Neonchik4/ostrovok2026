@@ -1,9 +1,9 @@
 import React from "react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
-import { ChatConcierge } from "@/widgets/ChatConcierge";
+import { ChatAgent } from "@/widgets/ChatAgent";
 
-describe("ChatConcierge input behavior with voice listening", () => {
+describe("ChatAgent input behavior with voice listening", () => {
   beforeEach(() => {
     vi.useFakeTimers();
   });
@@ -14,7 +14,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
 
   it("renders input as enabled when not listening and not streaming", () => {
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}
@@ -48,7 +48,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
     const sendMessageMock = vi.fn();
 
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}
@@ -93,7 +93,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
       MockSpeechRecognition;
 
     const { rerender } = render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}
@@ -111,7 +111,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
     // Имитируем начало стриминга ответа
     act(() => {
       rerender(
-        <ChatConcierge
+        <ChatAgent
           messages={[]}
           thoughts={[]}
           chips={[]}
@@ -150,7 +150,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
     const sendMessageMock = vi.fn();
 
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}
@@ -215,7 +215,7 @@ describe("ChatConcierge input behavior with voice listening", () => {
     const sendMessageMock = vi.fn();
 
     render(
-      <ChatConcierge
+      <ChatAgent
         messages={[]}
         thoughts={[]}
         chips={[]}
