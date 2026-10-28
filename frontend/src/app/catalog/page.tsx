@@ -3,7 +3,13 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { GhostAction, GhostAgent } from "@/features/ghost-agent";
-import { useChatStream } from "@/shared/api";
+import {
+  decodeTripState,
+  extractTripToken,
+  ShareTripButton,
+  toCompactHotelSnapshot,
+} from "@/features/share-trip";
+import { HotelData, useChatStream } from "@/shared/api";
 import { AppHeader } from "@/widgets/AppHeader";
 import { ClassicSerp, FilterState } from "@/widgets/ClassicSerp";
 
@@ -28,7 +34,9 @@ export default function CatalogPage() {
     transportSummary,
     thoughts,
     isStreaming,
+    isRestoringCache,
     sendMessage,
+    restoreSharedTrip,
   } = useChatStream();
 
   const currentThought =
@@ -39,12 +47,29 @@ export default function CatalogPage() {
 
   const hasLoadedInitialRef = useRef(false);
   useEffect(() => {
-    if (hasLoadedInitialRef.current) return;
+    // Ждём кэш сессии: иначе запрос по умолчанию затрёт уже найденные отели
+    if (hasLoadedInitialRef.current || isRestoringCache) return;
+
+    // Ссылка «Поделиться» (#trip=...) восстанавливает подборку без повторного запроса
+    const tripToken = extractTripToken(window.location.search, window.location.hash);
+    const sharedTrip = tripToken ? decodeTripState(tripToken) : null;
+    if (sharedTrip?.hotels && sharedTrip.hotels.length > 0) {
+      hasLoadedInitialRef.current = true;
+      restoreSharedTrip({
+        hotels: sharedTrip.hotels as HotelData[],
+        userMessage: sharedTrip.user_message,
+        assistantMessage: sharedTrip.assistant_message,
+        transportSummary: sharedTrip.transport_summary,
+      });
+      setHighlightedHotelId(sharedTrip.selected_hotel_id ?? null);
+      return;
+    }
+
     if (hotels.length === 0 && !isStreaming) {
       hasLoadedInitialRef.current = true;
       void sendMessage("Популярные отели в Сочи и на Красной Поляне");
     }
-  }, [hotels.length, isStreaming, sendMessage]);
+  }, [hotels.length, isStreaming, isRestoringCache, sendMessage, restoreSharedTrip]);
 
   const handleGhostAction = (action: GhostAction) => {
     switch (action.type) {
@@ -88,7 +113,26 @@ export default function CatalogPage() {
   return (
     <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background">
       {/* Единая шапка с переключателем экранов */}
-      <AppHeader title="Каталог Островка" />
+      <AppHeader
+        title="Каталог Островка"
+        action={
+          hotels.length > 0 ? (
+            <ShareTripButton
+              state={{
+                city: hotels[0].city,
+                selected_hotel_id: highlightedHotelId ?? undefined,
+                hotel_ids: hotels.map((h) => h.id),
+                user_message: messages.find((m) => m.role === "user")?.content,
+                assistant_message: lastAssistantMessage?.slice(0, 400),
+                hotels: hotels.slice(0, 5).map(toCompactHotelSnapshot),
+                transport_summary: transportSummary,
+              }}
+              label="Поделиться"
+              size="sm"
+            />
+          ) : undefined
+        }
+      />
 
       {/* 3-колоночный симулятор Островка (Фильтры + Список + Карта) */}
       <div className="flex-1 min-h-0 overflow-hidden">

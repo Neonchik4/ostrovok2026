@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback,useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { appendLlmUsage, LlmRequestMeta, LlmUsagePayload } from "./llmUsageStore";
 import { readSSEStream } from "./sseReader";
@@ -197,11 +197,12 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [thoughts, setThoughts] = useState<ThoughtItem[]>([]);
-  const [hotels, setHotels] = useState<HotelData[]>(() => getCachedHotels());
+  const [hotels, setHotels] = useState<HotelData[]>([]);
   const [chips, setChips] = useState<string[]>([]);
-  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(() =>
-    getCachedTransport()
-  );
+  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(null);
+  // Кэш sessionStorage недоступен на сервере: читаем его после монтирования,
+  // иначе первый клиентский рендер расходится с SSR (hydration error)
+  const [isRestoringCache, setIsRestoringCache] = useState(true);
   const [offlineMode, setOfflineMode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -213,6 +214,15 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
   if (!conversationIdRef.current) {
     conversationIdRef.current = `conv_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   }
+
+  useEffect(() => {
+    const cachedHotels = getCachedHotels();
+    const cachedTransport = getCachedTransport();
+    // Не перетираем данные, если их уже успели выставить (например, восстановление по ссылке)
+    setHotels((prev) => (prev.length > 0 ? prev : cachedHotels));
+    setTransportSummary((prev) => prev ?? cachedTransport);
+    setIsRestoringCache(false);
+  }, []);
 
   const stopStream = useCallback(() => {
     isSubmittingRef.current = false;
@@ -472,6 +482,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     offlineMode,
     isStreaming,
     isThinking,
+    isRestoringCache,
     error,
     sendMessage,
     stopStream,

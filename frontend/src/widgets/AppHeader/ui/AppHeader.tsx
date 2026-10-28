@@ -7,6 +7,9 @@ import { Logo } from "@/shared/ui";
 
 import { StudioLink } from "./StudioLink";
 
+/** Заголовки всех экранов с шапкой: под самый длинный резервируется ширина. */
+const SCREEN_TITLES = ["Агент Островка", "Каталог Островка"];
+
 interface AppHeaderProps {
   /** Статус текущего экрана рядом с логотипом. */
   title: string;
@@ -22,7 +25,20 @@ export function AppHeader({ title, offlineNotice, action }: AppHeaderProps) {
     <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-card/80 px-6 backdrop-blur-md">
       <div className="flex items-center gap-3">
         <Logo variant="mark" size={32} className="rounded-lg shadow-md" />
-        <h2 className="text-base font-bold text-foreground">{title}</h2>
+        {/* Все заголовки в одной ячейке grid: соседние кнопки не прыгают при смене экрана */}
+        <div className="grid">
+          {SCREEN_TITLES.map((screenTitle) => (
+            <span
+              key={screenTitle}
+              aria-hidden="true"
+              data-reserve-title={screenTitle}
+              className="invisible col-start-1 row-start-1 whitespace-nowrap text-base font-bold after:content-[attr(data-reserve-title)]"
+            />
+          ))}
+          <h2 className="col-start-1 row-start-1 whitespace-nowrap text-base font-bold text-foreground">
+            {title}
+          </h2>
+        </div>
         <StudioLink />
         <RequestCostButton />
         <OfflineModeBadge message={offlineNotice} />
