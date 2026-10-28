@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 
+import { emitScreenSwitch } from "@/shared/lib";
 import { cn } from "@/shared/lib/utils";
 import { GHOST_TOGGLE_DURATION, GhostToggle } from "@/shared/ui";
 
@@ -39,6 +40,7 @@ export function ScreenSwitch() {
   const switchTo = (toCatalog: boolean) => {
     if (pendingRef.current || toCatalog === isCatalog) return;
     setIsCatalog(toCatalog);
+    emitScreenSwitch({ to: toCatalog ? "catalog" : "concierge", duration: GHOST_TOGGLE_DURATION });
     pendingRef.current = setTimeout(() => {
       pendingRef.current = null;
       router.push(toCatalog ? CATALOG_PATH : CONCIERGE_PATH);
@@ -63,6 +65,8 @@ export function ScreenSwitch() {
       </button>
       <GhostToggle
         checked={isCatalog}
+        // На каталоге призрак живёт в углу страницы (Ghost-агент) и сам прилетает обратно в тумблер
+        hideKnob={pathname === CATALOG_PATH}
         onCheckedChange={switchTo}
         aria-label="Переключить экран: AI Консьерж или Каталог Островка"
       />

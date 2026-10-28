@@ -52,7 +52,14 @@
   width: 38px;
   height: 40px;
   transform: translateX(-3px);
-  transition: transform var(--gt-dur) var(--gt-ease);
+  transition:
+    transform var(--gt-dur) var(--gt-ease),
+    opacity 150ms ease;
+}
+
+/* Призрак вылетел из тумблера на страницу — в треке остаётся пустое место */
+.toggle[data-knob="hidden"] .knob {
+  opacity: 0;
 }
 
 .isOn .knob {

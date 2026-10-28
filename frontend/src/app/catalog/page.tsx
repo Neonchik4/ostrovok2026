@@ -8,9 +8,6 @@ import { AppHeader } from "@/widgets/AppHeader";
 import { ClassicSerp, FilterState } from "@/widgets/ClassicSerp";
 
 const initialCatalogFilters: FilterState = {
-  checkInDate: "2026-10-26",
-  checkOutDate: "2026-10-29",
-  guests: 2,
   sort: "match",
   breakfast: false,
   pool: false,
@@ -92,7 +89,7 @@ export default function CatalogPage() {
         />
       </div>
 
-      {/* Интерактивный Ghost-агент: аватар, Action Bar и ThoughtLog */}
+      {/* Плавающий Ghost-агент: призрак в углу и компактный чат поверх карты */}
       <GhostAgent
         onAction={handleGhostAction}
         onSendPrompt={(prompt) => void sendMessage(prompt)}

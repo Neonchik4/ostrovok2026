@@ -1,12 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
-import {
-  parseGhostIntent,
-  ThoughtLog,
-  ActionBar,
-  GhostAgent,
-  ThoughtStep,
-} from "@/features/ghost-agent";
+import { act, render, screen, fireEvent, within } from "@testing-library/react";
+import { GhostAgent, parseGhostIntent } from "@/features/ghost-agent";
+import { emitScreenSwitch } from "@/shared/lib";
 
 describe("Ghost Agent & Intent Router (Frontend 2)", () => {
   it("parses price filter intent accurately", () => {
@@ -75,75 +70,139 @@ describe("Ghost Agent & Intent Router (Frontend 2)", () => {
     expect(res.action?.text).toBe("романтический уикенд с видом на горы");
   });
 
-  it("renders ThoughtLog with structured steps and tag badges", () => {
-    const steps: ThoughtStep[] = [
-      { id: "1", tag: "intent", text: "Распознан интент: бассейн", timestamp: 100 },
-      { id: "2", tag: "action", text: "Активирую фильтр в интерфейсе", timestamp: 150 },
-    ];
-    const handleClose = vi.fn();
+  it("is closed by default: ghost in the corner with a hint bubble", () => {
+    render(<GhostAgent />);
 
-    render(<ThoughtLog steps={steps} isOpen={true} onClose={handleClose} />);
-
-    expect(screen.getByText("Ход мыслей агента (SSE Stream)")).toBeInTheDocument();
-    expect(screen.getByText("[ИНТЕНТ]")).toBeInTheDocument();
-    expect(screen.getByText("[ДЕЙСТВИЕ]")).toBeInTheDocument();
-    expect(screen.getByText("Распознан интент: бассейн")).toBeInTheDocument();
-
-    const closeBtn = screen.getByLabelText("Скрыть панель мыслей");
-    fireEvent.click(closeBtn);
-    expect(handleClose).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Открыть чат с Ghost" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Я могу помочь настроить фильтры.");
+    expect(screen.queryByRole("region", { name: "Чат с Ghost" })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("ghost-action-bar")).not.toBeInTheDocument();
   });
 
-  it("renders ActionBar with chips, text input and voice button", () => {
-    const handleSelectChip = vi.fn();
-    const handleSubmitPrompt = vi.fn();
-    const handleToggleVoice = vi.fn();
+  it("opens a compact chat: history, input, mic and send — as in the design", () => {
+    render(<GhostAgent />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
 
-    render(
-      <ActionBar
-        chips={["Теплый бассейн", "С завтраком"]}
-        onSelectChip={handleSelectChip}
-        onSubmitPrompt={handleSubmitPrompt}
-        isListening={false}
-        onToggleVoice={handleToggleVoice}
-      />
+    const chat = screen.getByRole("region", { name: "Чат с Ghost" });
+    expect(within(chat).getByRole("heading", { name: "Ghost" })).toBeInTheDocument();
+    expect(within(chat).getByText("AI-консьерж каталога")).toBeInTheDocument();
+    expect(within(chat).getByText("Помогу вам настроить поиск")).toBeInTheDocument();
+    expect(within(chat).getByRole("textbox", { name: "Сообщение Ghost" })).toHaveAttribute(
+      "placeholder",
+      "Сообщение…"
+    );
+    expect(within(chat).getByRole("button", { name: "Голосовой ввод" })).toBeInTheDocument();
+    expect(within(chat).getByRole("button", { name: "Отправить" })).toBeDisabled();
+
+    // Подсказка и кнопка-призрак в углу на время чата скрыты
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Открыть чат с Ghost" })).not.toBeInTheDocument();
+  });
+
+  it("collapses the chat back to the corner ghost", () => {
+    render(<GhostAgent />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+    fireEvent.click(screen.getByRole("button", { name: "Скрыть чат" }));
+
+    expect(screen.queryByRole("region", { name: "Чат с Ghost" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Открыть чат с Ghost" })).toBeInTheDocument();
+  });
+
+  it("applies filter intents from the chat and logs the dialog", () => {
+    const handleAction = vi.fn();
+    const handleSendPrompt = vi.fn();
+    render(<GhostAgent onAction={handleAction} onSendPrompt={handleSendPrompt} />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+
+    const input = screen.getByRole("textbox", { name: "Сообщение Ghost" });
+    fireEvent.change(input, { target: { value: "с теплым бассейном" } });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+
+    expect(handleAction).toHaveBeenCalledWith({ type: "toggle_filter", key: "pool", value: true });
+    expect(handleSendPrompt).not.toHaveBeenCalled();
+    expect(input).toHaveValue("");
+
+    const log = screen.getByRole("log", { name: "История диалога с Ghost" });
+    expect(within(log).getByText("с теплым бассейном")).toBeInTheDocument();
+    expect(within(log).getByText(/Теплый бассейн/)).toBeInTheDocument();
+  });
+
+  it("sends unrecognised requests to the AI stream", () => {
+    const handleAction = vi.fn();
+    const handleSendPrompt = vi.fn();
+    render(<GhostAgent onAction={handleAction} onSendPrompt={handleSendPrompt} />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Сообщение Ghost" }), {
+      target: { value: "романтический уикенд с видом на горы" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Отправить" }));
+
+    expect(handleSendPrompt).toHaveBeenCalledWith("романтический уикенд с видом на горы");
+    expect(handleAction).not.toHaveBeenCalled();
+  });
+
+  it("shows streamed agent thoughts in the chat history", () => {
+    const { rerender } = render(<GhostAgent isStreaming={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+
+    rerender(<GhostAgent isStreaming currentThought="Ищу отели у моря" />);
+
+    expect(
+      within(screen.getByRole("log", { name: "История диалога с Ghost" })).getByText(
+        "Ищу отели у моря"
+      )
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the ghost on the chat header when the chat grows", () => {
+    let notifyResize: () => void = () => {};
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        constructor(callback: () => void) {
+          notifyResize = callback;
+        }
+        observe() {}
+        disconnect() {}
+      }
     );
 
-    expect(screen.getByTestId("ghost-action-bar")).toBeInTheDocument();
-    expect(screen.getByText("AI Консьерж")).toBeInTheDocument();
+    render(<GhostAgent />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+    const ghost = screen.getByTestId("ghost-flyer");
+    const before = ghost.style.transform;
 
-    // Chip click
-    const poolChip = screen.getByRole("button", { name: "Теплый бассейн" });
-    fireEvent.click(poolChip);
-    expect(handleSelectChip).toHaveBeenCalledWith("Теплый бассейн");
+    // Новое сообщение: окно растёт вверх, шапка поднимается
+    const panel = screen.getByRole("region", { name: "Чат с Ghost" });
+    Object.defineProperty(panel, "offsetTop", { configurable: true, value: -120 });
+    act(() => notifyResize());
 
-    // Input submit
-    const input = screen.getByPlaceholderText("Спросите или настройте...");
-    fireEvent.change(input, { target: { value: "Сочи 5 звезд" } });
-    fireEvent.click(screen.getByLabelText("Отправить запрос"));
-    expect(handleSubmitPrompt).toHaveBeenCalledWith("Сочи 5 звезд");
-
-    // Voice button
-    const voiceBtn = screen.getByLabelText("Включить голосовой ввод");
-    fireEvent.click(voiceBtn);
-    expect(handleToggleVoice).toHaveBeenCalledTimes(1);
+    expect(ghost.style.transform).not.toBe(before);
+    expect(ghost.style.transform).toContain("translate(");
+    vi.unstubAllGlobals();
   });
 
-  it("renders GhostAgent declaratively in JSX and handles action callbacks", () => {
-    const handleAction = vi.fn();
-    render(<GhostAgent onAction={handleAction} />);
+  it("reports when the browser has no speech recognition", () => {
+    render(<GhostAgent />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
+    fireEvent.click(screen.getByRole("button", { name: "Голосовой ввод" }));
 
-    expect(screen.getByTestId("ghost-actor-container")).toBeInTheDocument();
-    expect(screen.getByTestId("ghost-action-bar")).toBeInTheDocument();
+    expect(
+      screen.getByText("Голосовой ввод не поддерживается в этом браузере")
+    ).toBeInTheDocument();
+  });
 
-    // Click on chip
-    const chip = screen.getByRole("button", { name: "Теплый бассейн" });
-    fireEvent.click(chip);
+  it("flies back to the header toggle when the user leaves the catalog", () => {
+    render(<GhostAgent />);
+    fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
 
-    expect(handleAction).toHaveBeenCalledWith({
-      type: "toggle_filter",
-      key: "pool",
-      value: true,
+    act(() => {
+      emitScreenSwitch({ to: "concierge", duration: 560 });
     });
+
+    expect(screen.queryByRole("region", { name: "Чат с Ghost" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Открыть чат с Ghost" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 });

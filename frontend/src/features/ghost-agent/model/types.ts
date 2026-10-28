@@ -1,6 +1,6 @@
 export type GhostMood = "idle" | "thinking" | "speaking" | "happy" | "flying";
 
-export type ThoughtStepTag =
+type ThoughtStepTag =
   | "intent"
   | "dom"
   | "action"
@@ -21,4 +21,10 @@ export interface GhostAction {
   key?: string;
   value?: unknown;
   text?: string;
+}
+
+export interface GhostChatMessage {
+  id: string;
+  role: "user" | "ghost";
+  text: string;
 }

@@ -3,6 +3,7 @@ import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ScreenSwitch } from "@/features/screen-switch";
+import { SCREEN_SWITCH_EVENT } from "@/shared/lib";
 import { GHOST_TOGGLE_DURATION } from "@/shared/ui";
 
 const push = vi.fn();
@@ -100,6 +101,38 @@ describe("ScreenSwitch (переключатель AI Консьерж <-> Ка�
     expect(toggle).toHaveAttribute("aria-checked", "true");
     expect(push).toHaveBeenCalledTimes(1);
     expect(push).toHaveBeenCalledWith("/catalog");
+  });
+
+  it("hides the toggle ghost on /catalog: it lives in the corner of the page", () => {
+    pathname = "/catalog";
+    render(<ScreenSwitch />);
+    expect(screen.getByRole("switch")).toHaveAttribute("data-knob", "hidden");
+  });
+
+  it("keeps the toggle ghost visible on / even during the flight to the catalog", () => {
+    render(<ScreenSwitch />);
+    const toggle = screen.getByRole("switch");
+    expect(toggle).not.toHaveAttribute("data-knob");
+
+    fireEvent.click(toggle);
+    expect(toggle).not.toHaveAttribute("data-knob");
+  });
+
+  it("keeps the toggle empty while the corner ghost flies back from /catalog", () => {
+    pathname = "/catalog";
+    const onSwitch = vi.fn();
+    window.addEventListener(SCREEN_SWITCH_EVENT, onSwitch);
+    render(<ScreenSwitch />);
+    const toggle = screen.getByRole("switch");
+    fireEvent.click(toggle);
+    window.removeEventListener(SCREEN_SWITCH_EVENT, onSwitch);
+
+    expect(toggle).toHaveAttribute("data-knob", "hidden");
+    expect(onSwitch).toHaveBeenCalledTimes(1);
+    expect((onSwitch.mock.calls[0][0] as CustomEvent).detail).toEqual({
+      to: "concierge",
+      duration: GHOST_TOGGLE_DURATION,
+    });
   });
 
   it("cancels pending navigation on unmount", () => {

@@ -1,10 +1,11 @@
 "use client";
 
-import { ExternalLink, List, Map as MapIcon, MapPin, Navigation } from "lucide-react";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Maximize2, Minimize2, Minus, Plus } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { Hotel } from "@/entities/hotel";
 import { formatPrice } from "@/shared/lib";
+import { cn } from "@/shared/lib/utils";
 
 import { loadYandexMapsScript } from "../lib/yandexMapsLoader";
 import { ClassicSerpMapList } from "./ClassicSerpMapList";
@@ -20,7 +21,6 @@ export function ClassicSerpMap({
   selectedHotelId,
   onSelectHotel,
 }: ClassicSerpMapProps) {
-  const [activeTab, setActiveTab] = useState<"map" | "list">("map");
   const [isLoadingMap, setIsLoadingMap] = useState<boolean>(true);
   const [mapError, setMapError] = useState<string | null>(null);
 
@@ -33,22 +33,12 @@ export function ClassicSerpMap({
     onSelectHotelRef.current = onSelectHotel;
   }, [onSelectHotel]);
 
-  const city = hotels[0]?.city || "Регион";
-  const selectedHotel = useMemo(
-    () => hotels.find((h) => h.id === selectedHotelId) || hotels[0],
-    [hotels, selectedHotelId]
-  );
-
-  const yandexMapsUrl = selectedHotel?.coordinates
-    ? `https://yandex.ru/maps/?pt=${selectedHotel.coordinates.lon},${selectedHotel.coordinates.lat}&z=15&l=map`
-    : `https://yandex.ru/maps/?text=${encodeURIComponent(city + " отели")}`;
-
   useEffect(() => {
     let isMounted = true;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let mapInstance: any = null;
 
-    if (activeTab !== "map" || !mapContainerRef.current) return;
+    if (mapError || !mapContainerRef.current) return;
 
     setIsLoadingMap(true);
     loadYandexMapsScript()
@@ -65,15 +55,23 @@ export function ClassicSerpMap({
           {
             center: defaultCenter,
             zoom: 13,
-            controls: ["zoomControl", "fullscreenControl"],
+            // Свои кнопки масштаба и разворота — как в макете
+            controls: [],
           },
           { suppressMapOpenBlock: true }
         );
 
         mapRef.current = mapInstance;
         const geoObjects = new ymaps.GeoObjectCollection();
+        // Метка — «пилюля» с ценой; выбранный отель — синяя
+        const pinLayout = (isSelected: boolean) =>
+          ymaps.templateLayoutFactory.createClass(
+            `<div style="position:absolute;transform:translate(-50%,-50%);white-space:nowrap;padding:5px 10px;border-radius:999px;font:700 13px/1.2 system-ui,sans-serif;box-shadow:0 2px 8px rgba(17,24,39,.16);background:${
+              isSelected ? "#0E41D2" : "#fff"
+            };color:${isSelected ? "#fff" : "#2d3137"}">$[properties.iconContent]</div>`
+          );
 
-        hotels.forEach((hotel, idx) => {
+        hotels.forEach((hotel) => {
           if (!hotel.coordinates?.lat || !hotel.coordinates?.lon) return;
 
           const isSelected = hotel.id === selectedHotelId;
@@ -96,11 +94,18 @@ export function ClassicSerpMap({
                   </a>
                 </div>
               `,
-              iconContent: String(idx + 1),
+              iconContent: formatPrice(hotel.min_price_per_night_rub),
             },
             {
-              preset: isSelected ? "islands#darkGreenIcon" : "islands#nightIcon",
-              iconColor: isSelected ? "#2DD4BF" : "#38BDF8",
+              iconLayout: pinLayout(isSelected),
+              iconShape: {
+                type: "Rectangle",
+                coordinates: [
+                  [-44, -14],
+                  [44, 14],
+                ],
+              },
+              zIndex: isSelected ? 1000 : undefined,
             }
           );
 
@@ -126,7 +131,6 @@ export function ClassicSerpMap({
         if (!isMounted) return;
         setIsLoadingMap(false);
         setMapError("Яндекс.Карты в автономном режиме");
-        setActiveTab("list");
       });
 
     return () => {
@@ -141,7 +145,7 @@ export function ClassicSerpMap({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hotels, activeTab]);
+  }, [hotels, mapError]);
 
   useEffect(() => {
     if (!mapRef.current || !selectedHotelId) return;
@@ -158,87 +162,85 @@ export function ClassicSerpMap({
     }
   }, [selectedHotelId, hotels]);
 
+  const zoomBy = (delta: number) => {
+    const map = mapRef.current;
+    if (!map) return;
+    try {
+      map.setZoom(map.getZoom() + delta, { duration: 200 });
+    } catch {
+      // ignore
+    }
+  };
+
+  // Развёрнутая карта занимает всю область каталога под шапкой сайта (не fullscreen браузера)
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Яндекс.Карты не следят за размером контейнера — подгоняем после разворота/сворачивания
+  useEffect(() => {
+    try {
+      mapRef.current?.container.fitToViewport();
+    } catch {
+      // ignore
+    }
+  }, [isExpanded]);
+
   return (
-    <aside className="relative flex h-full w-80 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card/60 shadow-lg backdrop-blur-md">
-      {/* Шапка карты с табами */}
-      <div className="flex items-center justify-between border-b border-border bg-card/80 p-3 backdrop-blur-sm">
-        <div className="flex items-center gap-1.5">
-          <MapPin className="h-4 w-4 text-primary" />
-          <h3 className="text-xs font-bold text-foreground">Яндекс.Карты: {city}</h3>
-        </div>
+    <section
+      aria-label="Карта отелей"
+      className={cn(
+        "overflow-hidden bg-[#EDF0F3]",
+        isExpanded ? "absolute inset-0 z-30" : "relative h-full min-w-80 flex-[1_1_44.5%]"
+      )}
+    >
+      {mapError ? (
+        <ClassicSerpMapList
+          hotels={hotels}
+          selectedHotelId={selectedHotelId}
+          mapError={mapError}
+          onSelectHotel={onSelectHotel}
+        />
+      ) : (
+        <>
+          {isLoadingMap && (
+            <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-[#EDF0F3]">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+              <span className="mt-2 text-xs text-muted-foreground">Загрузка Яндекс.Карт...</span>
+            </div>
+          )}
+          <div ref={mapContainerRef} data-testid="yandex-map-container" className="h-full w-full" />
 
-        <div className="flex items-center gap-1 rounded-lg border border-border bg-background/60 p-0.5">
           <button
             type="button"
-            onClick={() => setActiveTab("map")}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-              activeTab === "map"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
+            onClick={() => setIsExpanded((v) => !v)}
+            aria-label={isExpanded ? "Свернуть карту" : "Развернуть карту"}
+            className="absolute left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-xl bg-card text-foreground shadow-[0_2px_8px_rgba(17,24,39,0.14)]"
           >
-            <MapIcon className="h-3 w-3" />
-            Карта
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("list")}
-            className={`flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition-colors ${
-              activeTab === "list"
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <List className="h-3 w-3" />
-            Список
-          </button>
-        </div>
-      </div>
-
-      {/* Контент: Интерактивная карта или список */}
-      <div className="relative flex-1 overflow-hidden bg-background">
-        {activeTab === "map" && (
-          <div className="relative h-full w-full">
-            {isLoadingMap && (
-              <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-card/80 backdrop-blur-sm">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <span className="mt-2 text-xs text-muted-foreground">Загрузка Яндекс.Карт...</span>
-              </div>
+            {isExpanded ? (
+              <Minimize2 className="h-[18px] w-[18px]" />
+            ) : (
+              <Maximize2 className="h-[18px] w-[18px]" />
             )}
-            <div
-              ref={mapContainerRef}
-              data-testid="yandex-map-container"
-              className="h-full w-full"
-            />
+          </button>
+          <div className="absolute right-4 top-4 z-30 flex flex-col overflow-hidden rounded-xl bg-card shadow-[0_2px_8px_rgba(17,24,39,0.14)]">
+            <button
+              type="button"
+              onClick={() => zoomBy(1)}
+              aria-label="Приблизить"
+              className="flex h-11 w-11 items-center justify-center text-foreground"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => zoomBy(-1)}
+              aria-label="Отдалить"
+              className="flex h-11 w-11 items-center justify-center border-t border-border text-foreground"
+            >
+              <Minus className="h-5 w-5" />
+            </button>
           </div>
-        )}
-
-        {activeTab === "list" && (
-          <ClassicSerpMapList
-            hotels={hotels}
-            selectedHotelId={selectedHotelId}
-            mapError={mapError}
-            onSelectHotel={onSelectHotel}
-          />
-        )}
-      </div>
-
-      {/* Футер карты с внешней ссылкой на Яндекс.Карты */}
-      <div className="flex items-center justify-between border-t border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-1 font-medium text-[11px]">
-          <Navigation className="h-3 w-3 text-primary" />
-          {hotels.length} меток в базе
-        </span>
-        <a
-          href={yandexMapsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline"
-        >
-          Яндекс.Карты
-          <ExternalLink className="h-3 w-3" />
-        </a>
-      </div>
-    </aside>
+        </>
+      )}
+    </section>
   );
 }

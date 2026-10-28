@@ -7,6 +7,7 @@ import { Hotel } from "@/entities/hotel";
 import { TransportSummaryData } from "@/shared/api";
 import { formatPrice } from "@/shared/lib";
 
+import { pluralizeRu } from "../lib/format";
 import { ClassicSerpFilters, FilterState } from "./ClassicSerpFilters";
 import { ClassicSerpHotelCard } from "./ClassicSerpHotelCard";
 import { ClassicSerpMap } from "./ClassicSerpMap";
@@ -22,9 +23,6 @@ interface ClassicSerpProps {
 }
 
 const initialFilters: FilterState = {
-  checkInDate: "2026-10-26",
-  checkOutDate: "2026-10-29",
-  guests: 2,
   sort: "match",
   breakfast: false,
   pool: false,
@@ -102,23 +100,26 @@ export function ClassicSerp({
   return (
     <div
       data-testid="classic-serp-container"
-      className="flex h-full flex-1 overflow-hidden bg-background p-6"
+      className="relative flex h-full w-full flex-1 flex-wrap overflow-hidden bg-muted"
     >
-      <div className="mx-auto flex h-full w-full max-w-7xl gap-6">
+      {/* Фильтры + лента на всю доступную ширину, карта прижата к правому краю */}
+      <div className="flex h-full min-w-0 flex-[999_1_760px] gap-6 overflow-hidden pl-5 pr-6 pt-4">
         {/* Колонка 1: Фильтры */}
-        <ClassicSerpFilters
-          filters={filters}
-          onFilterChange={setFilters}
-          onReset={handleReset}
-          totalFound={filteredHotels.length}
-        />
+        <ClassicSerpFilters filters={filters} onFilterChange={setFilters} />
 
         {/* Колонка 2: Список отелей (Горизонтальные карточки) */}
-        <main className="flex flex-1 flex-col overflow-hidden">
+        <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+          <p className="px-1 pt-0.5 text-sm text-foreground">
+            <b>{pluralizeRu(filteredHotels.length, ["отель", "отеля", "отелей"])}</b>
+            <span className="text-muted-foreground">
+              {hotels[0]?.city && ` · ${hotels[0].city}`}
+            </span>
+          </p>
+
           {/* Баннер транспорта (Авиа + Ж/Д) */}
           {transportSummary &&
             (transportSummary.recommended_flight || transportSummary.recommended_train) && (
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-card/85 p-3.5 shadow-md backdrop-blur-md">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/30 bg-card/85 p-3.5 shadow-md backdrop-blur-md">
                 <div className="flex flex-wrap items-center gap-4 text-xs font-semibold">
                   {transportSummary.recommended_flight && (
                     <div className="flex items-center gap-1.5 text-foreground">
@@ -157,9 +158,9 @@ export function ClassicSerp({
             )}
 
           {/* Список отелей */}
-          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto pb-4 pr-1">
             {filteredHotels.length === 0 ? (
-              <div className="flex h-64 flex-col items-center justify-center space-y-3 rounded-2xl border border-dashed border-border bg-card/40 p-8 text-center text-muted-foreground">
+              <div className="flex h-64 flex-col items-center justify-center space-y-3 rounded-2xl bg-card p-8 text-center text-muted-foreground">
                 <HotelIcon className="h-10 w-10 text-muted-foreground" />
                 <p className="text-sm">Нет отелей, удовлетворяющих заданным критериям.</p>
                 <button
@@ -182,20 +183,20 @@ export function ClassicSerp({
             )}
           </div>
         </main>
-
-        {/* Колонка 3: Карта */}
-        <ClassicSerpMap
-          hotels={filteredHotels}
-          selectedHotelId={highlightedHotelId}
-          onSelectHotel={(hotel) => {
-            if (setControlledFilters) {
-              externalOnSelectHotel?.(hotel);
-            } else {
-              setInternalHighlightedId(hotel.id);
-            }
-          }}
-        />
       </div>
+
+      {/* Колонка 3: Карта (поверх неё в углу живёт Ghost-агент) */}
+      <ClassicSerpMap
+        hotels={filteredHotels}
+        selectedHotelId={highlightedHotelId}
+        onSelectHotel={(hotel) => {
+          if (setControlledFilters) {
+            externalOnSelectHotel?.(hotel);
+          } else {
+            setInternalHighlightedId(hotel.id);
+          }
+        }}
+      />
     </div>
   );
 }
