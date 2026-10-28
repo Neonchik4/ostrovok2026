@@ -325,7 +325,7 @@ async def generate_agent_response_stream(
 
     if settings.GEMINI_API_KEY and hotels:
         has_content = False
-        async for chunk in stream_gemini_content(prompt_text, timeout_sec=5.0):
+        async for chunk in stream_gemini_content(prompt_text, timeout_sec=5.0, stage="response"):
             has_content = True
             yield chunk
         if has_content:

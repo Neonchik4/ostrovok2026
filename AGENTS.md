@@ -151,6 +151,22 @@
     "disambiguation_chips": ["Дешевле 10 000 ₽", "С завтраком", "У подъемника"]
   }
   ```
+- `event: llm_usage`: оплачиваемые вызовы LLM, накопленные с прошлого такого события (после разбора запроса, после ответа агента, при ошибке — всегда до `done`). Токены и модель — из `usage_metadata`/`model_version` ответа Gemini, стоимость — по прайсу `backend/app/data/llm_pricing.json` (только точное совпадение модели), курс — `USD_RUB_RATE`. Неизвестное не угадывается: токены, `cost_usd`, `usd_rub_rate` и `pricing` приходят как `null`, а UI пишет «не удалось получить». Фронтенд копит их в сессии вкладки для окна Request Cost:
+  ```json
+  {
+    "calls": [
+      {
+        "stage": "response", "model": "gemini-3.5-flash-lite",
+        "input_tokens": 2000, "cached_tokens": 0, "output_tokens": 200, "thinking_tokens": 0,
+        "total_tokens": 2200, "ttft_ms": 400, "duration_ms": 2000,
+        "output_tokens_per_sec": 125.0, "streamed": true, "gateway_cache_hit": false,
+        "cost_usd": 0.0011
+      }
+    ],
+    "usd_rub_rate": 80.5307,
+    "pricing": { "source": "https://ai.google.dev/gemini-api/docs/pricing", "updated": "2026-10-27" }
+  }
+  ```
 - `event: done`: сигнал завершения генерации:
   ```json
   { "status": "ok" }

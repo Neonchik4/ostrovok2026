@@ -4,6 +4,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 from ..config import settings
+from .llm_usage import gateway_cache_hit, record_llm_call
 from .offline_mode import (
     all_configured_keys_dead,
     filter_live_keys,
@@ -90,7 +91,13 @@ def _get_client(key: str):
 get_gemini_client = _get_client
 
 
-async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str | None:
+def _elapsed_ms(started: float) -> int:
+    return int((time.monotonic() - started) * 1000)
+
+
+async def call_gemini_content(
+    prompt_text: str, timeout_sec: float = 6.0, stage: str = "llm"
+) -> str | None:
     """
     Secure by Design:
     - Каскадный обход (ключ проекта AI Studio x модель): PRIMARY -> FALLBACK, на каждом ключе.
@@ -117,6 +124,7 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str
         for idx, (key, model_name) in enumerate(attempts):
             try:
                 client = _get_client(key)
+                started = time.monotonic()
                 response = await asyncio.wait_for(
                     client.aio.models.generate_content(
                         model=model_name,
@@ -124,6 +132,14 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str
                         config=gen_config,
                     ),
                     timeout=timeout_sec,
+                )
+                # Ответ получен — запрос оплачен, даже если текст пустой
+                record_llm_call(
+                    stage=stage,
+                    model=getattr(response, "model_version", None) or model_name,
+                    usage=getattr(response, "usage_metadata", None),
+                    duration_ms=_elapsed_ms(started),
+                    gateway_cache_hit=gateway_cache_hit(response),
                 )
                 if response and response.text:
                     return response.text
@@ -143,7 +159,9 @@ async def call_gemini_content(prompt_text: str, timeout_sec: float = 6.0) -> str
 
     return None
 
-async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> AsyncGenerator[str, None]:
+async def stream_gemini_content(
+    prompt_text: str, timeout_sec: float = 5.0, stage: str = "llm"
+) -> AsyncGenerator[str, None]:
     """
     Потоковый вызов Gemini API с поддержкой каскадного переключения (ключ x модель).
     Zero-Config Offline Mode: без валидных ключей не выполняет ни одного сетевого вызова.
@@ -164,6 +182,12 @@ async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> A
         )
 
         for idx, (key, model_name) in enumerate(attempts):
+            # usage_metadata приходит в последнем чанке; модель — фактическая из ответа
+            started = time.monotonic()
+            ttft_ms: int | None = None
+            usage: Any = None
+            answered_by = model_name
+            cache_hit = False
             try:
                 client = _get_client(key)
                 stream = await asyncio.wait_for(
@@ -176,13 +200,36 @@ async def stream_gemini_content(prompt_text: str, timeout_sec: float = 5.0) -> A
                 )
                 has_content = False
                 async for chunk in stream:
+                    usage = getattr(chunk, "usage_metadata", None) or usage
+                    answered_by = getattr(chunk, "model_version", None) or answered_by
+                    cache_hit = cache_hit or gateway_cache_hit(chunk)
                     if chunk.text:
+                        if ttft_ms is None:
+                            ttft_ms = _elapsed_ms(started)
                         has_content = True
                         yield chunk.text
                         await asyncio.sleep(0.01)
+                record_llm_call(
+                    stage=stage,
+                    model=answered_by,
+                    usage=usage,
+                    duration_ms=_elapsed_ms(started),
+                    ttft_ms=ttft_ms,
+                    gateway_cache_hit=cache_hit,
+                )
                 if has_content:
                     return
             except Exception as e:
+                # Стрим оборвался после начала ответа — он оплачен, даже если usage не дошёл
+                if usage is not None or ttft_ms is not None:
+                    record_llm_call(
+                        stage=stage,
+                        model=answered_by,
+                        usage=usage,
+                        duration_ms=_elapsed_ms(started),
+                        ttft_ms=ttft_ms,
+                        gateway_cache_hit=cache_hit,
+                    )
                 if _is_rate_limit_error(e):
                     _mark_rate_limited(key, model_name)
                 if is_auth_error(str(e)):
