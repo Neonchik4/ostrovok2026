@@ -24,9 +24,15 @@ const { services } = config;
 
 test("only Traefik publishes ports", () => {
   assert.deepEqual(Object.keys(services).sort(), ["backend", "frontend", "traefik"]);
-  assert.deepEqual(services.traefik.ports.map((p) => p.published).sort(), ["443", "80"]);
+  assert.deepEqual(services.traefik.ports.map((p) => p.published).sort(), ["443", "80", "8080"]);
   assert.equal(services.backend.ports, undefined);
   assert.equal(services.frontend.ports, undefined);
+});
+
+test("jury entrypoint on 8080 routes HTTP without TLS", () => {
+  assert.ok(services.traefik.command.includes("--entrypoints.jury.address=:8080"));
+  assert.equal(services.backend.labels["traefik.http.routers.ostrovok-jury-api.entrypoints"], "jury");
+  assert.equal(services.frontend.labels["traefik.http.routers.ostrovok-jury-web.entrypoints"], "jury");
 });
 
 test("containers are forced onto the production profile", () => {
@@ -109,7 +115,7 @@ test("deploy overlay pulls prebuilt images and drops local build contexts", () =
 });
 
 test("deploy overlay keeps routing, hardening and single entrypoint intact", () => {
-  assert.deepEqual(deployServices.traefik.ports.map((p) => p.published).sort(), ["443", "80"]);
+  assert.deepEqual(deployServices.traefik.ports.map((p) => p.published).sort(), ["443", "80", "8080"]);
   assert.equal(deployServices.backend.ports, undefined);
   assert.equal(deployServices.frontend.ports, undefined);
   assert.equal(deployServices.backend.environment.BACKEND_URL, undefined);

@@ -10,22 +10,26 @@ services:
       - "--providers.docker.constraints=Label(`com.docker.compose.project`, `${COMPOSE_PROJECT_NAME:-ostrovok2026}`)"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.jury.address=:8080"
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
       - "--entrypoints.web.transport.respondingtimeouts.readtimeout=30s"
       - "--entrypoints.websecure.transport.respondingtimeouts.readtimeout=30s"
+      - "--entrypoints.jury.transport.respondingtimeouts.readtimeout=30s"
       # A long-lived SSE response must not have an overall write deadline.
       - "--entrypoints.websecure.transport.respondingtimeouts.writetimeout=0s"
+      - "--entrypoints.jury.transport.respondingtimeouts.writetimeout=0s"
       - "--serversTransport.forwardingTimeouts.responseHeaderTimeout=30s"
       - "--certificatesresolvers.letsencrypt.acme.tlschallenge=true"
-      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?Set ACME_EMAIL in .env}"
+      - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@chto-to-drugoe.ru}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
       - "--ping=true"
       - "--log.level=INFO"
     ports:
       - "80:80"
       - "443:443"
+      - "8080:8080"
     volumes:
       - type: bind
         source: /var/run/docker.sock
@@ -101,12 +105,16 @@ services:
     cap_drop: [ALL]
     labels:
       traefik.enable: "true"
-      traefik.http.routers.ostrovok-api.rule: "Host(`${DOMAIN:?Set DOMAIN in .env}`) && (Path(`/api`) || PathPrefix(`/api/`))"
+      traefik.http.routers.ostrovok-api.rule: "Host(`${DOMAIN:-chto-to-drugoe.ru}`) && (Path(`/api`) || PathPrefix(`/api/`))"
       traefik.http.routers.ostrovok-api.entrypoints: websecure
       traefik.http.routers.ostrovok-api.tls: "true"
       traefik.http.routers.ostrovok-api.tls.certresolver: letsencrypt
       traefik.http.routers.ostrovok-api.priority: "20"
       traefik.http.routers.ostrovok-api.service: ostrovok-api
+      traefik.http.routers.ostrovok-jury-api.rule: "Path(`/api`) || PathPrefix(`/api/`) || Path(`/health`) || PathPrefix(`/health`) || Path(`/docs`) || PathPrefix(`/docs`) || Path(`/openapi.json`)"
+      traefik.http.routers.ostrovok-jury-api.entrypoints: jury
+      traefik.http.routers.ostrovok-jury-api.priority: "30"
+      traefik.http.routers.ostrovok-jury-api.service: ostrovok-api
       traefik.http.services.ostrovok-api.loadbalancer.server.port: "8000"
     logging:
       driver: "json-file"
@@ -143,12 +151,16 @@ services:
     cap_drop: [ALL]
     labels:
       traefik.enable: "true"
-      traefik.http.routers.ostrovok-web.rule: "Host(`${DOMAIN:?Set DOMAIN in .env}`)"
+      traefik.http.routers.ostrovok-web.rule: "Host(`${DOMAIN:-chto-to-drugoe.ru}`)"
       traefik.http.routers.ostrovok-web.entrypoints: websecure
       traefik.http.routers.ostrovok-web.tls: "true"
       traefik.http.routers.ostrovok-web.tls.certresolver: letsencrypt
       traefik.http.routers.ostrovok-web.priority: "10"
       traefik.http.routers.ostrovok-web.service: ostrovok-web
+      traefik.http.routers.ostrovok-jury-web.rule: "PathPrefix(`/`)"
+      traefik.http.routers.ostrovok-jury-web.entrypoints: jury
+      traefik.http.routers.ostrovok-jury-web.priority: "10"
+      traefik.http.routers.ostrovok-jury-web.service: ostrovok-web
       traefik.http.services.ostrovok-web.loadbalancer.server.port: "3000"
     logging:
       driver: "json-file"
