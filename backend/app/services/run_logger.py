@@ -194,8 +194,14 @@ class WorkflowRunLogger:
 
             last_run_path = os.path.join(log_dir, "last_run.log")
             content = self._format_last_run()
-            with open(last_run_path, "w", encoding="utf-8") as f:
-                f.write(content)
+            try:
+                with open(last_run_path, "w", encoding="utf-8") as f:
+                    f.write(content)
+            except OSError:
+                log_dir = "/tmp"
+                last_run_path = os.path.join(log_dir, "last_run.log")
+                with open(last_run_path, "w", encoding="utf-8") as f:
+                    f.write(content)
 
             history_path = os.path.join(log_dir, "runs_history.log")
             duration = round(time.time() - self.start_time, 2)
@@ -207,8 +213,11 @@ class WorkflowRunLogger:
                 f"Hotels: {len(self.hotels)} | "
                 f"Tickets: {self.total_ticket_price} RUB\n"
             )
-            with open(history_path, "a", encoding="utf-8") as f:
-                f.write(summary)
+            try:
+                with open(history_path, "a", encoding="utf-8") as f:
+                    f.write(summary)
+            except OSError:
+                pass
         except Exception as e:
             # Логирование никогда не должно нарушать работу основного сервиса
             print(f"[WorkflowRunLogger Warning] Не удалось записать лог: {e}")
