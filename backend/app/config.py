@@ -51,6 +51,7 @@ class Settings(BaseModel):
     FALLBACK_MODEL: str = Field(default_factory=lambda: os.getenv("FALLBACK_MODEL", "gemini-3.5-flash"))
     FALLBACK_MODELS: list[str] = [
         "gemini-3.5-flash",
+        "gemini-flash-lite-latest",
         "gemini-3.1-flash-lite",
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
