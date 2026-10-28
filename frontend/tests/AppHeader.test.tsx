@@ -46,7 +46,7 @@ describe("AppHeader (единая шапка экранов)", () => {
     const header = screen.getByRole("banner");
 
     expect(within(header).getByRole("switch")).toBeInTheDocument();
-    expect(within(header).getByRole("button", { name: "AI Консьерж" })).toBeInTheDocument();
+    expect(within(header).getByRole("button", { name: "AI Агент" })).toBeInTheDocument();
     expect(within(header).getByRole("button", { name: "Каталог Островка" })).toBeInTheDocument();
   });
 });

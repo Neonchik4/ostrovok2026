@@ -77,7 +77,7 @@ async def think_stream(user_message: str, slots: ExtractedSlots | None = None) -
     if settings.GEMINI_API_KEY:
         prompt_text = f"{SYSTEM_THINKING_PROMPT}\n\nЗапрос пользователя:\n{safe_message}"
         has_content = False
-        async for chunk in stream_gemini_content(prompt_text, timeout_sec=5.0):
+        async for chunk in stream_gemini_content(prompt_text, timeout_sec=5.0, stage="thoughts"):
             has_content = True
             yield chunk
         if has_content:

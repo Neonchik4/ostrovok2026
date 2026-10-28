@@ -123,7 +123,7 @@ export function GhostMascot({
         rendererRef.current?.setState(isStreaming ? "thinking" : "idle");
       }, 1500);
     }
-    setBubbleText("Я ваш голосовой консьерж Островка. Нажмите микрофон или напишите запрос!");
+    setBubbleText("Я ваш голосовой агент Островка. Нажмите микрофон или напишите запрос!");
     setIsBubbleVisible(true);
   };
 
@@ -168,7 +168,7 @@ export function GhostMascot({
           type="button"
           onClick={handleGhostClick}
           className="group relative flex h-16 w-16 items-center justify-center transition-transform hover:scale-105 hover:drop-shadow-[0_0_14px_hsl(var(--primary)/0.35)] active:scale-95"
-          title="Ваш AI-консьерж Ostrovok"
+          title="Ваш AI-агент Ostrovok"
         >
           <canvas
             ref={canvasRef}

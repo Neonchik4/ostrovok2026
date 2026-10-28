@@ -1,7 +1,7 @@
 import React from "react";
 import { describe, it, expect } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { ChatMessagesList } from "@/widgets/ChatConcierge";
+import { ChatMessagesList } from "@/widgets/ChatAgent";
 import { Message } from "@/entities/message";
 import { Thought } from "@/entities/thought";
 

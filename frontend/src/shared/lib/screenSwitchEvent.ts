@@ -2,7 +2,7 @@
 export const SCREEN_SWITCH_EVENT = "ostrovok:screen-switch";
 
 export interface ScreenSwitchDetail {
-  to: "concierge" | "catalog";
+  to: "agent" | "catalog";
   /** Через сколько мс сменится роут. */
   duration: number;
 }

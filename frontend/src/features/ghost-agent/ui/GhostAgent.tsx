@@ -221,7 +221,7 @@ export function GhostAgent({
   useEffect(() => {
     const handleSwitch = (event: Event) => {
       const { to, duration } = (event as CustomEvent<ScreenSwitchDetail>).detail;
-      if (to !== "concierge") return;
+      if (to !== "agent") return;
       recognitionRef.current?.stop();
       setIsListening(false);
       setIsChatOpen(false);

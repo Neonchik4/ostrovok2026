@@ -11,7 +11,7 @@
   // Конфигурация состояния
   const state = {
     activeMascot: "island", // island | orb | beacon
-    activePersona: "bro",   // bro | assistant | concierge
+    activePersona: "bro",   // bro | assistant | luxury
     isListening: false,
     isExecuting: false,
     speechText: "Привет! Куда рванем? Назови город или отель, а я настрою фильтры и найду лучшее.",
@@ -224,7 +224,7 @@
         <div class="pills-group" id="persona-group">
           <button class="pill-btn persona-bro active" data-persona="bro">Бро</button>
           <button class="pill-btn persona-asst" data-persona="assistant">Бизнес</button>
-          <button class="pill-btn persona-lux" data-persona="concierge">Люкс</button>
+          <button class="pill-btn persona-lux" data-persona="luxury">Люкс</button>
         </div>
 
         <!-- Выбор маскота -->
@@ -278,7 +278,7 @@
     tick += 0.05;
     ctx.clearRect(0, 0, 68, 68);
 
-    const personaColor = state.activePersona === "concierge" ? "#F59E0B" : (state.activePersona === "assistant" ? "#3B82F6" : "#2DD4BF");
+    const personaColor = state.activePersona === "luxury" ? "#F59E0B" : (state.activePersona === "assistant" ? "#3B82F6" : "#2DD4BF");
 
     if (state.activeMascot === "island") {
       // 1. «Живой Островок»
@@ -382,8 +382,8 @@
     btn.classList.add("active");
     state.activePersona = btn.dataset.persona;
 
-    sendBtn.className = `action-btn send-btn persona-${state.activePersona === "assistant" ? "asst" : (state.activePersona === "concierge" ? "lux" : "bro")}`;
-    const pColor = state.activePersona === "concierge" ? "rgba(245,158,11,0.9)" : (state.activePersona === "assistant" ? "rgba(59,130,246,0.9)" : "rgba(45,212,191,0.9)");
+    sendBtn.className = `action-btn send-btn persona-${state.activePersona === "assistant" ? "asst" : (state.activePersona === "luxury" ? "lux" : "bro")}`;
+    const pColor = state.activePersona === "luxury" ? "rgba(245,158,11,0.9)" : (state.activePersona === "assistant" ? "rgba(59,130,246,0.9)" : "rgba(45,212,191,0.9)");
     spotlight.style.background = `radial-gradient(circle, ${pColor} 0%, transparent 70%)`;
   });
 

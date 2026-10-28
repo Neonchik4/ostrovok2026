@@ -85,7 +85,7 @@ describe("Ghost Agent & Intent Router (Frontend 2)", () => {
 
     const chat = screen.getByRole("region", { name: "Чат с Ghost" });
     expect(within(chat).getByRole("heading", { name: "Ghost" })).toBeInTheDocument();
-    expect(within(chat).getByText("AI-консьерж каталога")).toBeInTheDocument();
+    expect(within(chat).getByText("AI-агент каталога")).toBeInTheDocument();
     expect(within(chat).getByText("Помогу вам настроить поиск")).toBeInTheDocument();
     expect(within(chat).getByRole("textbox", { name: "Сообщение Ghost" })).toHaveAttribute(
       "placeholder",
@@ -198,7 +198,7 @@ describe("Ghost Agent & Intent Router (Frontend 2)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Открыть чат с Ghost" }));
 
     act(() => {
-      emitScreenSwitch({ to: "concierge", duration: 560 });
+      emitScreenSwitch({ to: "agent", duration: 560 });
     });
 
     expect(screen.queryByRole("region", { name: "Чат с Ghost" })).not.toBeInTheDocument();

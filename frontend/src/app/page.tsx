@@ -6,7 +6,7 @@ import { MobileBottomSheet, MobileFloatingBar } from "@/features/mobile-bottom-s
 import { decodeTripState, ShareTripButton } from "@/features/share-trip";
 import { useChatStream } from "@/shared/api";
 import { AppHeader } from "@/widgets/AppHeader";
-import { ChatConcierge } from "@/widgets/ChatConcierge";
+import { ChatAgent } from "@/widgets/ChatAgent";
 import { HotelCanvas } from "@/widgets/HotelCanvas";
 
 export default function HomePage() {
@@ -89,7 +89,7 @@ export default function HomePage() {
       {/* Основной контент: AI Сплит-чат (Чат-агент слева + Витрина отелей справа) */}
       <div className="flex min-h-0 w-full flex-1">
         {/* Чат-агент: на мобильных экранах (<1024px) занимает 100% ширины, на десктопе 480px */}
-        <ChatConcierge
+        <ChatAgent
           messages={messages}
           thoughts={thoughts}
           chips={chips}

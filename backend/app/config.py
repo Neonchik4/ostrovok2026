@@ -24,6 +24,14 @@ def _parse_api_keys() -> list[str]:
     single = os.getenv("GEMINI_API_KEY", "").strip()
     return [single] if single else []
 
+def _parse_usd_rub_rate() -> float | None:
+    """USD_RUB_RATE из окружения; пусто или не число — None."""
+    try:
+        rate = float(os.getenv("USD_RUB_RATE", "").replace(",", "."))
+    except ValueError:
+        return None
+    return rate if rate > 0 else None
+
 class Settings(BaseModel):
     PROJECT_NAME: str = "Ostrovok Travel AI Agent"
     VERSION: str = "1.0.0"
@@ -48,6 +56,9 @@ class Settings(BaseModel):
         "gemini-2.5-flash-lite",
     ]
     GEMINI_BASE_URL: str = Field(default_factory=lambda: os.getenv("GEMINI_BASE_URL", ""))
+    # Курс для пересчёта стоимости запросов к LLM в рубли (окно Request Cost).
+    # Без значения по умолчанию: не задан — рубли не показываем, а не считаем по устаревшему курсу.
+    USD_RUB_RATE: float | None = Field(default_factory=lambda: _parse_usd_rub_rate())
     CLOUDFLARE_ACCOUNT_ID: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_ACCOUNT_ID", ""))
     CLOUDFLARE_AI_GATEWAY_TOKEN: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_AI_GATEWAY_TOKEN", ""))
     CLOUDFLARE_WORKER_URL: str = Field(default_factory=lambda: os.getenv("CLOUDFLARE_WORKER_URL", ""))

@@ -2,6 +2,7 @@
 
 import { useCallback,useRef, useState } from "react";
 
+import { appendLlmUsage, LlmRequestMeta, LlmUsagePayload } from "./llmUsageStore";
 import { readSSEStream } from "./sseReader";
 import {
   markThoughtCancelled,
@@ -248,6 +249,14 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
         pets: queryOptions?.pets ?? 0,
       });
 
+      // Вызовы LLM этого запроса копятся в сессии вкладки (окно Request Cost)
+      const usageMeta: LlmRequestMeta = {
+        id: `request-${Date.now()}`,
+        message: trimmed || (queryOptions?.disambiguation ?? ""),
+        page: window.location.pathname,
+        startedAt: new Date().toISOString(),
+      };
+
       try {
         // Same-origin in production (Traefik) and development (Next.js proxy).
         const response = await fetch(apiEndpoint, {
@@ -319,6 +328,8 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
                   setTransportSummary(data.transport_summary);
                 }
               }
+            } else if (event === "llm_usage") {
+              appendLlmUsage(usageMeta, data as LlmUsagePayload);
             } else if (event === "done") {
               setIsThinking(false);
               setIsStreaming(false);

@@ -1,8 +1,10 @@
 import asyncio
 import json
 from collections.abc import AsyncGenerator
+from contextlib import suppress
 from typing import Any
 
+from ..config import settings
 from ..schemas.chat import ChatStreamRequest, ExtractedSlots
 from ..services.guardrails import (
     GUARDRAIL_INJECTION_RESPONSE,
@@ -16,7 +18,13 @@ from ..services.hotel_search_adapter import search_hotels_with_telemetry
 from ..services.llm_cascade import (
     build_deterministic_reasoning,
     extract_slots_cascade,
-    generate_concierge_response_stream,
+    generate_agent_response_stream,
+)
+from ..services.llm_usage import (
+    drain_llm_usage,
+    load_pricing,
+    start_llm_usage_collection,
+    stop_llm_usage_collection,
 )
 from ..services.offline_mode import OFFLINE_MODE_MESSAGE, is_offline_mode, note_offline_once
 from ..services.route_extractor import default_chips
@@ -33,8 +41,10 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
     - event: thought (reasoning -> filtering -> hybrid_search -> results -> receipt_calculation)
     - event: token
     - event: widget
+    - event: llm_usage (оплачиваемые вызовы LLM: токены, TTFT, скорость, стоимость)
     - event: done
     """
+    usage_token = start_llm_usage_collection()
     conv_id = req.conversation_id or "default_session"
     prev_slots = session_memory.get_slots(conv_id)
 
@@ -89,6 +99,8 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
 
         # Извлечение интентов и слотов через каскад (Gemini 2.5 Flash / Flash Lite -> локальный экстрактор)
         new_slots: ExtractedSlots = await extract_slots_cascade(message)
+        if usage_event := _llm_usage_event():
+            yield usage_event
         if req.nights and req.nights != 2:
             new_slots.nights = req.nights
         if req.guests and req.guests != 2:
@@ -305,10 +317,13 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
 
         # 6. Стриминг текста ответа агента (Real LLM, без шаблонных повторов).
         # Zero Secret Leakage: каждый исходящий чанк проходит фильтр утечек (Issue #45).
-        async for chunk in generate_concierge_response_stream(message, slots, hotels, transport=transport):
+        async for chunk in generate_agent_response_stream(message, slots, hotels, transport=transport):
             logger.log_token(chunk)
             yield _format_sse("token", {"content": sanitize_outgoing(chunk)})
-            
+        # Эмбеддинг поиска и ответ агента
+        if usage_event := _llm_usage_event():
+            yield usage_event
+
         # 7. Стриминг виджета (event: widget)
         # Slot-filling: при неизвестном городе выезда чипсы подменяются быстрыми ответами
         if slots.needs_origin_clarification:
@@ -340,7 +355,13 @@ async def run_agent_workflow(req: ChatStreamRequest) -> AsyncGenerator[str, None
         safe_error = sanitize_outgoing(str(e))
         yield _format_sse("thought", {"step": "error", "text": f"Ошибка обработки: {safe_error}"})
         yield _format_sse("token", {"content": "Произошла ошибка при поиске отелей. Пожалуйста, попробуйте изменить запрос."})
+        if usage_event := _llm_usage_event():
+            yield usage_event
         yield _format_sse("done", {"status": "error", "error": safe_error})
+    finally:
+        # Генератор может закрываться из другого контекста (обрыв клиента)
+        with suppress(ValueError):
+            stop_llm_usage_collection(usage_token)
 
 from ..services.text_helpers import (
     pluralize_guests as _pluralize_guests,
@@ -355,6 +376,21 @@ from ..services.text_helpers import (
 
 def _format_sse(event_type: str, data: dict[str, Any]) -> str:
     return f"event: {event_type}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _llm_usage_event() -> str | None:
+    """SSE llm_usage с вызовами LLM, накопленными с прошлой выгрузки; None, если их не было."""
+    calls = drain_llm_usage()
+    if not calls:
+        return None
+    pricing = load_pricing()
+    return _format_sse("llm_usage", {
+        "calls": [call.model_dump() for call in calls],
+        "usd_rub_rate": settings.USD_RUB_RATE,
+        "pricing": {"source": pricing["source"], "updated": pricing["updated"]}
+        if "source" in pricing and "updated" in pricing
+        else None,
+    })
 
 
 __all__ = [

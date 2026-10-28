@@ -51,7 +51,7 @@ export const GhostChat = forwardRef<HTMLElement, GhostChatProps>(function GhostC
         />
         <div className="flex min-w-0 flex-1 flex-col gap-px">
           <h3 className="text-sm font-bold text-foreground">Ghost</h3>
-          <span className="text-xs text-muted-foreground">AI-консьерж каталога</span>
+          <span className="text-xs text-muted-foreground">AI-агент каталога</span>
         </div>
         <button
           type="button"

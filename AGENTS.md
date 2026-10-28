@@ -78,7 +78,7 @@
 
 1. `app/` — корневая инициализация приложения, роутинг Next.js, провайдеры, глобальные стили (`globals.css`).
 2. `widgets/` — крупные самостоятельные блоки интерфейса:
-   - `ChatConcierge` (левая колонка 480px: шапка, сообщения `ChatMessagesList`, автоскролл `useChatAutoScroll`, чипсы, голосовой ввод).
+   - `ChatAgent` (левая колонка 480px: шапка, сообщения `ChatMessagesList`, автоскролл `useChatAutoScroll`, чипсы, голосовой ввод).
    - `HotelCanvas` (правая колонка: шапка выдачи, сетка карточек отелей).
 3. `features/` — пользовательские интерактивные сценарии:
    - `voice-input` (голосовой ввод через Web Speech API и визуализатор аудио).
@@ -151,6 +151,22 @@
     "disambiguation_chips": ["Дешевле 10 000 ₽", "С завтраком", "У подъемника"]
   }
   ```
+- `event: llm_usage`: оплачиваемые вызовы LLM, накопленные с прошлого такого события (после разбора запроса, после ответа агента, при ошибке — всегда до `done`). Токены и модель — из `usage_metadata`/`model_version` ответа Gemini, стоимость — по прайсу `backend/app/data/llm_pricing.json` (только точное совпадение модели), курс — `USD_RUB_RATE`. Неизвестное не угадывается: токены, `cost_usd`, `usd_rub_rate` и `pricing` приходят как `null`, а UI пишет «не удалось получить». Фронтенд копит их в сессии вкладки для окна Request Cost:
+  ```json
+  {
+    "calls": [
+      {
+        "stage": "response", "model": "gemini-3.5-flash-lite",
+        "input_tokens": 2000, "cached_tokens": 0, "output_tokens": 200, "thinking_tokens": 0,
+        "total_tokens": 2200, "ttft_ms": 400, "duration_ms": 2000,
+        "output_tokens_per_sec": 125.0, "streamed": true, "gateway_cache_hit": false,
+        "cost_usd": 0.0011
+      }
+    ],
+    "usd_rub_rate": 80.5307,
+    "pricing": { "source": "https://ai.google.dev/gemini-api/docs/pricing", "updated": "2026-10-27" }
+  }
+  ```
 - `event: done`: сигнал завершения генерации:
   ```json
   { "status": "ok" }
@@ -182,7 +198,9 @@ Python-зависимости управляются через uv: корнев
 
 ---
 
-## 7. Зеркалирование в репозиторий жюри (Ostrovok Repo Mirroring)
+## 7. Зеркалирование в репозиторий жюри и шифрование секретов
+
+### 7.1. Зеркалирование в репозиторий жюри (Ostrovok Repo Mirroring)
 
 1. **Репозиторий организаторов:** `git@github.com:ostrovok-hackathon-2026/chto-to-drugoe.git` (remote `ostrovok`).
 2. **Только чистый код из master:** В репозитории хакатона CI/CD выключен организаторами, там обязан находиться только рабочий код из `master` со 100% проходящими тестами.
@@ -190,7 +208,21 @@ Python-зависимости управляются через uv: корнев
    ```bash
    bun run sync:ostrovok
    ```
-   Скрипт зеркалирует `master` одновременно в ветки `main` и `master` репозитория жюри (`git push ostrovok master:main master:master --force`), исключая рассинхронизацию веток при проверке экспертами.
+   Скрипт зеркалирует `master` в ветку `main` репозитория жюри (`git push ostrovok master:main --force`), где `main` является официальной веткой по умолчанию (HEAD).
+
+### 7.2. Регламент шифрования секретов для жюри (age)
+
+1. **Официальный публичный ключ организаторов:**
+   `age1932fu7f70rwyfhaxflyfszz4gf6avxwc95wc0yjwm6zns9tspycqpgdnc0`
+2. **Файл в корне репозитория:** `secrets.env.age`.
+3. **Правило обновления:** При добавлении или изменении любых ключей в `.env` файл `secrets.env.age` не обновляется автоматически — его необходимо перешифровать командой:
+   ```bash
+   age -r age1932fu7f70rwyfhaxflyfszz4gf6avxwc95wc0yjwm6zns9tspycqpgdnc0 -o secrets.env.age .env
+   ```
+4. **Важные ограничения:**
+   - Строго использовать флаг `-o` (не использовать `>` или `|`, чтобы не испортить бинарный файл в PowerShell);
+   - Не использовать флаг `-a` (нужен бинарный формат);
+   - Открытый `.env` строго в `.gitignore`, в git коммитится только `secrets.env.age` и `.env.example`.
 
 ---
 

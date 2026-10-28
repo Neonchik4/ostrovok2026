@@ -1,0 +1,35 @@
+{
+  "source": "https://ai.google.dev/gemini-api/docs/pricing",
+  "updated": "2026-10-27",
+  "tier": "Paid Tier, Standard, USD за 1M токенов (текст)",
+  "models": {
+    "gemini-3.5-flash-lite": {
+      "input": 0.3,
+      "cached_input": 0.03,
+      "output": 2.5
+    },
+    "gemini-3.6-flash": {
+      "input": 0.75,
+      "cached_input": 0.075,
+      "output": 3.75
+    },
+    "gemini-3.1-flash-lite": {
+      "input": 0.25,
+      "cached_input": 0.025,
+      "output": 1.5
+    },
+    "gemini-2.5-flash": {
+      "input": 0.3,
+      "cached_input": 0.03,
+      "output": 2.5
+    },
+    "gemini-2.5-flash-lite": {
+      "input": 0.1,
+      "cached_input": 0.01,
+      "output": 0.4
+    },
+    "gemini-embedding-2": {
+      "input": 0.2
+    }
+  }
+}

@@ -1,4 +1,4 @@
-from app.services.response_generator import build_deterministic_concierge_response
+from app.services.response_generator import build_deterministic_agent_response
 from app.services.slot_extractor import mock_extract_slots
 from app.services.thought_generator import build_deterministic_reasoning
 
@@ -11,13 +11,13 @@ def test_thought_reasoning_richness():
     assert "СПА" in reasoning or "спа" in reasoning
     assert "12 000" in reasoning
 
-def test_concierge_response_empty_hotels():
+def test_agent_response_empty_hotels():
     slots = mock_extract_slots("Отель в Москве")
-    resp = build_deterministic_concierge_response("Отель в Москве", slots, [])
+    resp = build_deterministic_agent_response("Отель в Москве", slots, [])
     assert "не найдены" in resp
     assert "Москва" in resp
 
-def test_concierge_response_budget_exceeded():
+def test_agent_response_budget_exceeded():
     slots = mock_extract_slots("Отель в Сочи до 3000 руб")
     class DummyHotel:
         name = "Гранд Отель"
@@ -25,11 +25,11 @@ def test_concierge_response_budget_exceeded():
         min_price_per_night_rub = 6000
     dummy = DummyHotel()
 
-    resp = build_deterministic_concierge_response("Отель в Сочи до 3000 руб", slots, [dummy])
+    resp = build_deterministic_agent_response("Отель в Сочи до 3000 руб", slots, [dummy])
     assert "В рамках бюджета" in resp
     assert "6 000" in resp
 
-def test_concierge_response_with_origin_known_does_not_ask_origin():
+def test_agent_response_with_origin_known_does_not_ask_origin():
     slots = mock_extract_slots("Отель в Санкт-Петербурге до 15000 руб")
     slots.origin_city = "Анапа"
     class DummyHotel:
@@ -38,11 +38,11 @@ def test_concierge_response_with_origin_known_does_not_ask_origin():
         min_price_per_night_rub = 8000
     dummy = DummyHotel()
 
-    resp = build_deterministic_concierge_response("Отель в Санкт-Петербурге", slots, [dummy])
+    resp = build_deterministic_agent_response("Отель в Санкт-Петербурге", slots, [dummy])
     assert "город вылета" not in resp.lower()
     assert "город выезда" not in resp.lower()
 
-def test_concierge_response_with_train_preference_mentions_train():
+def test_agent_response_with_train_preference_mentions_train():
     slots = mock_extract_slots("Отель в Санкт-Петербурге хочу поезд")
     slots.origin_city = "Анапа"
     slots.total_trip_budget_rub = 50000
@@ -52,13 +52,13 @@ def test_concierge_response_with_train_preference_mentions_train():
         min_price_per_night_rub = 8000
     dummy = DummyHotel()
 
-    resp = build_deterministic_concierge_response("Отель в Санкт-Петербурге хочу поезд", slots, [dummy])
+    resp = build_deterministic_agent_response("Отель в Санкт-Петербурге хочу поезд", slots, [dummy])
     assert "поезд" in resp.lower()
     assert "рейс" not in resp.lower()
     assert "самолет" not in resp.lower()
 
 
-def test_concierge_response_two_clarifying_questions_for_anapa_to_moscow():
+def test_agent_response_two_clarifying_questions_for_anapa_to_moscow():
     slots = mock_extract_slots("хочу поехать из анапы в москву")
     class DummyHotel:
         name = "AZIMUT Сити Отель Смоленская"
@@ -67,7 +67,7 @@ def test_concierge_response_two_clarifying_questions_for_anapa_to_moscow():
         stars = 4
     dummy = DummyHotel()
 
-    resp = build_deterministic_concierge_response("хочу поехать из анапы в москву", slots, [dummy])
+    resp = build_deterministic_agent_response("хочу поехать из анапы в москву", slots, [dummy])
     # Город выезда не должен переспрашиваться, так как Анапа уже указана
     assert "город выезда" not in resp.lower()
     assert "город вылета" not in resp.lower()
@@ -77,7 +77,7 @@ def test_concierge_response_two_clarifying_questions_for_anapa_to_moscow():
     assert "поезд или самолет" in resp.lower()
 
 
-def test_thematic_warm_concierge_response_and_search():
+def test_thematic_warm_agent_response_and_search():
     slots = mock_extract_slots("хочу в теплые края россии")
     class DummyHotel:
         name = "AZIMUT Отель Сочи"
@@ -86,7 +86,7 @@ def test_thematic_warm_concierge_response_and_search():
         stars = 4
     dummy = DummyHotel()
 
-    resp = build_deterministic_concierge_response("хочу в теплые края россии", slots, [dummy])
+    resp = build_deterministic_agent_response("хочу в теплые края россии", slots, [dummy])
     assert "теплых краях" in resp.lower()
     assert "сочи" in resp.lower()
     assert "анапа" in resp.lower()
@@ -96,7 +96,7 @@ def test_thematic_warm_concierge_response_and_search():
     assert ":)" not in resp
 
 
-def test_concierge_response_and_thoughts_mention_checkout():
+def test_agent_response_and_thoughts_mention_checkout():
     slots = mock_extract_slots("Отель в Москве, выезд в 19:00")
     class DummyHotel:
         name = "AZIMUT Отель Смоленская"
@@ -106,7 +106,7 @@ def test_concierge_response_and_thoughts_mention_checkout():
         checkout_until = "12:00"
     dummy = DummyHotel()
 
-    resp = build_deterministic_concierge_response("Отель в Москве, выезд в 19:00", slots, [dummy])
+    resp = build_deterministic_agent_response("Отель в Москве, выезд в 19:00", slots, [dummy])
     assert "выезд до 12:00" in resp.lower()
 
     reasoning = build_deterministic_reasoning("Отель в Москве, выезд в 19:00", slots)

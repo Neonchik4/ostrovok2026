@@ -1,8 +1,10 @@
 import asyncio
 import json
 import re
+import time
 
 from ..schemas.chat import ExtractedSlots
+from .llm_usage import gateway_cache_hit, record_llm_call
 from .location_registry import match_city
 from .route_extractor import (
     default_chips,
@@ -482,6 +484,7 @@ async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -
     det_date = extract_depart_date(lower)
     det_flight, det_train, det_pref = extract_transport_preference(lower)
 
+    started = time.monotonic()
     response = await asyncio.wait_for(
         client.aio.models.generate_content(
             model=model_name,
@@ -491,6 +494,14 @@ async def _call_gemini_extractor(user_message: str, model_name: str, key: str) -
             config=gen_config,
         ),
         timeout=6.0,
+    )
+    # Ответ получен — запрос оплачен, даже если JSON дальше не разберётся
+    record_llm_call(
+        stage="slots",
+        model=getattr(response, "model_version", None) or model_name,
+        usage=getattr(response, "usage_metadata", None),
+        duration_ms=int((time.monotonic() - started) * 1000),
+        gateway_cache_hit=gateway_cache_hit(response),
     )
 
     text = response.text or ""
