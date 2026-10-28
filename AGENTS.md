@@ -190,7 +190,7 @@ Python-зависимости управляются через uv: корнев
    ```bash
    bun run sync:ostrovok
    ```
-   Скрипт зеркалирует `master` одновременно в ветки `main` и `master` репозитория жюри (`git push ostrovok master:main master:master --force`), исключая рассинхронизацию веток при проверке экспертами.
+   Скрипт зеркалирует `master` в ветку `main` репозитория жюри (`git push ostrovok master:main --force`), где `main` является официальной веткой по умолчанию (HEAD).
 
 ---
 
