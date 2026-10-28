@@ -26,6 +26,26 @@ describe("AppHeader (единая шапка экранов)", () => {
     ).toBeInTheDocument();
   });
 
+  it("reserves the width of the longest screen title so neighbours do not shift", () => {
+    render(<AppHeader title="Агент Островка" />);
+    const heading = within(screen.getByRole("banner")).getByRole("heading");
+    const slot = heading.parentElement as HTMLElement;
+
+    // Все заголовки экранов лежат в одной ячейке grid — ширина слота = самый длинный
+    expect(slot).toHaveClass("grid");
+    const reserved = Array.from(slot.querySelectorAll("[data-reserve-title]")).map((el) =>
+      el.getAttribute("data-reserve-title")
+    );
+    expect(reserved).toEqual(expect.arrayContaining(["Агент Островка", "Каталог Островка"]));
+    // Резерв — только псевдоэлементом: без дубля текста в DOM и дереве доступности
+    slot.querySelectorAll("[data-reserve-title]").forEach((el) => {
+      expect(el).toHaveTextContent("");
+      expect(el).toHaveAttribute("aria-hidden", "true");
+      expect(el).toHaveClass("invisible");
+    });
+    expect(screen.getAllByText("Агент Островка")).toHaveLength(1);
+  });
+
   it("has a fixed 56px height that does not shrink", () => {
     render(<AppHeader title="Агент Островка" />);
     const header = screen.getByRole("banner");
