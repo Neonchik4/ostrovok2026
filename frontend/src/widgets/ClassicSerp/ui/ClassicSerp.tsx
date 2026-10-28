@@ -113,7 +113,7 @@ export function ClassicSerp({
             <ClassicSerpFilters filters={filters} onFilterChange={setFilters} />
 
             {/* Колонка 2: Список отелей */}
-            <main className="flex min-w-0 flex-1 flex-col gap-3 overflow-hidden">
+            <main className="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
               <p className="px-1 pt-0.5 text-sm text-foreground">
                 <b>{pluralizeRu(filteredHotels.length, ["отель", "отеля", "отелей"])}</b>
                 <span className="text-muted-foreground">
@@ -162,8 +162,9 @@ export function ClassicSerp({
                   </div>
                 )}
 
-              {/* Список отелей */}
-              <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-2.5 pr-3 pb-8 hotel-canvas-scroll">
+              {/* Список отелей: отступы под подсветку карточки вынесены за края колонки,
+                  чтобы карточки были шириной с баннер транспорта */}
+              <div className="-ml-2.5 -mr-3 flex flex-1 flex-col gap-3 overflow-y-auto p-2.5 pr-3 pb-8 hotel-canvas-scroll">
                 {filteredHotels.length === 0 ? (
                   <div className="flex h-64 flex-col items-center justify-center space-y-3 rounded-2xl bg-card p-8 text-center text-muted-foreground">
                     <HotelIcon className="h-10 w-10 text-muted-foreground" />

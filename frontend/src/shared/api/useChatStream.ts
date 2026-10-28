@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback,useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { appendLlmUsage, LlmRequestMeta, LlmUsagePayload } from "./llmUsageStore";
 import { readSSEStream } from "./sseReader";
@@ -197,15 +197,29 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [thoughts, setThoughts] = useState<ThoughtItem[]>([]);
-  const [hotels, setHotels] = useState<HotelData[]>(() => getCachedHotels());
+  // Кэш из sessionStorage читаем только после гидрации: на сервере его нет,
+  // и ленивая инициализация useState давала рассинхрон разметки (hydration error).
+  const [hotels, setHotels] = useState<HotelData[]>([]);
   const [chips, setChips] = useState<string[]>([]);
-  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(() =>
-    getCachedTransport()
-  );
+  const [transportSummary, setTransportSummary] = useState<TransportSummaryData | null>(null);
+  const [isCacheRestored, setIsCacheRestored] = useState(false);
   const [offlineMode, setOfflineMode] = useState<string | null>(null);
   const [isStreaming, setIsStreaming] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const cachedHotels = getCachedHotels();
+    const cachedTransport = getCachedTransport();
+    // Не затираем данные, если их уже успели выставить до восстановления кэша.
+    if (cachedHotels.length > 0) {
+      setHotels((prev) => (prev.length > 0 ? prev : cachedHotels));
+    }
+    if (cachedTransport) {
+      setTransportSummary((prev) => prev ?? cachedTransport);
+    }
+    setIsCacheRestored(true);
+  }, []);
 
   const abortControllerRef = useRef<AbortController | null>(null);
   const isSubmittingRef = useRef(false);
@@ -469,6 +483,7 @@ export function useChatStream(options: UseChatStreamOptions = {}) {
     hotels,
     chips,
     transportSummary,
+    isCacheRestored,
     offlineMode,
     isStreaming,
     isThinking,

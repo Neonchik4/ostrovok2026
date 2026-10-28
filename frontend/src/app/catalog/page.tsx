@@ -26,6 +26,7 @@ export default function CatalogPage() {
     messages = [],
     hotels,
     transportSummary,
+    isCacheRestored,
     thoughts,
     isStreaming,
     sendMessage,
@@ -39,12 +40,12 @@ export default function CatalogPage() {
 
   const hasLoadedInitialRef = useRef(false);
   useEffect(() => {
-    if (hasLoadedInitialRef.current) return;
+    if (hasLoadedInitialRef.current || !isCacheRestored) return;
     if (hotels.length === 0 && !isStreaming) {
       hasLoadedInitialRef.current = true;
       void sendMessage("Популярные отели в Сочи и на Красной Поляне");
     }
-  }, [hotels.length, isStreaming, sendMessage]);
+  }, [hotels.length, isCacheRestored, isStreaming, sendMessage]);
 
   const handleGhostAction = (action: GhostAction) => {
     switch (action.type) {
