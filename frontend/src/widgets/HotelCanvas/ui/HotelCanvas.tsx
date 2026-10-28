@@ -5,7 +5,6 @@ import React, { useEffect, useState } from "react";
 
 import { Hotel, HotelCard } from "@/entities/hotel";
 import { HotelDetailView } from "@/features/hotel-details";
-import { ShareTripButton } from "@/features/share-trip";
 import { TransportSummaryData } from "@/shared/api";
 import { Badge, Button } from "@/shared/ui";
 
@@ -71,21 +70,6 @@ export function HotelCanvas({
             </Badge>
           )}
         </div>
-
-        {hotels.length > 0 && (
-          <div className="flex items-center gap-3">
-            <ShareTripButton
-              state={{
-                city: hotels[0]?.city,
-                selected_hotel_id: selectedHotel?.id,
-                nights: hotels[0]?.receipt?.nights,
-                guests: hotels[0]?.receipt?.tickets_count,
-                user_message: hotels[0] ? `Поездка в ${hotels[0].city}` : undefined,
-              }}
-              size="sm"
-            />
-          </div>
-        )}
       </header>
 
       {/* Основной контент */}

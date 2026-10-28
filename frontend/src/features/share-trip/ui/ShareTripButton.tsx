@@ -1,12 +1,15 @@
 "use client";
 
 import { Check, Share2 } from "lucide-react";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/shared/ui";
 
 import { buildShareTripUrl } from "../lib/shareTripUrl";
 import { TripShareState } from "../model/types";
+
+// Сколько показывать «Ссылка скопирована…» вместо подписи кнопки
+const COPIED_MESSAGE_MS = 1000;
 
 interface ShareTripButtonProps {
   state?: TripShareState;
@@ -28,6 +31,14 @@ export function ShareTripButton({
   className = "",
 }: ShareTripButtonProps) {
   const [copied, setCopied] = useState(false);
+  const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(
+    () => () => {
+      if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    },
+    []
+  );
 
   const handleShare = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -50,9 +61,8 @@ export function ShareTripButton({
     }
 
     setCopied(true);
-    setTimeout(() => {
-      setCopied(false), 2500;
-    }, 2500);
+    if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current);
+    copiedTimerRef.current = setTimeout(() => setCopied(false), COPIED_MESSAGE_MS);
   };
 
   return (
@@ -72,24 +82,15 @@ export function ShareTripButton({
         )}
         {!compact && (
           <span className="text-xs font-semibold">
-            {copied ? "Скопировано" : label}
+            {copied ? "Ссылка скопирована в буфер обмена" : label}
           </span>
         )}
       </Button>
 
-      {/* Всплывающий тост об успешном копировании */}
-      {copied && (
-        <div
-          role="status"
-          aria-live="polite"
-          className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 rounded-xl border border-primary/30 bg-card/95 px-4 py-3 text-xs font-bold text-foreground shadow-2xl backdrop-blur-md animate-in fade-in slide-in-from-bottom-2 duration-200"
-        >
-          <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-primary">
-            <Check className="h-3.5 w-3.5 stroke-[2.5]" />
-          </div>
-          <span>Ссылка скопирована в буфер обмена</span>
-        </div>
-      )}
+      {/* Сообщение показывается в самой кнопке; здесь — только для скринридеров */}
+      <span role="status" aria-live="polite" className="sr-only">
+        {copied ? "Ссылка скопирована в буфер обмена" : ""}
+      </span>
     </div>
   );
 }

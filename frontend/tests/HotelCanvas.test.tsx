@@ -48,6 +48,8 @@ describe("HotelCanvas Mode Switching (Frontend 1)", () => {
     expect(screen.getByText("Отель Лазурный")).toBeInTheDocument();
     expect(screen.getByText("Горный Рассвет")).toBeInTheDocument();
     expect(screen.getByText(/Найдено 2 отеля/)).toBeInTheDocument();
+    // «Поделиться» живёт только в шапке сайта — в витрине дубля нет
+    expect(screen.queryByRole("button", { name: /Поделиться поездкой/ })).not.toBeInTheDocument();
     // No detail view yet
     expect(screen.queryByTestId("hotel-detail-view")).not.toBeInTheDocument();
     // Modal is completely absent
