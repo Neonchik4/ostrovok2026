@@ -65,18 +65,33 @@ describe("HotelCanvas Mode Switching (Frontend 1)", () => {
 
     // Detail mode is rendered inline
     expect(screen.getByTestId("hotel-detail-view")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Назад к вариантам/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Назад к списку/i })).toBeInTheDocument();
     // Still no modal dialog
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     // Click back button
     await act(async () => {
-      fireEvent.click(screen.getByRole("button", { name: /Назад к вариантам/i }));
+      fireEvent.click(screen.getByRole("button", { name: /Назад к списку/i }));
     });
 
     // Back to list mode
     expect(screen.queryByTestId("hotel-detail-view")).not.toBeInTheDocument();
     expect(screen.getByText("Отель Лазурный")).toBeInTheDocument();
     expect(screen.getByText("Горный Рассвет")).toBeInTheDocument();
+  });
+
+  it("keeps the hotel detail view as wide as the showcase list (no size jump)", async () => {
+    render(<HotelCanvas hotels={mockHotels} isStreaming={false} />);
+
+    const maxWidthOf = (el: Element | null) => el?.className.match(/\bmax-w-\S+/)?.[0];
+    const listWrapper = screen.getByText("Отель Лазурный").closest(".mx-auto");
+    const listWidth = maxWidthOf(listWrapper);
+    expect(listWidth).toBeDefined();
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Отель Лазурный"));
+    });
+
+    expect(maxWidthOf(screen.getByTestId("hotel-detail-view"))).toBe(listWidth);
   });
 });
